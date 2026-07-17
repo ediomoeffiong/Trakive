@@ -1,0 +1,435 @@
+/* =============================================================================
+   Trakive — Global Styles & Design System
+   Tailwind CSS v4 with @theme directive for custom design tokens
+   Font: Inter is loaded via <link> in index.html for better performance.
+   ============================================================================= */
+
+@import "tailwindcss";
+
+/* ── Custom Design Tokens ──────────────────────────────────────────────────── */
+@theme {
+  /* Colour palette from PRD */
+  --color-primary-50:  #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;   /* PRIMARY */
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+
+  --color-success-50:  #f0fdf4;
+  --color-success-100: #dcfce7;
+  --color-success-500: #22c55e;   /* SUCCESS */
+  --color-success-600: #16a34a;
+  --color-success-700: #15803d;
+
+  --color-warning-50:  #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-500: #f59e0b;   /* WARNING */
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+
+  --color-danger-50:   #fef2f2;
+  --color-danger-100:  #fee2e2;
+  --color-danger-500:  #ef4444;   /* DANGER */
+  --color-danger-600:  #dc2626;
+  --color-danger-700:  #b91c1c;
+
+  --color-neutral-50:  #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;   /* NEUTRAL */
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+
+  /* Sidebar dimensions */
+  --sidebar-width:           240px;
+  --sidebar-collapsed-width: 72px;
+  --topbar-height:           64px;
+
+  /* Typography */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  /* Border radius */
+  --radius-card: 0.875rem;   /* 14px */
+  --radius-btn:  0.625rem;   /* 10px */
+
+  /* Shadows */
+  --shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
+  --shadow-card-hover: 0 4px 16px 0 rgb(0 0 0 / 0.10), 0 2px 6px -2px rgb(0 0 0 / 0.08);
+  --shadow-topbar:     0 1px 0 0 rgb(0 0 0 / 0.06);
+  --shadow-sidebar:    1px 0 0 0 rgb(0 0 0 / 0.06);
+}
+
+/* ── Base Reset & Defaults ──────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-neutral-50);
+  color: var(--color-neutral-800);
+  min-height: 100dvh;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Scrollbar Styling ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-300);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-400);
+}
+
+/* ── Focus Ring ─────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Typography Scale ───────────────────────────────────────────────────────── */
+h1 { font-size: 2rem;    font-weight: 700; line-height: 1.25; }
+h2 { font-size: 1.5rem;  font-weight: 700; line-height: 1.3;  }
+h3 { font-size: 1.25rem; font-weight: 600; line-height: 1.4;  }
+h4 { font-size: 1.125rem;font-weight: 600; line-height: 1.4;  }
+h5 { font-size: 1rem;    font-weight: 600; line-height: 1.5;  }
+h6 { font-size: 0.875rem;font-weight: 600; line-height: 1.5;  }
+
+p  { color: var(--color-neutral-600); }
+
+/* ── Utility: Visually Hidden ───────────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ── App Shell Layout ───────────────────────────────────────────────────────── */
+.app-shell {
+  display: flex;
+  min-height: 100dvh;
+}
+
+.app-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100dvh;
+  width: var(--sidebar-width);
+  background: #ffffff;
+  box-shadow: var(--shadow-sidebar);
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 40;
+  overflow: hidden;
+}
+
+.app-sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+
+.app-main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.app-main.sidebar-collapsed {
+  margin-left: var(--sidebar-collapsed-width);
+}
+
+.app-topbar {
+  position: sticky;
+  top: 0;
+  height: var(--topbar-height);
+  background: #ffffff;
+  box-shadow: var(--shadow-topbar);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  gap: 1rem;
+}
+
+.app-content {
+  flex: 1;
+  padding: 2rem 1.5rem;
+  overflow-y: auto;
+}
+
+/* ── Card ───────────────────────────────────────────────────────────────────── */
+.card {
+  background: #ffffff;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.card-interactive {
+  cursor: pointer;
+}
+
+.card-interactive:hover {
+  transform: translateY(-1px);
+}
+
+/* ── Nav Item ───────────────────────────────────────────────────────────────── */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.625rem;
+  color: var(--color-neutral-600);
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: background 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.nav-item:hover {
+  background: var(--color-primary-50);
+  color: var(--color-primary-600);
+}
+
+.nav-item.active {
+  background: var(--color-primary-50);
+  color: var(--color-primary-600);
+  font-weight: 600;
+}
+
+.nav-item .nav-icon {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+/* ── Badge ──────────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.badge-primary { background: var(--color-primary-100);  color: var(--color-primary-700);  }
+.badge-success { background: var(--color-success-100);  color: var(--color-success-700);  }
+.badge-warning { background: var(--color-warning-100);  color: var(--color-warning-700);  }
+.badge-danger  { background: var(--color-danger-100);   color: var(--color-danger-700);   }
+.badge-neutral { background: var(--color-neutral-100);  color: var(--color-neutral-700);  }
+
+/* ── Button ─────────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5625rem 1.125rem;
+  border-radius: var(--radius-btn);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+  outline: none;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-primary-600);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-700);
+  box-shadow: 0 4px 12px rgb(37 99 235 / 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-700);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-neutral-200);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--color-primary-600);
+  border: 1.5px solid var(--color-primary-600);
+}
+.btn-outline:hover:not(:disabled) {
+  background: var(--color-primary-50);
+}
+
+.btn-danger {
+  background: var(--color-danger-500);
+  color: #fff;
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--color-danger-600);
+  box-shadow: 0 4px 12px rgb(239 68 68 / 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-neutral-600);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-800);
+}
+
+/* Size variants */
+.btn-sm { padding: 0.375rem 0.875rem; font-size: 0.8125rem; }
+.btn-lg { padding: 0.75rem 1.5rem;   font-size: 1rem;      }
+.btn-xl { padding: 0.875rem 1.75rem; font-size: 1.0625rem; border-radius: 0.75rem; }
+
+/* Icon-only button */
+.btn-icon {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+/* ── Input ──────────────────────────────────────────────────────────────────── */
+.input-field {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1.5px solid var(--color-neutral-200);
+  border-radius: 0.625rem;
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  background: #fff;
+  color: var(--color-neutral-800);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+
+.input-field::placeholder {
+  color: var(--color-neutral-400);
+}
+
+.input-field:focus {
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+}
+
+.input-field.error {
+  border-color: var(--color-danger-500);
+}
+
+.input-field.error:focus {
+  box-shadow: 0 0 0 3px rgb(239 68 68 / 0.1);
+}
+
+/* ── Divider ─────────────────────────────────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: var(--color-neutral-200);
+  margin: 0.5rem 0;
+}
+
+/* ── Responsive: mobile sidebar overlay ─────────────────────────────────────── */
+@media (max-width: 1023px) {
+  .app-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .app-sidebar.mobile-open {
+    transform: translateX(0);
+    width: var(--sidebar-width);
+  }
+
+  .app-main {
+    margin-left: 0 !important;
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgb(0 0 0 / 0.4);
+    z-index: 39;
+    backdrop-filter: blur(2px);
+  }
+}
+
+/* ── Onboarding step detail responsive grid ──────────────────────────────────── */
+.step-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .step-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Keyframe: spin ──────────────────────────────────────────────────────────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
