@@ -89,7 +89,7 @@ const HeroSection = () => {
           }}
         >
           Trakive gives interns a structured way to manage tasks, track progress,
-          and receive performance reviews — while giving organisations complete
+          and receive performance reviews, while giving organisations complete
           visibility over their internship programmes.
         </motion.p>
 
@@ -172,7 +172,7 @@ const HeroSection = () => {
           }}
         >
           <RiShieldCheckLine aria-hidden style={{ color: 'var(--color-success-500)' }} />
-          Free to use · No credit card required · Set up in minutes
+          Free to use · Easy Setup
         </motion.p>
       </motion.div>
     </section>

@@ -13,13 +13,13 @@ export const mockReviewDetails = {
     reviewDate: '2026-06-30',
     publishedAt: '2026-07-02',
     reviewerId: 'sup-001',
-    reviewerName: 'Dr. Sarah Chen',
-    reviewerRole: 'Senior Engineering Manager',
-    reviewerAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
+    reviewerName: 'Tochukwu Mgbemena',
+    reviewerRole: 'Supervisor',
+    reviewerAvatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTp5OZN_RzRJQ2uE0wMl4jfA5IjbH8B6S9IJaY9tRUBLQ&s=10',
     overallScore: 88,
     status: 'published',
     overallSummary:
-      'Alex has demonstrated exceptional growth during the first month of the internship. Their ability to quickly absorb information and apply it to real-world problems is commendable. The quality of work delivered has consistently met or exceeded expectations, and their communication style has been a great addition to the team dynamic.',
+      'Covenant has demonstrated exceptional growth during the nine month of the internship. Their ability to quickly absorb information and apply it to real-world problems is commendable. The quality of work delivered has consistently met or exceeded expectations, and their communication style has been a great addition to the team dynamic.',
     evaluationCriteria: [
       {
         id: 'productivity',
@@ -109,9 +109,9 @@ export const mockReviewDetails = {
     reviewDate: '2026-06-14',
     publishedAt: '2026-06-15',
     reviewerId: 'sup-001',
-    reviewerName: 'Dr. Sarah Chen',
-    reviewerRole: 'Senior Engineering Manager',
-    reviewerAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
+    reviewerName: 'Moradeke Akintola',
+    reviewerRole: 'Department Head',
+    reviewerAvatar: 'https://media.licdn.com/dms/image/v2/C4E03AQE9cuYESnpQ-g/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1517532620864?e=2147483647&v=beta&t=e52Dy0Qfu0GcbSIIlxlwbUdKKryeHHHWoDrDt6lM83Q',
     overallScore: 82,
     status: 'published',
     overallSummary:
@@ -196,9 +196,9 @@ export const mockReviewDetails = {
     reviewDate: '2026-06-28',
     publishedAt: '2026-06-29',
     reviewerId: 'sup-002',
-    reviewerName: 'Marcus Thompson',
-    reviewerRole: 'Lead Product Designer',
-    reviewerAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+    reviewerName: 'Tinu Adeyemi',
+    reviewerRole: 'HR Administrator',
+    reviewerAvatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOJU2OaNdLSLyJcEAW9WkK8QGGIy2WMqoIQR37JijSnw&s=10',
     overallScore: 91,
     status: 'published',
     overallSummary:

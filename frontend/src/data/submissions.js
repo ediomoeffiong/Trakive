@@ -12,7 +12,7 @@ export const mockSubmissions = {
       fileSize: "850 KB",
       status: "completed",
       feedback: "Great job! You scored 100% on the security and compliance quiz. You're ready to proceed with your tasks.",
-      feedbackAuthor: "Sarah Jenkins (Security Lead)",
+      feedbackAuthor: "Moses Mornu (Security Lead)",
       feedbackDate: "2026-07-14T16:00:00Z"
     }
   ],
@@ -24,7 +24,7 @@ export const mockSubmissions = {
       fileSize: "45 KB",
       status: "completed",
       feedback: "Verified SSH keys and repository sync. Build and test runs successfully on your local machine. Good work.",
-      feedbackAuthor: "Marcus Chen (Senior Developer)",
+      feedbackAuthor: "Gbolohan Folarin (Senior Developer)",
       feedbackDate: "2026-07-16T11:30:00Z"
     }
   ],
@@ -38,7 +38,7 @@ export const mockSubmissions = {
       fileSize: "1.2 MB",
       status: "needs-revision",
       feedback: "You've missed examining the performance impact of the dynamic charts. Please check if lazy loading is properly implemented.",
-      feedbackAuthor: "Marcus Chen (Senior Developer)",
+      feedbackAuthor: "Amara Ude (Senior Developer)",
       feedbackDate: "2026-07-19T15:45:00Z"
     }
   ],
@@ -50,7 +50,7 @@ export const mockSubmissions = {
       fileSize: "12 KB",
       status: "completed",
       feedback: "Intro meeting scheduled and completed successfully. Expectations are aligned.",
-      feedbackAuthor: "Marcus Chen (Mentor)",
+      feedbackAuthor: "Tochukwu Mgbemena (Supervisor)",
       feedbackDate: "2026-07-12T12:00:00Z"
     }
   ],
@@ -63,7 +63,7 @@ export const mockSubmissions = {
       fileSize: "320 KB",
       status: "needs-revision",
       feedback: "Please review section 4 on color palettes again. The contrast ratios listed are slightly off standard WCAG guidelines.",
-      feedbackAuthor: "Sarah Jenkins (UX Lead)",
+      feedbackAuthor: "Chris (UX Lead)",
       feedbackDate: "2026-07-14T09:00:00Z"
     }
   ]

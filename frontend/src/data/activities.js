@@ -16,9 +16,9 @@ export const mockActivities = [
     id: "act-2",
     type: "review_received",
     title: "Review Received",
-    description: "Mentor Jane Smith left positive feedback on Security & Compliance Training.",
+    description: "Tochukwu Mgbemena Smith left positive feedback on Security & Compliance Training.",
     timestamp: "5 hours ago",
-    user: "Jane Smith"
+    user: "Tochukwu Mgbemena"
   },
   {
     id: "act-3",
