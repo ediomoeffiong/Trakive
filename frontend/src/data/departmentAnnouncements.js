@@ -1,0 +1,63 @@
+/**
+ * @file departmentAnnouncements.js
+ * @description Mock data for Department Head Announcements.
+ */
+
+export const deptAnnouncements = [
+  {
+    id: 'ann-dept-301',
+    title: 'Mid-Term Engineering Hackathon & Demo Day Guidelines',
+    content: 'We are thrilled to announce the 2026 Batch Alpha Engineering Hackathon scheduled for August 20th! All supervisors and interns across Frontend, Backend, DevOps, Data, and QA tracks are expected to participate. Code freeze is August 19th at 5:00 PM.',
+    audience: 'department_wide',
+    category: 'workshop',
+    authorName: 'Dr. Arinola Coker',
+    authorRole: 'Department Head',
+    datePosted: '2026-07-28T09:30:00Z',
+    pinned: true,
+    status: 'published',
+    viewCount: 54,
+    likes: 18,
+  },
+  {
+    id: 'ann-dept-302',
+    title: 'Mandatory Quarterly Evaluation Deadline for Supervisors',
+    content: 'All engineering supervisors must complete and submit Mid-Term Review reports for their assigned interns by Friday, August 8th at 6:00 PM. Please ensure all rubric categories (Technical, Soft Skills, Delivery Rate) are scored thoroughly.',
+    audience: 'supervisors_only',
+    category: 'urgent',
+    authorName: 'Dr. Arinola Coker',
+    authorRole: 'Department Head',
+    datePosted: '2026-07-25T14:15:00Z',
+    pinned: true,
+    status: 'published',
+    viewCount: 12,
+    likes: 5,
+  },
+  {
+    id: 'ann-dept-303',
+    title: 'New Cloud Sandbox Security Guardrails & AWS Credentials',
+    content: 'Starting next Monday, all DevOps and Backend interns must authenticate into the AWS Staging environment using Single Sign-On (SSO) with MFA enabled. Access keys stored in local .env files will be rotated and revoked automatically.',
+    audience: 'interns_only',
+    category: 'general',
+    authorName: 'Dr. Arinola Coker',
+    authorRole: 'Department Head',
+    datePosted: '2026-07-20T11:00:00Z',
+    pinned: false,
+    status: 'published',
+    viewCount: 42,
+    likes: 12,
+  },
+  {
+    id: 'ann-dept-304',
+    title: 'Draft: End-of-Cohort Mentorship Awards & Recognition Program',
+    content: 'Proposing a new peer-voted recognition award for top performing interns and outstanding mentors at the end of Batch Alpha.',
+    audience: 'department_wide',
+    category: 'general',
+    authorName: 'Dr. Arinola Coker',
+    authorRole: 'Department Head',
+    datePosted: '2026-07-18T16:45:00Z',
+    pinned: false,
+    status: 'draft',
+    viewCount: 0,
+    likes: 0,
+  },
+];

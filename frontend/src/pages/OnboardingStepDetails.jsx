@@ -936,11 +936,12 @@ export default function OnboardingStepDetails() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3, delay: 0.12 }}
             style={{
-              background: 'linear-gradient(145deg, #1e1b4b, #312e81)',
+              background: 'linear-gradient(145deg, #1e293b, #1e3a8a)',
               borderRadius: '1.125rem',
               padding: '1.25rem',
               display: 'flex', flexDirection: 'column', gap: '0.875rem',
-              boxShadow: '0 4px 20px rgba(99,102,241,0.25)',
+              boxShadow: '0 8px 32px rgba(37, 99, 235, 0.22)',
+
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>

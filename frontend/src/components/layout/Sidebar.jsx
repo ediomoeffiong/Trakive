@@ -15,6 +15,7 @@ import {
   RiTaskLine,
   RiCheckboxMultipleLine,
   RiStarLine,
+  RiBarChartBoxLine,
   RiBellLine,
   RiUser3Line,
   RiSettings3Line,
@@ -28,12 +29,14 @@ import { useSidebarCollapsed, useToggleSidebar, useAppStore } from '../../store'
 // ── Navigation Configuration ──────────────────────────────────────────────────
 const NAV_ITEMS = [
   { label: 'Dashboard',     icon: RiDashboardLine,         to: ROUTES.DASHBOARD },
+  { label: 'Analytics',     icon: RiBarChartBoxLine,       to: ROUTES.ANALYTICS },
   { label: 'Tasks',         icon: RiTaskLine,              to: ROUTES.TASKS },
   { label: 'Onboarding',    icon: RiCheckboxMultipleLine,  to: ROUTES.ONBOARDING },
   { label: 'Reviews',       icon: RiStarLine,              to: ROUTES.REVIEWS },
   { label: 'Notifications', icon: RiBellLine,             to: ROUTES.NOTIFICATIONS },
   { label: 'Profile',       icon: RiUser3Line,             to: ROUTES.PROFILE },
 ];
+
 
 const BOTTOM_NAV = [
   { label: 'Settings', icon: RiSettings3Line, to: ROUTES.SETTINGS },

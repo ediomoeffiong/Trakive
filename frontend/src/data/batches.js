@@ -1,0 +1,83 @@
+/**
+ * @file batches.js
+ * @description Mock data for internship cohorts/batches.
+ */
+
+export const mockBatches = [
+  {
+    id: 'batch-001',
+    name: 'Batch 2026-B1',
+    description: 'First cohort of 2026 — Engineering & Product focus.',
+    startDate: '2026-01-06',
+    endDate: '2026-04-04',
+    status: 'completed',
+    totalInterns: 42,
+    completedInterns: 40,
+    completionRate: 95.2,
+    departments: ['Engineering', 'Product'],
+    supervisorCount: 8,
+    color: '#10b981',
+  },
+  {
+    id: 'batch-002',
+    name: 'Batch 2026-B2',
+    description: 'Second cohort of 2026 — Design & Marketing.',
+    startDate: '2026-02-10',
+    endDate: '2026-05-09',
+    status: 'completed',
+    totalInterns: 36,
+    completedInterns: 33,
+    completionRate: 91.7,
+    departments: ['Design', 'Marketing'],
+    supervisorCount: 6,
+    color: '#10b981',
+  },
+  {
+    id: 'batch-003',
+    name: 'Batch 2026-B3',
+    description: 'Third cohort — cross-department: Engineering, Design, Data Science, HR.',
+    startDate: '2026-05-01',
+    endDate: '2026-07-31',
+    status: 'active',
+    totalInterns: 48,
+    completedInterns: 0,
+    completionRate: 0,
+    departments: ['Engineering', 'Design', 'Data Science', 'HR'],
+    supervisorCount: 10,
+    color: '#6366f1',
+  },
+  {
+    id: 'batch-004',
+    name: 'Batch 2026-B4',
+    description: 'Fourth cohort — Finance, Marketing, Operations.',
+    startDate: '2026-06-15',
+    endDate: '2026-09-13',
+    status: 'active',
+    totalInterns: 38,
+    completedInterns: 0,
+    completionRate: 0,
+    departments: ['Finance', 'Marketing', 'Operations'],
+    supervisorCount: 7,
+    color: '#6366f1',
+  },
+  {
+    id: 'batch-005',
+    name: 'Batch 2026-B5',
+    description: 'Fifth cohort — All departments, Q4 intake.',
+    startDate: '2026-10-01',
+    endDate: '2026-12-30',
+    status: 'upcoming',
+    totalInterns: 0,
+    completedInterns: 0,
+    completionRate: 0,
+    departments: [],
+    supervisorCount: 0,
+    color: '#f59e0b',
+  },
+];
+
+export const mockBatchInternAssignments = {
+  'batch-003': ['int-001', 'int-002', 'int-003', 'int-004', 'int-005'],
+  'batch-004': ['int-006', 'int-007', 'int-008', 'int-009'],
+  'batch-005': [],
+};

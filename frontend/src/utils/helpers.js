@@ -3,6 +3,8 @@
  * @description General-purpose helper functions for Trakive.
  */
 
+import { ROUTES } from '../constants';
+
 /**
  * Create a class-name string from a list of values (filters out falsy values).
  * Equivalent to the popular `clsx` library — avoids an extra dependency.
@@ -74,3 +76,23 @@ export function omit(obj, keys) {
     Object.entries(obj).filter(([k]) => !keys.includes(k)),
   );
 }
+
+/**
+ * Get default home route for a given user role.
+ * @param {string} role
+ * @returns {string}
+ */
+export function getRoleDefaultRoute(role) {
+  if (role === 'Supervisor' || role === 'supervisor') {
+    return ROUTES.SUPERVISOR_DASHBOARD || '/supervisor/dashboard';
+  }
+  if (role === 'HR Administrator' || role === 'hr_admin') {
+    return ROUTES.ADMIN_DASHBOARD || '/admin/dashboard';
+  }
+  if (role === 'Department Head' || role === 'department_head') {
+    return ROUTES.DEPARTMENT_HEAD_DASHBOARD || '/department-head';
+  }
+  return ROUTES.DASHBOARD || '/dashboard';
+}
+
+

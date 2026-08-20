@@ -6,15 +6,15 @@ import toast from 'react-hot-toast';
 
 import { useAppStore } from '../store/useAppStore';
 import { ROUTES } from '../constants';
-import { mockUsers, DEFAULT_MOCK_PASSWORD } from '../data/mockUsers';
 import {
   AuthCard,
   AuthHeader,
   Input,
   Button,
   ErrorMessage,
-  DividerWithText,
 } from '../components/ui';
+
+import { getRoleDefaultRoute } from '../utils';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -43,18 +43,13 @@ const Login = () => {
     try {
       const response = await loginFn({ email: data.email, password: data.password });
       toast.success(`Welcome back, ${response.user.name}!`);
-      navigate(ROUTES.DASHBOARD);
+      const defaultRoute = getRoleDefaultRoute(response.user.role);
+      navigate(defaultRoute);
     } catch (err) {
       // Store error state handles display.
     }
   };
 
-  const handleQuickLogin = (email) => {
-    setValue('email', email, { shouldValidate: true });
-    setValue('password', DEFAULT_MOCK_PASSWORD, { shouldValidate: true });
-    clearError();
-    handleSubmit(onSubmit)();
-  };
 
   return (
     <AuthCard>
@@ -144,27 +139,6 @@ const Login = () => {
         </Button>
       </form>
 
-      <DividerWithText>Quick test accounts</DividerWithText>
-
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {mockUsers.map((mUser) => (
-          <button
-            key={mUser.id}
-            type="button"
-            onClick={() => handleQuickLogin(mUser.email)}
-            disabled={authLoading}
-            className="flex min-h-14 cursor-pointer flex-col items-start justify-center rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-left transition duration-200 hover:border-primary-300 hover:bg-primary-50 disabled:opacity-50"
-          >
-            <span className="block text-xs font-bold leading-tight text-neutral-800">
-              {mUser.name}
-            </span>
-            <span className="mt-1 block text-[10px] leading-tight text-neutral-500">
-              {mUser.role} ({mUser.department.split(' ')[0]})
-            </span>
-          </button>
-        ))}
-      </div>
-
       <p className="mb-0 mt-6 text-center text-sm text-neutral-500">
         New to Trakive?{' '}
         <Link
@@ -178,5 +152,6 @@ const Login = () => {
     </AuthCard>
   );
 };
+
 
 export default Login;

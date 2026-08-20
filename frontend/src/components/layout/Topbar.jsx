@@ -4,13 +4,12 @@
  * Displays: hamburger (mobile), page title, search, notifications, user avatar, name & role.
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   RiMenuLine,
-  RiBellLine,
   RiSearchLine,
   RiSunLine,
   RiMoonLine,
@@ -19,191 +18,34 @@ import {
   RiLogoutBoxRLine,
 } from 'react-icons/ri';
 import Avatar from '../ui/Avatar';
-import { useCurrentUser, useTheme, useAppStore, useDashboardStore } from '../../store';
+import { useCurrentUser, useTheme, useAppStore } from '../../store';
+import { NotificationDrawer } from '../notifications';
 import { ROUTES } from '../../constants';
 
 // ── Route → Page title map ────────────────────────────────────────────────────
 const PAGE_TITLES = {
-  [ROUTES.DASHBOARD]:     'Dashboard',
-  [ROUTES.TASKS]:         'Tasks',
-  [ROUTES.TASK_DETAILS]:  'Task Details',
-  [ROUTES.ONBOARDING]:    'Onboarding Pathway',
-  [ROUTES.REVIEWS]:       'Performance Reviews',
-  [ROUTES.NOTIFICATIONS]: 'Notifications',
-  [ROUTES.SETTINGS]:      'Settings',
-  [ROUTES.PROFILE]:       'My Profile',
+  [ROUTES.DASHBOARD]:        'Dashboard',
+  [ROUTES.ANALYTICS]:        'Reports & Analytics Hub',
+  [ROUTES.ANALYTICS_COMPARE]:'Comparative Performance Analytics',
+  [ROUTES.REPORTS]:          'Reports & Analytics Hub',
+  [ROUTES.REPORTS_BUILDER]:  'Custom Report Builder',
+  [ROUTES.REPORTS_SAVED]:    'Saved Reports & Templates',
+  [ROUTES.REPORTS_EXPORT]:   'Export & Download Center',
+  [ROUTES.TASKS]:            'Tasks',
+  [ROUTES.TASK_DETAILS]:     'Task Details',
+  [ROUTES.ONBOARDING]:       'Onboarding Pathway',
+  [ROUTES.REVIEWS]:          'Performance Reviews',
+  [ROUTES.NOTIFICATIONS]:    'Notifications',
+  [ROUTES.SETTINGS]:         'Settings',
+  [ROUTES.PROFILE]:          'My Profile',
 };
 
-// ── Notification Bell ─────────────────────────────────────────────────────────
-function NotificationBell() {
-  const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
-  const notifications = useDashboardStore((s) => s.notifications);
-  const fetchNotifications = useDashboardStore((s) => s.fetchNotifications);
-  const markAllRead = useDashboardStore((s) => s.markAllNotificationsRead);
-  const markRead = useDashboardStore((s) => s.markNotificationRead);
 
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
 
-  const unreadNotifications = notifications.filter((n) => n.unread);
-  const unreadCount = unreadNotifications.length;
+// ── NotificationBell is now handled by NotificationDrawer (components/notifications)
+// ── which uses useNotificationStore for full notification center integration.
 
-  return (
-    <div style={{ position: 'relative' }}>
-      <button
-        className="btn btn-ghost btn-icon"
-        onClick={() => setOpen((v) => !v)}
-        aria-label={`Notifications${unreadCount ? ` (${unreadCount} unread)` : ''}`}
-        aria-haspopup="true"
-        aria-expanded={open}
-        id="notification-bell-btn"
-        style={{ position: 'relative', fontSize: '1.2rem', color: 'var(--color-neutral-500)' }}
-      >
-        <RiBellLine />
-        {unreadCount > 0 && (
-          <span
-            style={{
-              position: 'absolute',
-              top: '4px',
-              right: '4px',
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: 'var(--color-danger-500)',
-              border: '2px solid #fff',
-            }}
-            aria-hidden
-          />
-        )}
-      </button>
 
-      <AnimatePresence>
-        {open && (
-          <>
-            {/* Click-away overlay */}
-            <div
-              style={{ position: 'fixed', inset: 0, zIndex: 50 }}
-              onClick={() => setOpen(false)}
-              aria-hidden
-            />
-            <motion.div
-              id="notification-panel"
-              role="dialog"
-              aria-label="Notifications"
-              initial={{ opacity: 0, y: -8, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.97 }}
-              transition={{ duration: 0.15 }}
-              style={{
-                position: 'absolute',
-                top: 'calc(100% + 0.5rem)',
-                right: 0,
-                width: '340px',
-                background: '#fff',
-                borderRadius: '0.875rem',
-                boxShadow: '0 8px 32px rgb(0 0 0 / 0.12)',
-                zIndex: 51,
-                overflow: 'hidden',
-                border: '1px solid var(--color-neutral-200)',
-              }}
-            >
-              <div
-                style={{
-                  padding: '1rem 1.25rem',
-                  borderBottom: '1px solid var(--color-neutral-100)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <h6 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>Notifications</h6>
-                {unreadCount > 0 && (
-                  <span
-                    onClick={markAllRead}
-                    style={{
-                      fontSize: '0.75rem',
-                      color: 'var(--color-primary-600)',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Mark all read
-                  </span>
-                )}
-              </div>
-
-              <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
-                {notifications.length === 0 ? (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-neutral-400)', fontSize: '0.875rem' }}>
-                    No notifications
-                  </div>
-                ) : (
-                  notifications.slice(0, 4).map((n) => (
-                    <div
-                      key={n.id}
-                      onClick={() => {
-                        markRead(n.id);
-                        setOpen(false);
-                        navigate(ROUTES.NOTIFICATIONS);
-                      }}
-                      style={{
-                        padding: '0.875rem 1.25rem',
-                        borderBottom: '1px solid var(--color-neutral-100)',
-                        background: n.unread ? 'var(--color-primary-50)' : '#fff',
-                        cursor: 'pointer',
-                        transition: 'background 0.15s ease',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-neutral-50)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = n.unread ? 'var(--color-primary-50)' : '#fff')}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                        <div>
-                          <p style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-neutral-800)', marginBottom: '0.125rem' }}>
-                            {n.title}
-                          </p>
-                          <p style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)', margin: 0 }}>
-                            {n.description}
-                          </p>
-                        </div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                          {n.timestamp}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div
-                style={{
-                  padding: '0.75rem',
-                  textAlign: 'center',
-                  background: 'var(--color-neutral-50)',
-                  borderTop: '1px solid var(--color-neutral-100)',
-                }}
-              >
-                <button
-                  onClick={() => {
-                    setOpen(false);
-                    navigate(ROUTES.NOTIFICATIONS);
-                  }}
-                  className="btn btn-ghost"
-                  style={{ width: '100%', fontSize: '0.8125rem', padding: '0.375rem', justifyContent: 'center' }}
-                >
-                  View All Notifications
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// ── Topbar ────────────────────────────────────────────────────────────────────
 const Topbar = ({ onMobileMenuOpen }) => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -303,8 +145,8 @@ const Topbar = ({ onMobileMenuOpen }) => {
         {theme === 'light' ? <RiMoonLine /> : <RiSunLine />}
       </button>
 
-      {/* Notifications */}
-      <NotificationBell />
+      {/* Notifications — powered by useNotificationStore */}
+      <NotificationDrawer />
 
       {/* User profile dropdown trigger */}
       <div style={{ position: 'relative' }}>

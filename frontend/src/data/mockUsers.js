@@ -6,7 +6,7 @@
 export const mockUsers = [
   {
     id: 'u-1',
-    name: 'Covenant Effiong',
+    name: 'Ediomo Effiong',
     email: 'intern@trakive.com',
     role: 'Intern',
     department: 'FifthLab',
@@ -20,7 +20,7 @@ export const mockUsers = [
     role: 'Supervisor',
     department: 'FifthLab',
     avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTp5OZN_RzRJQ2uE0wMl4jfA5IjbH8B6S9IJaY9tRUBLQ&s=10',
-    bio: 'Senior Technical Lead & Engineering Supervisor.',
+    bio: 'Senior Project Manager & Lead.',
   },
   {
     id: 'u-3',

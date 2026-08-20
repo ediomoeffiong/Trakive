@@ -427,7 +427,7 @@ nvm alias default 20
 Download and install Git from git-scm.com. Configure your identity:
 \`\`\`bash
 git config --global user.name "Your Name"
-git config --global user.email "your.email@trakive.com"
+git config --global user.email 'ediomo.effiong@trakive.com'
 \`\`\`
 
 **Step 4 — Clone and Run Trakive Frontend**
@@ -494,7 +494,7 @@ Open http://localhost:5173 in your browser. You should see the Trakive login pag
 **Step 1 — Generate an SSH Key Pair**
 Open your terminal and run:
 \`\`\`bash
-ssh-keygen -t ed25519 -C "your.email@trakive.com"
+ssh-keygen -t ed25519 -C 'ediomo.effiong@trakive.com'
 \`\`\`
 Press Enter to accept the default file location. Set a strong passphrase when prompted.
 

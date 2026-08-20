@@ -83,7 +83,7 @@ export const mockReviews = [
     reviewDate: '2026-07-12',
     publishedAt: null,
     reviewerId: 'sup-002',
-    reviewerName: 'Covenant Effiong',
+    reviewerName: 'Ediomo Effiong',
     reviewerRole: 'Intern',
     reviewerAvatar: 'https://media.licdn.com/dms/image/v2/D4E03AQHi3ZYYUFg3BA/profile-displayphoto-scale_200_200/B4EZn2pX4JIQAY-/0/1760779700254?e=2147483647&v=beta&t=m2VcejF7Sc7-T5m2cldFz4lrewoSSMY6HyHc63NBtkM',
     overallScore: null,

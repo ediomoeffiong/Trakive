@@ -1,0 +1,73 @@
+/**
+ * @file achievements.js
+ * @description Mock achievements and badges data for Trakive User Profile module.
+ */
+
+export const mockAchievements = [
+  {
+    id: 'ach_001',
+    title: 'Onboarding Completed',
+    description: 'Successfully completed all onboarding steps and orientation materials within the first week.',
+    icon: '🎓',
+    color: '#6366f1',
+    bgColor: '#eef2ff',
+    earnedAt: '2026-01-10T10:00:00Z',
+    category: 'Milestone',
+    rare: false,
+  },
+  {
+    id: 'ach_002',
+    title: 'First Task Submitted',
+    description: 'Submitted your first task assignment before the deadline — a great start to your journey!',
+    icon: '✅',
+    color: '#22c55e',
+    bgColor: '#f0fdf4',
+    earnedAt: '2026-01-14T16:30:00Z',
+    category: 'Productivity',
+    rare: false,
+  },
+  {
+    id: 'ach_003',
+    title: 'Outstanding Performance',
+    description: 'Received an outstanding performance rating in the Q1 performance review cycle.',
+    icon: '⭐',
+    color: '#f59e0b',
+    bgColor: '#fffbeb',
+    earnedAt: '2026-04-05T09:00:00Z',
+    category: 'Performance',
+    rare: true,
+  },
+  {
+    id: 'ach_004',
+    title: 'Team Contributor',
+    description: 'Recognised for exceptional collaboration and contribution to team projects across departments.',
+    icon: '🤝',
+    color: '#ec4899',
+    bgColor: '#fdf2f8',
+    earnedAt: '2026-05-20T11:15:00Z',
+    category: 'Collaboration',
+    rare: false,
+  },
+  {
+    id: 'ach_005',
+    title: 'Early Bird',
+    description: 'Submitted 5 tasks consecutively ahead of schedule. Punctuality at its finest.',
+    icon: '🌅',
+    color: '#f97316',
+    bgColor: '#fff7ed',
+    earnedAt: '2026-03-12T08:45:00Z',
+    category: 'Productivity',
+    rare: false,
+  },
+  {
+    id: 'ach_006',
+    title: 'Knowledge Seeker',
+    description: 'Completed 3 optional training modules beyond the required curriculum.',
+    icon: '📚',
+    color: '#0ea5e9',
+    bgColor: '#f0f9ff',
+    earnedAt: '2026-02-28T14:00:00Z',
+    category: 'Learning',
+    rare: false,
+  },
+];

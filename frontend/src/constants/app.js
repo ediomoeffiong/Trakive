@@ -27,3 +27,28 @@ export const THEMES = {
   LIGHT: 'light',
   DARK: 'dark',
 };
+
+/** User Roles */
+export const USER_ROLES = {
+  INTERN: 'Intern',
+  SUPERVISOR: 'Supervisor',
+  HR_ADMIN: 'HR Administrator',
+  DEPARTMENT_HEAD: 'Department Head',
+};
+
+/** Department Head frontend permission matrix */
+export const DEPARTMENT_HEAD_PERMISSIONS = {
+  viewDepartment: true,
+  viewInterns: true,
+  manageInterns: false,
+  viewSupervisors: true,
+  manageSupervisors: false,
+  viewTasks: true,
+  manageTasks: false,
+  viewReviews: true,
+  manageReviews: false,
+  approveDepartmentRequests: true,
+  createAnnouncements: true,
+  viewAnalytics: true,
+  manageOrganization: false,
+};

@@ -10,7 +10,7 @@ export const mockActivities = [
     title: "Task Submitted",
     description: "Submitted Setup Development Environment & Git SSH Keys for review.",
     timestamp: "2 hours ago",
-    user: "John Doe"
+    user: "Ediomo Effiong"
   },
   {
     id: "act-2",
@@ -26,7 +26,7 @@ export const mockActivities = [
     title: "Onboarding Step Completed",
     description: "Completed the 'Schedule 1:1 Intro with Mentor' milestone.",
     timestamp: "Yesterday at 3:45 PM",
-    user: "John Doe"
+    user: "Ediomo Effiong"
   },
   {
     id: "act-4",
@@ -34,7 +34,7 @@ export const mockActivities = [
     title: "Profile Updated",
     description: "Added skills, university details, and profile photo.",
     timestamp: "2 days ago",
-    user: "John Doe"
+    user: "Ediomo Effiong"
   },
   {
     id: "act-5",

@@ -15,7 +15,7 @@ export const mockTaskComments = {
     },
     {
       id: "c1-2",
-      authorName: "Covenant Effiong",
+      authorName: 'Ediomo Effiong',
       authorRole: "Software Engineer Intern",
       avatar: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=150",
       timestamp: "2026-07-14T11:00:00Z",
@@ -33,7 +33,7 @@ export const mockTaskComments = {
     },
     {
       id: "c2-2",
-      authorName: "Covenant Effiong",
+      authorName: 'Ediomo Effiong',
       authorRole: "Software Engineer Intern",
       avatar: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=150",
       timestamp: "2026-07-15T14:20:00Z",

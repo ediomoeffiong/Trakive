@@ -1,0 +1,138 @@
+/**
+ * @file internProgress.js
+ * @description Per-intern progress metrics for the Supervisor Intern Management module.
+ * Tracks task completion, onboarding %, review %, overall progress, and attendance.
+ */
+
+export const mockInternProgress = {
+  'int-001': {
+    internId: 'int-001',
+    taskCompletion: { completed: 12, total: 14, percentage: 86 },
+    onboardingCompletion: { completed: 17, total: 20, percentage: 85 },
+    reviewCompletion: { completed: 3, total: 4, percentage: 75 },
+    overallProgress: 82,
+    attendance: { present: 48, total: 50, percentage: 96, streak: 12 },
+    weeklyHours: [38, 40, 42, 39, 41, 40, 38],
+    milestones: [
+      { id: 'm1', title: 'First Task Submitted', completed: true, date: '2026-06-08' },
+      { id: 'm2', title: 'Onboarding Phase 1 Complete', completed: true, date: '2026-06-15' },
+      { id: 'm3', title: 'Mid-term Review Passed', completed: true, date: '2026-07-10' },
+      { id: 'm4', title: 'Onboarding Phase 2 Complete', completed: false, date: null },
+      { id: 'm5', title: 'Final Performance Review', completed: false, date: null },
+    ],
+  },
+  'int-002': {
+    internId: 'int-002',
+    taskCompletion: { completed: 9, total: 13, percentage: 69 },
+    onboardingCompletion: { completed: 14, total: 20, percentage: 70 },
+    reviewCompletion: { completed: 2, total: 4, percentage: 50 },
+    overallProgress: 63,
+    attendance: { present: 44, total: 50, percentage: 88, streak: 5 },
+    weeklyHours: [36, 38, 35, 40, 38, 37, 36],
+    milestones: [
+      { id: 'm1', title: 'First Task Submitted', completed: true, date: '2026-06-10' },
+      { id: 'm2', title: 'Onboarding Phase 1 Complete', completed: true, date: '2026-06-20' },
+      { id: 'm3', title: 'Mid-term Review Passed', completed: false, date: null },
+      { id: 'm4', title: 'Onboarding Phase 2 Complete', completed: false, date: null },
+      { id: 'm5', title: 'Final Performance Review', completed: false, date: null },
+    ],
+  },
+  'int-003': {
+    internId: 'int-003',
+    taskCompletion: { completed: 15, total: 15, percentage: 100 },
+    onboardingCompletion: { completed: 20, total: 20, percentage: 100 },
+    reviewCompletion: { completed: 3, total: 3, percentage: 100 },
+    overallProgress: 100,
+    attendance: { present: 50, total: 50, percentage: 100, streak: 50 },
+    weeklyHours: [42, 40, 41, 43, 40, 42, 41],
+    milestones: [
+      { id: 'm1', title: 'First Task Submitted', completed: true, date: '2026-05-20' },
+      { id: 'm2', title: 'Onboarding Phase 1 Complete', completed: true, date: '2026-05-28' },
+      { id: 'm3', title: 'Mid-term Review Passed', completed: true, date: '2026-06-30' },
+      { id: 'm4', title: 'Onboarding Phase 2 Complete', completed: true, date: '2026-07-05' },
+      { id: 'm5', title: 'Final Performance Review', completed: true, date: '2026-07-20' },
+    ],
+  },
+  'int-004': {
+    internId: 'int-004',
+    taskCompletion: { completed: 7, total: 12, percentage: 58 },
+    onboardingCompletion: { completed: 12, total: 20, percentage: 60 },
+    reviewCompletion: { completed: 1, total: 3, percentage: 33 },
+    overallProgress: 50,
+    attendance: { present: 40, total: 44, percentage: 91, streak: 3 },
+    weeklyHours: [32, 35, 30, 38, 34, 33, 32],
+    milestones: [
+      { id: 'm1', title: 'First Task Submitted', completed: true, date: '2026-06-22' },
+      { id: 'm2', title: 'Onboarding Phase 1 Complete', completed: false, date: null },
+      { id: 'm3', title: 'Mid-term Review Passed', completed: false, date: null },
+      { id: 'm4', title: 'Onboarding Phase 2 Complete', completed: false, date: null },
+      { id: 'm5', title: 'Final Performance Review', completed: false, date: null },
+    ],
+  },
+  'int-005': {
+    internId: 'int-005',
+    taskCompletion: { completed: 11, total: 13, percentage: 85 },
+    onboardingCompletion: { completed: 18, total: 20, percentage: 90 },
+    reviewCompletion: { completed: 3, total: 4, percentage: 75 },
+    overallProgress: 83,
+    attendance: { present: 49, total: 50, percentage: 98, streak: 18 },
+    weeklyHours: [40, 42, 41, 40, 43, 41, 40],
+    milestones: [
+      { id: 'm1', title: 'First Task Submitted', completed: true, date: '2026-06-05' },
+      { id: 'm2', title: 'Onboarding Phase 1 Complete', completed: true, date: '2026-06-12' },
+      { id: 'm3', title: 'Mid-term Review Passed', completed: true, date: '2026-07-08' },
+      { id: 'm4', title: 'Onboarding Phase 2 Complete', completed: true, date: '2026-07-18' },
+      { id: 'm5', title: 'Final Performance Review', completed: false, date: null },
+    ],
+  },
+  'int-006': {
+    internId: 'int-006',
+    taskCompletion: { completed: 4, total: 10, percentage: 40 },
+    onboardingCompletion: { completed: 9, total: 20, percentage: 45 },
+    reviewCompletion: { completed: 1, total: 2, percentage: 50 },
+    overallProgress: 45,
+    attendance: { present: 22, total: 25, percentage: 88, streak: 2 },
+    weeklyHours: [28, 32, 30, 35, 29, 31, 28],
+    milestones: [
+      { id: 'm1', title: 'First Task Submitted', completed: true, date: '2026-07-08' },
+      { id: 'm2', title: 'Onboarding Phase 1 Complete', completed: false, date: null },
+      { id: 'm3', title: 'Mid-term Review Passed', completed: false, date: null },
+      { id: 'm4', title: 'Onboarding Phase 2 Complete', completed: false, date: null },
+      { id: 'm5', title: 'Final Performance Review', completed: false, date: null },
+    ],
+  },
+  'int-007': {
+    internId: 'int-007',
+    taskCompletion: { completed: 10, total: 13, percentage: 77 },
+    onboardingCompletion: { completed: 16, total: 20, percentage: 80 },
+    reviewCompletion: { completed: 2, total: 4, percentage: 50 },
+    overallProgress: 69,
+    attendance: { present: 45, total: 50, percentage: 90, streak: 7 },
+    weeklyHours: [36, 40, 38, 41, 37, 39, 38],
+    milestones: [
+      { id: 'm1', title: 'First Task Submitted', completed: true, date: '2026-06-08' },
+      { id: 'm2', title: 'Onboarding Phase 1 Complete', completed: true, date: '2026-06-18' },
+      { id: 'm3', title: 'Mid-term Review Passed', completed: true, date: '2026-07-15' },
+      { id: 'm4', title: 'Onboarding Phase 2 Complete', completed: false, date: null },
+      { id: 'm5', title: 'Final Performance Review', completed: false, date: null },
+    ],
+  },
+  'int-008': {
+    internId: 'int-008',
+    taskCompletion: { completed: 5, total: 10, percentage: 50 },
+    onboardingCompletion: { completed: 10, total: 20, percentage: 50 },
+    reviewCompletion: { completed: 1, total: 3, percentage: 33 },
+    overallProgress: 44,
+    attendance: { present: 30, total: 38, percentage: 79, streak: 0 },
+    weeklyHours: [38, 40, 36, 0, 0, 0, 0],
+    milestones: [
+      { id: 'm1', title: 'First Task Submitted', completed: true, date: '2026-06-22' },
+      { id: 'm2', title: 'Onboarding Phase 1 Complete', completed: false, date: null },
+      { id: 'm3', title: 'Mid-term Review Passed', completed: false, date: null },
+      { id: 'm4', title: 'Onboarding Phase 2 Complete', completed: false, date: null },
+      { id: 'm5', title: 'Final Performance Review', completed: false, date: null },
+    ],
+  },
+};
+
+export default mockInternProgress;

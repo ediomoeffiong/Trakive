@@ -174,9 +174,11 @@ const Register = () => {
                 {...register('department', { required: 'Please select a department' })}
               >
                 <option value="">Select your department...</option>
-                <option value="Engineering">Engineering</option>
+                <option value="Fifthlab">Fifthlab</option>
+                <option value="HR">HR</option>
+                <option value="IT Support">IT Support</option>
+                <option value="Finacle">Finacle</option>
                 <option value="Product & Design">Product & Design</option>
-                <option value="People Operations">People Operations</option>
                 <option value="Marketing & Sales">Marketing & Sales</option>
                 <option value="Finance">Finance</option>
               </select>
