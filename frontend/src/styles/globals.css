@@ -6,7 +6,6 @@
 
 @import "tailwindcss";
 
-/* ── Custom Design Tokens ──────────────────────────────────────────────────── */
 @theme {
   /* Colour palette from PRD */
   --color-primary-50:  #eff6ff;
@@ -68,6 +67,36 @@
   --shadow-sidebar:    1px 0 0 0 rgb(0 0 0 / 0.06);
 }
 
+:root {
+  color-scheme: light;
+  --surface-page: #f8fafc;
+  --surface-raised: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-neutral-50: #0f172a;
+  --color-neutral-100: #1e293b;
+  --color-neutral-200: #334155;
+  --color-neutral-300: #475569;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #cbd5e1;
+  --color-neutral-600: #e2e8f0;
+  --color-neutral-700: #f1f5f9;
+  --color-neutral-800: #f8fafc;
+  --color-neutral-900: #ffffff;
+  --surface-page: #0f172a;
+  --surface-raised: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  --shadow-card-hover: 0 4px 16px 0 rgb(0 0 0 / 0.4), 0 2px 6px -2px rgb(0 0 0 / 0.3);
+  --shadow-topbar: 0 1px 0 0 rgb(255 255 255 / 0.08);
+  --shadow-sidebar: 1px 0 0 0 rgb(255 255 255 / 0.08);
+}
+
 /* ── Base Reset & Defaults ──────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -85,9 +114,10 @@ html {
 }
 
 body {
-  background-color: var(--color-neutral-50);
-  color: var(--color-neutral-800);
+  background-color: var(--surface-page);
+  color: var(--text-primary);
   min-height: 100dvh;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #root {
@@ -157,7 +187,7 @@ p  { color: var(--color-neutral-600); }
   left: 0;
   height: 100dvh;
   width: var(--sidebar-width);
-  background: #ffffff;
+  background: var(--surface-raised);
   box-shadow: var(--shadow-sidebar);
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 40;
@@ -175,8 +205,6 @@ p  { color: var(--color-neutral-600); }
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
-  min-width: 0;
-  max-width: 100%;
 }
 
 .app-main.sidebar-collapsed {
@@ -187,7 +215,7 @@ p  { color: var(--color-neutral-600); }
   position: sticky;
   top: 0;
   height: var(--topbar-height);
-  background: #ffffff;
+  background: var(--surface-raised);
   box-shadow: var(--shadow-topbar);
   z-index: 30;
   display: flex;
@@ -200,26 +228,11 @@ p  { color: var(--color-neutral-600); }
   flex: 1;
   padding: 2rem 1.5rem;
   overflow-y: auto;
-  overflow-x: hidden;
-  min-width: 0;
-  width: 100%;
-  max-width: 100%;
-}
-
-/* Responsive visibility utilities */
-@media (max-width: 768px) {
-  .hide-on-mobile {
-    display: none !important;
-  }
-  .show-on-mobile {
-    display: block !important;
-  }
 }
 
 /* ── Card ───────────────────────────────────────────────────────────────────── */
 .card {
-  background: #ffffff;
-  border: 1px solid var(--color-neutral-200);
+  background: var(--surface-raised);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
@@ -235,37 +248,6 @@ p  { color: var(--color-neutral-600); }
 
 .card-interactive:hover {
   transform: translateY(-1px);
-}
-
-/* Profile surfaces need a clearer edge because many sections sit on light grey. */
-.profile-page {
-  padding-top: 0.125rem;
-}
-
-.profile-page .card {
-  border: 1.5px solid #d6dee9;
-  border-left: 4px solid var(--color-primary-500);
-  border-radius: 0.875rem;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 0.05), 0 2px 8px rgb(15 23 42 / 0.04);
-  background-clip: padding-box;
-}
-
-.profile-page .card:hover {
-  box-shadow: 0 3px 10px rgb(15 23 42 / 0.08);
-}
-
-.profile-page .overview-grid > .card,
-.profile-page .card.p-6 {
-  overflow: visible;
-}
-
-.profile-page .profile-header-card {
-  border-color: #cbd5e1;
-}
-
-.profile-page .profile-header-card .card,
-.profile-page [style*="background: var(--color-neutral-50)"] {
-  border-color: #d9e2ee !important;
 }
 
 /* ── Nav Item ───────────────────────────────────────────────────────────────── */
@@ -301,7 +283,7 @@ p  { color: var(--color-neutral-600); }
   font-size: 1.1rem;
 }
 
-/* ── Badge ──────────────────────────────────────────────────────────────────── */
+/* ── Badge ──────────────────────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -408,8 +390,8 @@ p  { color: var(--color-neutral-600); }
   border-radius: 0.625rem;
   font-size: 0.9rem;
   font-family: var(--font-sans);
-  background: #fff;
-  color: var(--color-neutral-800);
+  background: var(--surface-raised);
+  color: var(--text-primary);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   outline: none;
 }
@@ -431,7 +413,7 @@ p  { color: var(--color-neutral-600); }
   box-shadow: 0 0 0 3px rgb(239 68 68 / 0.1);
 }
 
-/* ── Divider ─────────────────────────────────────────────────────────────────── */
+/* ── Divider ─────────────────────────────────── */
 .divider {
   height: 1px;
   background: var(--color-neutral-200);
@@ -482,190 +464,25 @@ p  { color: var(--color-neutral-600); }
   to { transform: rotate(360deg); }
 }
 
-/* ── Keyframe: pulse ─────────────────────────────────────────────────────────── */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
+/* ── Welcome Banner - Cyan Blue #00B4D8 ─────────────────────────────────────── */
+.welcome-banner {
+  background: linear-gradient(135deg, #00B4D8 0%, #0096C7 100%);
+  border-radius: 1.125rem;
+  padding: 2rem;
+  color: #ffffff; /* white text for contrast on this color */
+  box-shadow: 0 8px 32px rgb(0 180 216 / 0.25);
 }
 
-/* ── Smooth theme transition ─────────────────────────────────────────────────── */
-*,
-*::before,
-*::after {
-  transition-property: background-color, border-color, color, box-shadow;
-  transition-duration: 0.2s;
-  transition-timing-function: ease;
+:root[data-theme='dark'] .welcome-banner {
+  background: linear-gradient(135deg, #0077B6 0%, #0096C7 100%); /* darker version for dark mode */
+  color: #ffffff;
 }
 
-/* Override: don't transition transforms/opacity (breaks animations) */
-.motion-safe *,
-button,
-a {
-  transition-property: background-color, border-color, color, box-shadow, transform, opacity;
+/* Make the profile completion box work on the new color */
+.welcome-banner div[style*="background: rgba"] {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
-
-/* ── Dark Theme ──────────────────────────────────────────────────────────────── */
-.dark {
-  color-scheme: dark;
-
-  /* Remap semantic surface colours */
-  --color-neutral-50:  #0f172a;
-  --color-neutral-100: #1e293b;
-  --color-neutral-200: #334155;
-  --color-neutral-300: #475569;
-  --color-neutral-400: #64748b;
-  --color-neutral-500: #94a3b8;
-  --color-neutral-600: #cbd5e1;
-  --color-neutral-700: #e2e8f0;
-  --color-neutral-800: #f1f5f9;
-  --color-neutral-900: #f8fafc;
-
-  /* Shadow deepening */
-  --shadow-card:       0 1px 4px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
-  --shadow-card-hover: 0 4px 20px 0 rgb(0 0 0 / 0.45), 0 2px 8px -2px rgb(0 0 0 / 0.35);
-  --shadow-topbar:     0 1px 0 0 rgb(255 255 255 / 0.06);
-  --shadow-sidebar:    1px 0 0 0 rgb(255 255 255 / 0.06);
-}
-
-/* Dark-mode element overrides */
-.dark body {
-  background-color: var(--color-neutral-50);
-  color: var(--color-neutral-800);
-}
-
-.dark .card {
-  background: var(--color-neutral-100);
-  border: 1px solid var(--color-neutral-200);
-}
-
-.dark .app-sidebar {
-  background: var(--color-neutral-100);
-}
-
-.dark .app-topbar {
-  background: var(--color-neutral-100);
-  border-bottom-color: var(--color-neutral-200);
-}
-
-.dark .input-field {
-  background: var(--color-neutral-100);
-  border-color: var(--color-neutral-200);
-  color: var(--color-neutral-800);
-}
-
-.dark .input-field:focus {
-  border-color: var(--color-primary-400);
-}
-
-.dark .btn-secondary {
-  background: var(--color-neutral-200);
-  color: var(--color-neutral-700);
-}
-
-.dark .btn-secondary:hover:not(:disabled) {
-  background: var(--color-neutral-300);
-}
-
-.dark .btn-ghost:hover:not(:disabled) {
-  background: var(--color-neutral-200);
-}
-
-.dark .nav-item:hover,
-.dark .nav-item.active {
-  background: rgba(37, 99, 235, 0.15);
-  color: var(--color-primary-400);
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: var(--color-neutral-300);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-neutral-400);
-}
-
-/* ── Skeleton loader ─────────────────────────────────────────────────────────── */
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--color-neutral-100) 25%,
-    var(--color-neutral-200) 50%,
-    var(--color-neutral-100) 75%
-  );
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.6s infinite;
-  border-radius: 0.5rem;
-}
-
-@keyframes skeleton-shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* ── Settings module layout utilities ────────────────────────────────────────── */
-.settings-grid {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 1.5rem;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .settings-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.settings-form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-@media (max-width: 600px) {
-  .settings-form-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Text-size accessibility scale */
-.text-scale-large {
-  font-size: 112.5%;
-}
-
-.text-scale-extra-large {
-  font-size: 125%;
-}
-
-/* Compact spacing mode */
-.spacing-compact .app-content {
-  padding: 1rem;
-}
-
-.spacing-compact .card > div {
-  padding: 0.875rem !important;
-}
-
-/* Enhanced focus indicator */
-.focus-enhanced :focus-visible {
-  outline: 3px solid var(--color-primary-500);
-  outline-offset: 3px;
-  box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.2);
-}
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .reduced-motion *,
-  .reduced-motion *::before,
-  .reduced-motion *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-.reduced-motion * {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
+.welcome-banner div[style*="background: rgba"] p {
+  color: rgba(255, 255, 255, 0.9) !important;
 }
