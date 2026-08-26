@@ -8,8 +8,8 @@ Trakive is an intern onboarding and performance tracking platform designed to he
 
 ```
 trakive/
-├── frontend/    ← React + Vite application (active development)
-├── backend/     ← Node.js / Express API (planned)
+├── frontend/    ← React + Vite application
+├── backend/     ← Node.js / Express API
 └── README.md
 ```
 
@@ -23,11 +23,11 @@ npm install
 npm run dev
 ```
 
-The app will be available at **http://localhost:5173 (Development) / https://trakive.vercel.app (Production)**
+The app will be available at **http://localhost:5173 (For Development) / https://trakive.vercel.app (In Production)**
 
 ### Backend
 
-Backend development has not started. See `backend/README.md` for the planned stack.
+Node js
 
 ---
 
