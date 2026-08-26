@@ -11,6 +11,8 @@ const {
   generateRandomToken,
 } = require('../utils/token.utils');
 
+const AuditLogModel = require('../models/auditLog.model');
+
 /**
  * Role name resolver helper
  */
@@ -67,6 +69,16 @@ const AuthService = {
     // Fetch user profile with role and permissions
     const userProfile = await UserModel.findByIdWithRoleAndPermissions(newUser.id);
 
+    // Audit log registration
+    await AuditLogModel.log({
+      organizationId: userProfile.organization_id,
+      userId: userProfile.id,
+      action: 'USER_REGISTER',
+      entityType: 'users',
+      entityId: userProfile.id,
+      details: { email: userProfile.email, role: userProfile.role_name },
+    });
+
     // Generate tokens
     const accessToken = generateAccessToken({
       userId: userProfile.id,
@@ -119,6 +131,18 @@ const AuthService = {
 
     // Fetch full user profile with role and permissions
     const userProfile = await UserModel.findByIdWithRoleAndPermissions(user.id);
+
+    // Audit log login
+    await AuditLogModel.log({
+      organizationId: userProfile.organization_id,
+      userId: userProfile.id,
+      action: 'USER_LOGIN',
+      entityType: 'users',
+      entityId: userProfile.id,
+      details: { email: userProfile.email },
+      ipAddress,
+      userAgent,
+    });
 
     // Generate token set
     const accessToken = generateAccessToken({
