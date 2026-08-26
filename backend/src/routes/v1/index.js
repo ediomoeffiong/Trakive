@@ -9,17 +9,6 @@ const onboardingRoutes = require('./onboarding.routes');
 const { authenticate, requireRole, requirePermission } = require('../../middleware/auth.middleware');
 const { sendSuccess } = require('../../utils/apiResponse');
 
-const taskRoutes = require('./task.routes');
-const attendanceRoutes = require('./attendance.routes');
-const leaveRoutes = require('./leave.routes');
-const activityRoutes = require('./activity.routes');
-
-// Day 7 Routes
-const notificationRoutes = require('./notification.routes');
-const documentRoutes = require('./document.routes');
-const conversationRoutes = require('./conversation.routes');
-const messageRoutes = require('./message.routes');
-
 const router = express.Router();
 
 // Health & Auth Routes
@@ -32,20 +21,6 @@ router.use('/departments', departmentRoutes);
 router.use('/interns', internRoutes);
 router.use('/applications', applicationRoutes);
 router.use('/onboarding', onboardingRoutes);
-
-// Day 5 Routes
-router.use('/tasks', taskRoutes);
-
-// Day 6 Routes
-router.use('/attendance', attendanceRoutes);
-router.use('/leave', leaveRoutes);
-router.use('/activity', activityRoutes);
-
-// Day 7 Routes
-router.use('/notifications', notificationRoutes);
-router.use('/documents', documentRoutes);
-router.use('/conversations', conversationRoutes);
-router.use('/messages', messageRoutes);
 
 // Protected Test Endpoints for Role & Permission Authorization Verification
 router.get('/test/intern', authenticate, requireRole('intern'), (req, res) => {

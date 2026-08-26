@@ -15,7 +15,6 @@ const Conversation = require('./conversation.model');
 const Document = require('./document.model');
 const Report = require('./report.model');
 const AuditLog = require('./auditLog.model');
-const Activity = require('./activity.model');
 
 module.exports = {
   Organization,
@@ -35,5 +34,4 @@ module.exports = {
   Document,
   Report,
   AuditLog,
-  Activity,
 };
