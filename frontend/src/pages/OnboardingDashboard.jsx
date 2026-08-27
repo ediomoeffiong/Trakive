@@ -373,23 +373,23 @@ function ProgressSidebar({ stats, categories, activeCategory, onCategoryChange, 
     }}>
       {/* Progress Ring Card */}
       <div style={{
-        background: 'linear-gradient(145deg, #1e293b 0%, #1e3a8a 100%)',
+        background: '#00b4d8',
         borderRadius: '1.25rem',
         padding: '1.75rem 1.5rem',
         position: 'relative', overflow: 'hidden',
-        boxShadow: '0 8px 32px rgba(37,99,235,0.2)',
+        boxShadow: '0 8px 32px rgba(0,180,216,0.25)',
       }}>
         {/* Decorative glow */}
         <div style={{
           position: 'absolute', top: '-40px', right: '-40px',
           width: '140px', height: '140px',
-          background: 'rgba(99,102,241,0.3)', borderRadius: '50%', filter: 'blur(40px)',
+          background: 'rgba(255,255,255,0.15)', borderRadius: '50%', filter: 'blur(40px)',
           pointerEvents: 'none',
         }} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', position: 'relative', zIndex: 1 }}>
           <RiSparklingLine style={{ color: '#93c5fd', fontSize: '0.9rem' }} />
-          <span style={{ fontSize: '0.675rem', fontWeight: 700, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+          <span style={{ fontSize: '0.675rem', fontWeight: 700, color: 'rgba(255, 255, 255, 0.95)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             Your Journey
           </span>
         </div>
@@ -407,14 +407,14 @@ function ProgressSidebar({ stats, categories, activeCategory, onCategoryChange, 
           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fff', lineHeight: 1 }}>
             {stats.percentage}% Complete
           </div>
-          <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.4rem', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.9)', marginTop: '0.4rem', lineHeight: 1.5 }}>
             {motivationalMessage(stats.percentage)}
           </p>
           {stats.estimatedTimeRemaining > 0 && (
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-              marginTop: '0.75rem', fontSize: '0.72rem', fontWeight: 600, color: '#bfdbfe',
-              background: 'rgba(255,255,255,0.1)', borderRadius: '99px',
+              marginTop: '0.75rem', fontSize: '0.72rem', fontWeight: 600, color: '#fff',
+              background: 'rgba(255,255,255,0.18)', borderRadius: '99px',
               padding: '0.3rem 0.7rem',
             }}>
               <RiTimeLine style={{ fontSize: '0.8rem' }} />
@@ -426,20 +426,20 @@ function ProgressSidebar({ stats, categories, activeCategory, onCategoryChange, 
         {/* Mini stat grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', position: 'relative', zIndex: 1 }}>
           {[
-            { v: stats.total,     l: 'Total',     c: '#e2e8f0' },
-            { v: stats.completed, l: 'Done',       c: '#86efac' },
-            { v: stats.verified,  l: 'Verified',   c: '#a5b4fc' },
-            { v: stats.remaining, l: 'Remaining',  c: '#fde68a' },
+            { v: stats.total,     l: 'Total',     c: '#fff' },
+            { v: stats.completed, l: 'Done',       c: '#fff' },
+            { v: stats.verified,  l: 'Verified',   c: '#fff' },
+            { v: stats.remaining, l: 'Remaining',  c: '#fff' },
           ].map(({ v, l, c }) => (
             <div key={l} style={{
-              background: 'rgba(255,255,255,0.07)',
+              background: 'rgba(255,255,255,0.12)',
               borderRadius: '0.625rem',
               padding: '0.6rem 0.5rem',
               textAlign: 'center',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.15)',
             }}>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: c, lineHeight: 1 }}>{v}</div>
-              <div style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: '0.2rem' }}>{l}</div>
+              <div style={{ fontSize: '0.6rem', color: 'rgba(255, 255, 255, 0.9)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: '0.2rem' }}>{l}</div>
             </div>
           ))}
         </div>

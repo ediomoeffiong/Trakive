@@ -1,4 +1,4 @@
-/* =============================================================================
+/* ============================================================================= 
    Trakive — Global Styles & Design System
    Tailwind CSS v4 with @theme directive for custom design tokens
    Font: Inter is loaded via <link> in index.html for better performance.
@@ -7,7 +7,7 @@
 @import "tailwindcss";
 
 /* ── Custom Design Tokens ──────────────────────────────────────────────────── */
-@theme {
+:root {
   /* Colour palette from PRD */
   --color-primary-50:  #eff6ff;
   --color-primary-100: #dbeafe;
@@ -344,12 +344,12 @@ p  { color: var(--color-neutral-600); }
 }
 
 .btn-primary {
-  background: var(--color-primary-600);
+  background: #00b4d8;
   color: #fff;
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-700);
-  box-shadow: 0 4px 12px rgb(37 99 235 / 0.35);
+  background: #0096c7;
+  box-shadow: 0 4px 12px rgb(0 180 216 / 0.35);
   transform: translateY(-1px);
 }
 

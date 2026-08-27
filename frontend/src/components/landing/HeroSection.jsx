@@ -72,7 +72,7 @@ const HeroSection = () => {
           }}
         >
           Track Every Step of Your{' '}
-          <span style={{ color: 'var(--color-primary-600)' }}>
+          <span style={{ color: '#00b4d8' }}>
             Internship Journey
           </span>
         </motion.h1>
@@ -107,21 +107,21 @@ const HeroSection = () => {
               gap: '0.5rem',
               padding: '0.8125rem 1.625rem',
               borderRadius: '0.75rem',
-              background: 'var(--color-primary-600)',
+              background: '#00b4d8',
               color: '#ffffff',
               fontWeight: 700,
               fontSize: '1rem',
               textDecoration: 'none',
               transition: 'all 0.2s ease',
-              boxShadow: '0 4px 14px rgba(37,99,235,0.25)',
+              boxShadow: '0 4px 14px rgba(0,180,216,0.25)',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--color-primary-700)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(37,99,235,0.35)';
+              e.currentTarget.style.background = '#0096c7';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,180,216,0.35)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--color-primary-600)';
+              e.currentTarget.style.background = '#00b4d8';
               e.currentTarget.style.transform = 'none';
               e.currentTarget.style.boxShadow = '0 4px 14px rgba(37,99,235,0.25)';
             }}
