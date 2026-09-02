@@ -20,7 +20,7 @@ export const STORAGE_KEYS = {
 
 /** API base URL — pulled from env, falls back to localhost */
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
 
 /** Supported themes */
 export const THEMES = {
