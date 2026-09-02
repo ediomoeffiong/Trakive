@@ -10,17 +10,18 @@ const {
   hashToken,
   generateRandomToken,
 } = require('../utils/token.utils');
-
+const ProfileModel = require('../models/profile.model');
 const AuditLogModel = require('../models/auditLog.model');
-
 /**
  * Role name resolver helper
  */
 const resolveRoleName = (roleInput) => {
   if (!roleInput) return 'intern';
   const normalized = roleInput.toLowerCase().trim();
+  if (['super_admin', 'superadmin', 'org_admin', 'admin'].includes(normalized)) {
+    throw ApiError.badRequest('Registration with Super Admin or System Administrator roles is strictly prohibited');
+  }
   if (normalized === 'head') return 'department_head';
-  if (normalized === 'admin') return 'org_admin';
   return normalized;
 };
 
@@ -41,6 +42,7 @@ const AuthService = {
     }
 
     const password_hash = await hashPassword(data.password);
+    const initialStatus = targetRoleName === 'intern' ? 'pending' : 'active';
 
     const newUser = await UserModel.create({
       organization_id: data.organization_id || null,
@@ -51,9 +53,20 @@ const AuthService = {
       first_name: data.first_name,
       last_name: data.last_name,
       phone: data.phone || null,
-      status: 'active',
+      status: initialStatus,
       is_email_verified: false,
     });
+
+    // If registering an intern, create default intern profile linked to department
+    if (targetRoleName === 'intern') {
+      await ProfileModel.upsertInternProfile({
+        user_id: newUser.id,
+        organization_id: data.organization_id || null,
+        department_id: data.department_id || null,
+        supervisor_id: null,
+        status: 'onboarding',
+      });
+    }
 
     // Create Email Verification Token
     const verifyToken = generateRandomToken();
@@ -76,7 +89,7 @@ const AuthService = {
       action: 'USER_REGISTER',
       entityType: 'users',
       entityId: userProfile.id,
-      details: { email: userProfile.email, role: userProfile.role_name },
+      details: { email: userProfile.email, role: userProfile.role_name, status: userProfile.status },
     });
 
     // Generate tokens
@@ -120,6 +133,10 @@ const AuthService = {
     const isPasswordValid = await comparePassword(password, user.password_hash);
     if (!isPasswordValid) {
       throw ApiError.unauthorized('Invalid email or password');
+    }
+
+    if (user.status === 'pending') {
+      throw ApiError.forbidden('User account is awaiting administrative approval and supervisor assignment');
     }
 
     if (user.status !== 'active') {

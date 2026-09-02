@@ -12,6 +12,7 @@ const ROLE_ALIASES = {
   hr: ['hr'],
   head: ['head', 'department_head'],
   admin: ['admin', 'org_admin', 'super_admin'],
+  super_admin: ['super_admin'],
 };
 
 /**
@@ -67,7 +68,7 @@ const authenticate = asyncHandler(async (req, res, next) => {
 
 /**
  * Require specific role(s) to access route
- * Supports Trakive roles: Intern, Supervisor, HR, Head, Admin
+ * Supports Trakive roles: Intern, Supervisor, HR, Head, Admin, Super Admin
  * @param  {...string} allowedRoles 
  */
 const requireRole = (...allowedRoles) => {
@@ -77,6 +78,11 @@ const requireRole = (...allowedRoles) => {
     }
 
     const userRole = req.user.role_name ? req.user.role_name.toLowerCase() : '';
+
+    // Super Admin has global access to administrative functions
+    if (userRole === 'super_admin') {
+      return next();
+    }
 
     // Expand allowed roles with aliases
     const expandedAllowedRoles = new Set();

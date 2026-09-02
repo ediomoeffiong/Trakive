@@ -1,0 +1,12 @@
+-- Profile personal details used by the user profile tabs.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth DATE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(50);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS city VARCHAR(120);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(120);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS country VARCHAR(120);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;
+
+ALTER TABLE intern_profiles ADD COLUMN IF NOT EXISTS work_location VARCHAR(255);
+ALTER TABLE intern_profiles ADD COLUMN IF NOT EXISTS work_hours VARCHAR(100);
+ALTER TABLE intern_profiles ADD COLUMN IF NOT EXISTS days_per_week INTEGER DEFAULT 0 CHECK (days_per_week >= 0 AND days_per_week <= 7);

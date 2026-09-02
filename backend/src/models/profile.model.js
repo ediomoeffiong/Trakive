@@ -42,9 +42,12 @@ const ProfileModel = {
     institution = null,
     field_of_study = null,
     academic_year = null,
-    emergency_contact = {},
-    skills = [],
-    status = 'onboarding',
+    emergency_contact,
+    skills,
+    work_location = null,
+    work_hours = null,
+    days_per_week = null,
+    status = null,
   }) {
     let targetOrgId = organization_id;
     if (!targetOrgId) {
@@ -60,24 +63,28 @@ const ProfileModel = {
     const sql = `
       INSERT INTO intern_profiles (
         user_id, organization_id, department_id, supervisor_id,
-        institution, field_of_study, academic_year, emergency_contact, skills, status
+        institution, field_of_study, academic_year, emergency_contact, skills,
+        work_location, work_hours, days_per_week, status
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      VALUES (
+        $1, $2, $3, $4, $5, $6, $7,
+        COALESCE($8::jsonb, '{}'::jsonb),
+        COALESCE($9::jsonb, '[]'::jsonb),
+        $10, $11, $12,
+        COALESCE($13, 'onboarding')
+      )
       ON CONFLICT (user_id) DO UPDATE SET
         department_id = COALESCE(EXCLUDED.department_id, intern_profiles.department_id),
         supervisor_id = COALESCE(EXCLUDED.supervisor_id, intern_profiles.supervisor_id),
         institution = COALESCE(EXCLUDED.institution, intern_profiles.institution),
         field_of_study = COALESCE(EXCLUDED.field_of_study, intern_profiles.field_of_study),
         academic_year = COALESCE(EXCLUDED.academic_year, intern_profiles.academic_year),
-        emergency_contact = CASE 
-                              WHEN EXCLUDED.emergency_contact = '{}'::jsonb THEN intern_profiles.emergency_contact 
-                              ELSE EXCLUDED.emergency_contact 
-                            END,
-        skills = CASE 
-                   WHEN EXCLUDED.skills = '[]'::jsonb THEN intern_profiles.skills 
-                   ELSE EXCLUDED.skills 
-                 END,
-        status = COALESCE(EXCLUDED.status, intern_profiles.status),
+        emergency_contact = COALESCE($8::jsonb, intern_profiles.emergency_contact),
+        skills = COALESCE($9::jsonb, intern_profiles.skills),
+        work_location = COALESCE(EXCLUDED.work_location, intern_profiles.work_location),
+        work_hours = COALESCE(EXCLUDED.work_hours, intern_profiles.work_hours),
+        days_per_week = COALESCE(EXCLUDED.days_per_week, intern_profiles.days_per_week),
+        status = COALESCE($13, intern_profiles.status),
         updated_at = NOW()
       RETURNING *;
     `;
@@ -89,8 +96,11 @@ const ProfileModel = {
       institution,
       field_of_study,
       academic_year,
-      JSON.stringify(emergency_contact || {}),
-      JSON.stringify(skills || []),
+      emergency_contact === undefined ? null : JSON.stringify(emergency_contact || {}),
+      skills === undefined ? null : JSON.stringify(skills || []),
+      work_location,
+      work_hours,
+      days_per_week,
       status,
     ];
     const res = await query(sql, values);
@@ -169,12 +179,15 @@ const ProfileModel = {
     const sql = `
       SELECT 
         u.id AS user_id, u.organization_id, u.department_id, u.email,
-        u.first_name, u.last_name, u.phone, u.avatar_url, u.status AS user_status,
+        u.first_name, u.last_name, u.phone, u.avatar_url,
+        u.date_of_birth, u.gender, u.address, u.city, u.state, u.country, u.bio,
+        u.status AS user_status,
         u.created_at AS user_created_at,
         r.name AS role_name,
         d.name AS department_name, d.code AS department_code,
         ip.id AS intern_profile_id, ip.institution, ip.field_of_study, ip.academic_year,
-        ip.emergency_contact, ip.skills, ip.status AS intern_status, ip.supervisor_id,
+        ip.emergency_contact, ip.skills, ip.work_location, ip.work_hours, ip.days_per_week,
+        ip.status AS intern_status, ip.supervisor_id,
         sup_u.id AS supervisor_user_id, sup_u.first_name AS supervisor_first_name,
         sup_u.last_name AS supervisor_last_name, sup_u.email AS supervisor_email,
         head_u.id AS head_user_id, head_u.first_name AS head_first_name,
@@ -214,6 +227,67 @@ const ProfileModel = {
     `;
     const res = await query(sql, [departmentId, supervisorProfileId, userId]);
     return res.rows[0] || null;
+  },
+
+  async recordSupervisorAssignment(internProfileId, supervisorProfileId, assignedByUserId = null, status = 'active', notes = null) {
+    // End any active/reassignment_required assignments for this intern
+    await query(
+      `UPDATE supervisor_assignments
+       SET status = 'ended', ended_at = NOW(), updated_at = NOW()
+       WHERE intern_profile_id = $1 AND status IN ('active', 'reassignment_required')`,
+      [internProfileId]
+    );
+
+    const res = await query(
+      `INSERT INTO supervisor_assignments (intern_profile_id, supervisor_id, assigned_by, status, notes)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [internProfileId, supervisorProfileId, assignedByUserId, status, notes]
+    );
+    return res.rows[0];
+  },
+
+  async getSupervisorAssignmentHistory(internProfileId) {
+    const res = await query(
+      `SELECT 
+         sa.*,
+         sup_u.first_name AS supervisor_first_name,
+         sup_u.last_name AS supervisor_last_name,
+         sup_u.email AS supervisor_email,
+         by_u.first_name AS assigned_by_first_name,
+         by_u.last_name AS assigned_by_last_name
+       FROM supervisor_assignments sa
+       LEFT JOIN supervisor_profiles sp ON sp.id = sa.supervisor_id
+       LEFT JOIN users sup_u ON sup_u.id = sp.user_id
+       LEFT JOIN users by_u ON by_u.id = sa.assigned_by
+       WHERE sa.intern_profile_id = $1
+       ORDER BY sa.created_at DESC`,
+      [internProfileId]
+    );
+    return res.rows;
+  },
+
+  async markSupervisorAssignmentsReassignmentRequired(supervisorProfileId) {
+    const affectedRes = await query(
+      `UPDATE supervisor_assignments
+       SET status = 'reassignment_required', ended_at = NOW(), updated_at = NOW()
+       WHERE supervisor_id = $1 AND status = 'active'
+       RETURNING intern_profile_id`,
+      [supervisorProfileId]
+    );
+
+    const affectedInternProfileIds = affectedRes.rows.map((r) => r.intern_profile_id);
+
+    if (affectedInternProfileIds.length > 0) {
+      await query(
+        `UPDATE intern_profiles
+         SET supervisor_id = NULL, updated_at = NOW()
+         WHERE id = ANY($1::uuid[])`,
+        [affectedInternProfileIds]
+      );
+    }
+
+    return affectedInternProfileIds;
   },
 };
 

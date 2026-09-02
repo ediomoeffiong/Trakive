@@ -9,7 +9,7 @@ const UserModel = {
 
   async findById(id) {
     const res = await query(
-      'SELECT id, organization_id, department_id, role_id, email, first_name, last_name, phone, avatar_url, status, is_email_verified, email_verified_at, last_login_at, created_at, updated_at FROM users WHERE id = $1 AND deleted_at IS NULL',
+      'SELECT id, organization_id, department_id, role_id, email, first_name, last_name, phone, avatar_url, date_of_birth, gender, address, city, state, country, bio, status, is_email_verified, email_verified_at, last_login_at, created_at, updated_at FROM users WHERE id = $1 AND deleted_at IS NULL',
       [id]
     );
     return res.rows[0] || null;
@@ -19,7 +19,9 @@ const UserModel = {
     const sql = `
       SELECT 
         u.id, u.organization_id, u.department_id, u.role_id, u.email,
-        u.first_name, u.last_name, u.phone, u.avatar_url, u.status,
+        u.first_name, u.last_name, u.phone, u.avatar_url,
+        u.date_of_birth, u.gender, u.address, u.city, u.state, u.country, u.bio,
+        u.status,
         u.is_email_verified, u.email_verified_at, u.last_login_at,
         u.created_at, u.updated_at,
         r.name AS role_name, r.description AS role_description,
@@ -40,7 +42,7 @@ const UserModel = {
 
   async findByEmail(email) {
     const res = await query(
-      'SELECT id, organization_id, department_id, role_id, email, first_name, last_name, phone, avatar_url, status, is_email_verified, email_verified_at, last_login_at, created_at, updated_at FROM users WHERE email = $1 AND deleted_at IS NULL',
+      'SELECT id, organization_id, department_id, role_id, email, first_name, last_name, phone, avatar_url, date_of_birth, gender, address, city, state, country, bio, status, is_email_verified, email_verified_at, last_login_at, created_at, updated_at FROM users WHERE email = $1 AND deleted_at IS NULL',
       [email.toLowerCase()]
     );
     return res.rows[0] || null;
@@ -98,7 +100,19 @@ const UserModel = {
   },
 
   async update(id, updates = {}) {
-    const allowedFields = ['first_name', 'last_name', 'phone', 'department_id'];
+    const allowedFields = [
+      'first_name',
+      'last_name',
+      'phone',
+      'department_id',
+      'date_of_birth',
+      'gender',
+      'address',
+      'city',
+      'state',
+      'country',
+      'bio',
+    ];
     const setClauses = [];
     const values = [];
     let idx = 1;
@@ -122,7 +136,7 @@ const UserModel = {
       UPDATE users
       SET ${setClauses.join(', ')}
       WHERE id = $${idx} AND deleted_at IS NULL
-      RETURNING id, organization_id, department_id, role_id, email, first_name, last_name, phone, avatar_url, status, is_email_verified, email_verified_at, updated_at;
+      RETURNING id, organization_id, department_id, role_id, email, first_name, last_name, phone, avatar_url, date_of_birth, gender, address, city, state, country, bio, status, is_email_verified, email_verified_at, updated_at;
     `;
     const res = await query(sql, values);
     return res.rows[0] || null;
@@ -203,7 +217,9 @@ const UserModel = {
     const sql = `
       SELECT 
         u.id, u.organization_id, u.department_id, u.role_id, u.email,
-        u.first_name, u.last_name, u.phone, u.avatar_url, u.status,
+        u.first_name, u.last_name, u.phone, u.avatar_url,
+        u.date_of_birth, u.gender, u.address, u.city, u.state, u.country, u.bio,
+        u.status,
         u.is_email_verified, u.created_at, u.updated_at,
         r.name AS role_name,
         d.name AS department_name

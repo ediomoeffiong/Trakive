@@ -45,6 +45,13 @@ const UserService = {
     if (data.first_name !== undefined) userUpdates.first_name = data.first_name;
     if (data.last_name !== undefined) userUpdates.last_name = data.last_name;
     if (data.phone !== undefined) userUpdates.phone = data.phone;
+    if (data.date_of_birth !== undefined) userUpdates.date_of_birth = data.date_of_birth || null;
+    if (data.gender !== undefined) userUpdates.gender = data.gender;
+    if (data.address !== undefined) userUpdates.address = data.address;
+    if (data.city !== undefined) userUpdates.city = data.city;
+    if (data.state !== undefined) userUpdates.state = data.state;
+    if (data.country !== undefined) userUpdates.country = data.country;
+    if (data.bio !== undefined) userUpdates.bio = data.bio;
 
     if (Object.keys(userUpdates).length > 0) {
       await UserModel.update(userId, userUpdates);
@@ -65,6 +72,9 @@ const UserService = {
         academic_year: data.academic_year,
         emergency_contact: data.emergency_contact,
         skills: data.skills,
+        work_location: data.work_location,
+        work_hours: data.work_hours,
+        days_per_week: data.days_per_week,
       });
     } else if (roleName === 'supervisor') {
       updatedRoleProfile = await ProfileModel.upsertSupervisorProfile({
@@ -157,6 +167,35 @@ const UserService = {
 
     const updated = await UserModel.updateStatus(targetUserId, status);
     const orgId = await this.getEffectiveOrgId(requestingUser);
+
+    // Requirement 4: Handle supervisor deactivation & reassignment requirements
+    if (['inactive', 'suspended'].includes(status.toLowerCase())) {
+      const supProfile = await ProfileModel.findSupervisorProfileByUserId(targetUserId);
+      if (supProfile) {
+        const affectedProfileIds = await ProfileModel.markSupervisorAssignmentsReassignmentRequired(supProfile.id);
+
+        if (affectedProfileIds.length > 0) {
+          // Notify Super Admins
+          const { query } = require('../config/db');
+          const NotificationModel = require('../models/notification.model');
+
+          const superAdmins = await query(
+            `SELECT u.id FROM users u 
+             JOIN roles r ON r.id = u.role_id 
+             WHERE r.name IN ('super_admin', 'org_admin') AND u.deleted_at IS NULL`
+          );
+
+          for (const admin of superAdmins.rows) {
+            await NotificationModel.create({
+              userId: admin.id,
+              title: 'Supervisor Deactivated - Reassignment Required',
+              message: `Supervisor ${targetUser.first_name} ${targetUser.last_name} has been deactivated. ${affectedProfileIds.length} intern(s) require supervisor reassignment.`,
+              type: 'system',
+            });
+          }
+        }
+      }
+    }
 
     await AuditLogModel.log({
       organizationId: orgId,

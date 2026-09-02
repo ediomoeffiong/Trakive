@@ -249,16 +249,45 @@ const InternService = {
       throw ApiError.notFound('Intern profile not found');
     }
 
-    const supProfile = await ProfileModel.findSupervisorById(supervisorProfileId);
+    let supProfile = await ProfileModel.findSupervisorById(supervisorProfileId);
+    if (!supProfile) {
+      supProfile = await ProfileModel.findSupervisorProfileByUserId(supervisorProfileId);
+    }
     if (!supProfile) {
       throw ApiError.notFound('Supervisor profile not found');
     }
 
-    const updated = await ProfileModel.assignInternDepartmentAndSupervisor(
+    const supUser = await UserModel.findById(supProfile.user_id);
+    const supervisorDeptId = supProfile.department_id || (supUser ? supUser.department_id : null);
+    const internDeptId = profile.department_id;
+
+    if (internDeptId && supervisorDeptId && internDeptId !== supervisorDeptId) {
+      throw ApiError.badRequest("Selected supervisor does not belong to the intern's department");
+    }
+
+    const targetDeptId = internDeptId || supervisorDeptId;
+
+    await ProfileModel.assignInternDepartmentAndSupervisor(
       internUserId,
-      supProfile.department_id || profile.department_id,
-      supervisorProfileId
+      targetDeptId,
+      supProfile.id
     );
+
+    // If intern user account was pending, activate it upon supervisor assignment
+    if (profile.user_status === 'pending') {
+      await UserModel.updateStatus(internUserId, 'active');
+    }
+
+    // Record supervisor assignment history
+    if (profile.intern_profile_id) {
+      await ProfileModel.recordSupervisorAssignment(
+        profile.intern_profile_id,
+        supProfile.id,
+        requestingUser.id,
+        'active',
+        'Supervisor assigned by Super Admin'
+      );
+    }
 
     await AuditLogModel.log({
       organizationId: profile.organization_id,
@@ -266,7 +295,7 @@ const InternService = {
       action: 'INTERN_ASSIGN_SUPERVISOR',
       entityType: 'intern_profiles',
       entityId: internUserId,
-      details: { supervisor_id: supervisorProfileId },
+      details: { supervisor_id: supProfile.id, department_id: targetDeptId },
       ipAddress,
       userAgent,
     });
@@ -275,7 +304,15 @@ const InternService = {
   },
 
   async getInternHistory(internUserId, requestingUser) {
-    return await this.getIntern(internUserId, requestingUser);
+    const profile = await this.getIntern(internUserId, requestingUser);
+    let assignmentHistory = [];
+    if (profile && profile.intern_profile_id) {
+      assignmentHistory = await ProfileModel.getSupervisorAssignmentHistory(profile.intern_profile_id);
+    }
+    return {
+      profile,
+      assignment_history: assignmentHistory,
+    };
   },
 };
 

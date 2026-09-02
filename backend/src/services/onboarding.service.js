@@ -336,12 +336,37 @@ const OnboardingService = {
       throw ApiError.badRequest('Either application_id or intern_id is required');
     }
 
-    const supProfile = await ProfileModel.findSupervisorById(data.supervisor_id);
+    let supProfile = await ProfileModel.findSupervisorById(data.supervisor_id);
+    if (!supProfile) {
+      supProfile = await ProfileModel.findSupervisorProfileByUserId(data.supervisor_id);
+    }
     if (!supProfile) {
       throw ApiError.notFound('Supervisor profile not found');
     }
 
-    await ProfileModel.assignInternDepartmentAndSupervisor(internUserId, data.department_id, data.supervisor_id);
+    const supUser = await UserModel.findById(supProfile.user_id);
+    const supervisorDeptId = supProfile.department_id || (supUser ? supUser.department_id : null);
+    const targetDeptId = data.department_id || supervisorDeptId;
+
+    if (targetDeptId && supervisorDeptId && targetDeptId !== supervisorDeptId) {
+      throw ApiError.badRequest("Selected supervisor does not belong to the intern's department");
+    }
+
+    const updatedProfile = await ProfileModel.assignInternDepartmentAndSupervisor(
+      internUserId,
+      targetDeptId,
+      supProfile.id
+    );
+
+    if (updatedProfile && updatedProfile.id) {
+      await ProfileModel.recordSupervisorAssignment(
+        updatedProfile.id,
+        supProfile.id,
+        requestingUser.id,
+        'active',
+        'Supervisor assigned during onboarding'
+      );
+    }
 
     if (application) {
       this.validateStateTransition(application.status, 'onboarding_in_progress');
