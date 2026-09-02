@@ -105,6 +105,9 @@ async function runAuthVerification() {
     });
     hrTokens = hrRegRes.body.data.tokens;
 
+    // Activate registered intern account for auth testing
+    await pool.query("UPDATE users SET status = 'active' WHERE email = $1", [testEmailIntern]);
+
     // 3. Test Login
     console.log('\n--- Test 3: User Login ---');
     const loginRes = await request('POST', '/auth/login', {

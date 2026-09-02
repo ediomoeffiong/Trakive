@@ -13,7 +13,8 @@ const registerSchema = {
     first_name: Joi.string().min(2).max(50).required().trim(),
     last_name: Joi.string().min(2).max(50).required().trim(),
     role: Joi.string()
-      .valid('intern', 'supervisor', 'hr', 'head', 'department_head', 'admin', 'org_admin', 'super_admin')
+      .invalid('super_admin', 'superadmin', 'org_admin', 'admin')
+      .valid('intern', 'supervisor', 'hr', 'head', 'department_head')
       .optional()
       .default('intern'),
     phone: Joi.string().max(30).optional().allow('', null),

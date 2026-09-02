@@ -4,6 +4,8 @@
  */
 
 export { default as ProfileHeader }           from './ProfileHeader';
+export { default as ProfileAtAGlance }        from './ProfileAtAGlance';
+export { default as ProfessionalOverview }    from './ProfessionalOverview';
 export { default as ProfileCompletionCard }   from './ProfileCompletionCard';
 export { default as PersonalInfoForm }        from './PersonalInfoForm';
 export { default as AvatarUploadModal }       from './AvatarUploadModal';

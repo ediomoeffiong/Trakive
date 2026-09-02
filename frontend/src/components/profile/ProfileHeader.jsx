@@ -1,10 +1,17 @@
-/**
- * @file ProfileHeader.jsx
- * @description Profile header with avatar, role summary, quick statistics, and tab navigation.
- */
-
+import { useState } from 'react';
 import { motion } from 'framer-motion';
+import {
+  FiBriefcase,
+  FiCamera,
+  FiChevronDown,
+  FiCopy,
+  FiEdit2,
+  FiMapPin,
+  FiMoreHorizontal,
+  FiShield,
+} from 'react-icons/fi';
 import { useProfileStore } from '../../store/useProfileStore';
+import ProfileAtAGlance from './ProfileAtAGlance';
 
 const INTERN_TABS = [
   { key: 'overview', label: 'Overview' },
@@ -21,8 +28,8 @@ const SUPERVISOR_TABS = [
   { key: 'overview', label: 'Overview' },
   { key: 'personal', label: 'Personal Info' },
   { key: 'interns', label: 'Assigned Interns' },
-  { key: 'activity', label: 'Activity' },
   { key: 'documents', label: 'Documents' },
+  { key: 'activity', label: 'Activity' },
   { key: 'security', label: 'Security' },
 ];
 
@@ -34,8 +41,16 @@ const ADMIN_TABS = [
   { key: 'security', label: 'Security' },
 ];
 
+const STATUS_CONFIG = {
+  Active: { tone: 'success', label: 'Active' },
+  Completed: { tone: 'primary', label: 'Completed' },
+  Paused: { tone: 'warning', label: 'Paused' },
+  Pending: { tone: 'neutral', label: 'Pending' },
+};
+
 const getInitials = (profile) => {
-  if (!profile?.fullName) return '?';
+  if (!profile?.fullName) return 'NU';
+
   return profile.fullName
     .split(' ')
     .filter(Boolean)
@@ -45,257 +60,231 @@ const getInitials = (profile) => {
     .toUpperCase();
 };
 
+const StatusBadge = ({ status }) => {
+  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.Pending;
+
+  return (
+    <span className={`profile-status-badge profile-status-badge-${config.tone}`}>
+      <span aria-hidden="true" />
+      {config.label}
+    </span>
+  );
+};
+
+const TabButton = ({ tab, isActive, onClick }) => (
+  <button
+    id={`profile-tab-${tab.key}`}
+    className="profile-tab-button"
+    onClick={onClick}
+    role="tab"
+    aria-selected={isActive}
+    type="button"
+  >
+    {tab.label}
+    {isActive && (
+      <motion.span
+        className="profile-tab-indicator"
+        layoutId="profile-tab-indicator"
+        transition={{ type: 'spring', stiffness: 500, damping: 36 }}
+      />
+    )}
+  </button>
+);
+
+const HeaderMetaItem = ({ icon: Icon, children }) => {
+  if (!children) return null;
+
+  return (
+    <span className="profile-header-meta-item">
+      <Icon aria-hidden="true" />
+      {children}
+    </span>
+  );
+};
+
 const ProfileHeader = ({ completion, isSupervisorOverride = false }) => {
-  const {
-    profile,
-    internship,
-    assignedInterns,
-    skills,
-    documents,
-    activeTab,
-    setActiveTab,
-    setAvatarModalOpen,
-  } = useProfileStore();
+  const { profile, activeTab, setActiveTab, setAvatarModalOpen } = useProfileStore();
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const role = profile?.role;
   const isSupervisor = isSupervisorOverride || role === 'Supervisor';
   const isAdminProfile = role === 'HR Administrator' || role === 'Department Head';
   const tabs = isSupervisor ? SUPERVISOR_TABS : isAdminProfile ? ADMIN_TABS : INTERN_TABS;
 
-  const quickStats = isSupervisor
-    ? [
-        { label: 'Assigned Interns', value: assignedInterns?.stats?.totalAssigned ?? 0 },
-        { label: 'Pending Reviews', value: assignedInterns?.stats?.pendingReviews ?? 0 },
-        { label: 'Documents', value: documents?.length ?? 0 },
-      ]
-    : isAdminProfile
-      ? [
-          { label: 'Documents', value: documents.length },
-          { label: 'Security', value: profile?.twoFactorEnabled ? '2FA On' : '2FA Off' },
-          { label: 'Status', value: profile?.status ?? 'Pending' },
-        ]
-      : [
-          { label: 'Skills', value: skills.length },
-          { label: 'Documents', value: documents.length },
-          { label: 'Progress', value: `${internship?.completionPercentage ?? 0}%` },
-        ];
+  const completionPct = completion?.percentage ?? 0;
+  const completionTone =
+    completionPct >= 80 ? 'success' : completionPct >= 50 ? 'warning' : 'danger';
 
-  const avatarGradient = isSupervisor
-    ? 'linear-gradient(135deg, #4f46e5 0%, #2563eb 100%)'
-    : 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)';
+  const titleLine = [profile?.jobTitle || role, profile?.department].filter(Boolean).join(' / ');
+  const locationLine = [profile?.city, profile?.state || profile?.country]
+    .filter(Boolean)
+    .join(', ');
 
-  const effectiveCompletion = completion?.percentage ?? 0;
+  const handleCopyId = async () => {
+    if (profile?.employeeId) {
+      await navigator.clipboard?.writeText(profile.employeeId);
+    }
+    setMoreOpen(false);
+  };
+
+  const menuItems = [
+    {
+      label: 'Change Photo',
+      icon: FiCamera,
+      action: () => {
+        setAvatarModalOpen(true);
+        setMoreOpen(false);
+      },
+      show: true,
+    },
+    {
+      label: 'Copy Employee ID',
+      icon: FiCopy,
+      action: handleCopyId,
+      show: Boolean(profile?.employeeId),
+    },
+    {
+      label: 'Security Settings',
+      icon: FiShield,
+      action: () => {
+        setActiveTab('security');
+        setMoreOpen(false);
+      },
+      show: true,
+    },
+  ].filter((item) => item.show);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -16 }}
+    <motion.section
+      className="card profile-header-card"
+      initial={{ opacity: 0, y: -12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="card mb-6 profile-header-card"
-      style={{ overflow: 'hidden' }}
+      transition={{ duration: 0.32 }}
+      aria-labelledby="profile-heading"
     >
-      <div
-        style={{
-          height: 96,
-          background: isSupervisor
-            ? 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #60a5fa 100%)'
-            : 'linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%)',
-          position: 'relative',
-        }}
-      />
-
-      <div style={{ padding: '0 1.5rem 1.25rem', position: 'relative', zIndex: 1 }}>
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'flex-end',
-            gap: '1rem',
-            marginTop: -40,
-            marginBottom: '1rem',
-          }}
+      <div className="profile-header-main">
+        <button
+          className="profile-avatar-button"
+          type="button"
+          onClick={() => setAvatarModalOpen(true)}
+          aria-label="Change profile photo"
         >
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <motion.div
-              whileHover={{ scale: 1.04 }}
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: '50%',
-                border: '4px solid #fff',
-                overflow: 'hidden',
-                background: avatarGradient,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                position: 'relative',
-              }}
-              onClick={() => setAvatarModalOpen(true)}
-              role="button"
-              aria-label="Change profile photo"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && setAvatarModalOpen(true)}
-            >
-              {profile?.avatarUrl ? (
-                <img
-                  src={profile.avatarUrl}
-                  alt={profile?.fullName || 'Profile avatar'}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff' }}>
-                  {getInitials(profile)}
-                </span>
-              )}
-              <div className="avatar-edit-overlay">Edit</div>
-            </motion.div>
-
-            <svg
-              style={{ position: 'absolute', top: -4, left: -4, pointerEvents: 'none' }}
-              width={88}
-              height={88}
-              viewBox="0 0 88 88"
-            >
-              <circle cx={44} cy={44} r={41} fill="none" stroke="var(--color-neutral-200)" strokeWidth={3} />
-              <motion.circle
-                cx={44}
-                cy={44}
-                r={41}
-                fill="none"
-                stroke={effectiveCompletion >= 80 ? '#22c55e' : effectiveCompletion >= 50 ? '#f59e0b' : '#ef4444'}
-                strokeWidth={3}
-                strokeLinecap="round"
-                strokeDasharray={2 * Math.PI * 41}
-                initial={{ strokeDashoffset: 2 * Math.PI * 41 }}
-                animate={{ strokeDashoffset: 2 * Math.PI * 41 - (2 * Math.PI * 41 * effectiveCompletion) / 100 }}
-                transition={{ duration: 1.2, ease: 'easeOut', delay: 0.5 }}
-                style={{ transformOrigin: '44px 44px', transform: 'rotate(-90deg)' }}
-              />
-            </svg>
-          </div>
-
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h1
-              style={{
-                fontSize: '1.25rem',
-                fontWeight: 800,
-                color: 'var(--color-neutral-900)',
-                marginBottom: 2,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {profile?.fullName || 'New User'}
-            </h1>
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-primary-600)', fontWeight: 600 }}>
-              {profile?.jobTitle || profile?.role || 'Intern'}
-            </p>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
-              {[profile?.department, profile?.organization].filter(Boolean).join(' - ') || 'Profile setup pending'}
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap', marginLeft: 'auto', marginTop: '2.75rem' }}>
-            {quickStats.map((stat) => (
-              <div
-                key={stat.label}
-                style={{
-                  background: 'var(--color-neutral-50)',
-                  border: '1px solid var(--color-neutral-200)',
-                  borderRadius: '0.625rem',
-                  padding: '0.625rem 0.875rem',
-                  textAlign: 'center',
-                  minWidth: 84,
-                }}
-              >
-                <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-neutral-800)', lineHeight: 1.2 }}>
-                  {stat.value}
-                </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--color-neutral-500)', fontWeight: 600, marginTop: 2 }}>
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-          <span className="badge badge-success">{profile?.status ?? 'Pending'}</span>
-          <span style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
-            ID: {profile?.employeeId || '-'}
-          </span>
-          <span style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
-            Location: {profile?.workLocation || '-'}
-          </span>
           <span
-            style={{
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              padding: '0.15rem 0.6rem',
-              borderRadius: '9999px',
-              backgroundColor: 'var(--color-primary-50)',
-              color: 'var(--color-primary-700)',
-              border: '1px solid var(--color-primary-200)',
-            }}
+            className="profile-avatar-ring"
+            data-tone={completionTone}
+            style={{ '--profile-completion': `${completionPct}%` }}
           >
-            Role: {profile?.role || 'Intern'}
+            <span className="profile-avatar-progress" />
+            <span className="profile-avatar">
+              {profile?.avatarUrl ? (
+                <img src={profile.avatarUrl} alt={profile?.fullName || 'Profile avatar'} />
+              ) : (
+                getInitials(profile)
+              )}
+            </span>
           </span>
+          <span className="profile-avatar-camera" aria-hidden="true">
+            <FiCamera />
+          </span>
+        </button>
+
+        <div className="profile-header-identity">
+          <div className="profile-header-title-row">
+            <div className="profile-header-title-copy">
+              <p className="profile-header-eyebrow">
+                {profile?.organization || 'Trakive'}
+                {profile?.employeeId ? ` / ${profile.employeeId}` : ''}
+              </p>
+              <h2 id="profile-heading">{profile?.fullName || 'New User'}</h2>
+            </div>
+            <StatusBadge status={profile?.status ?? 'Pending'} />
+          </div>
+
+          <div className="profile-header-meta">
+            <HeaderMetaItem icon={FiBriefcase}>{titleLine}</HeaderMetaItem>
+            <HeaderMetaItem icon={FiMapPin}>{locationLine}</HeaderMetaItem>
+          </div>
+
+          <div className="profile-completion-row">
+            <div
+              className="profile-completion-track"
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow={completionPct}
+              aria-label="Profile completion"
+            >
+              <motion.span
+                className={`profile-completion-fill profile-completion-${completionTone}`}
+                initial={{ width: 0 }}
+                animate={{ width: `${completionPct}%` }}
+                transition={{ duration: 0.9, ease: 'easeOut', delay: 0.2 }}
+              />
+            </div>
+            <span className={`profile-completion-label profile-completion-text-${completionTone}`}>
+              {completionPct}% complete
+            </span>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.375rem', overflowX: 'auto', paddingBottom: '0.125rem' }} role="tablist">
-          {tabs.map((tab) => (
+        <div className="profile-header-actions">
+          <button
+            className="btn btn-primary btn-sm"
+            type="button"
+            onClick={() => setActiveTab('personal')}
+            id="edit-profile-btn"
+          >
+            <FiEdit2 aria-hidden="true" />
+            Edit Profile
+          </button>
+
+          <div className="profile-more-menu-wrap">
             <button
-              key={tab.key}
-              id={`profile-tab-${tab.key}`}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0.4375rem 0.875rem',
-                borderRadius: '2rem',
-                fontSize: '0.8125rem',
-                fontWeight: activeTab === tab.key ? 700 : 500,
-                border: activeTab === tab.key ? '1px solid var(--color-primary-600)' : '1px solid var(--color-neutral-200)',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.18s ease',
-                background: activeTab === tab.key ? 'var(--color-primary-600)' : 'var(--color-neutral-50)',
-                color: activeTab === tab.key ? '#fff' : 'var(--color-neutral-600)',
-                boxShadow: activeTab === tab.key ? '0 2px 8px rgba(37,99,235,0.25)' : 'none',
-              }}
-              aria-selected={activeTab === tab.key}
-              role="tab"
+              className="btn btn-outline btn-sm btn-icon profile-more-button"
+              type="button"
+              onClick={() => setMoreOpen((open) => !open)}
+              aria-label="More profile actions"
+              aria-expanded={moreOpen}
             >
-              {tab.label}
+              <FiMoreHorizontal aria-hidden="true" />
+              <FiChevronDown aria-hidden="true" className="profile-more-chevron" />
             </button>
-          ))}
+
+            {moreOpen && (
+              <>
+                <button
+                  className="profile-menu-scrim"
+                  type="button"
+                  aria-label="Close profile menu"
+                  onClick={() => setMoreOpen(false)}
+                />
+                <div className="profile-actions-menu" role="menu">
+                  {menuItems.map((item) => (
+                    <button key={item.label} type="button" onClick={item.action} role="menuitem">
+                      <item.icon aria-hidden="true" />
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      <style>{`
-        .avatar-edit-overlay {
-          position: absolute;
-          inset: 0;
-          background: rgba(0,0,0,0.42);
-          color: #fff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.75rem;
-          font-weight: 800;
-          opacity: 0;
-          transition: opacity 0.2s;
-        }
+      <ProfileAtAGlance />
 
-        [role="button"]:hover .avatar-edit-overlay,
-        [role="button"]:focus-visible .avatar-edit-overlay {
-          opacity: 1 !important;
-        }
-      `}</style>
-    </motion.div>
+      <div className="profile-tabs-scroll" role="tablist" aria-label="Profile sections">
+        {tabs.map((tab) => (
+          <TabButton
+            key={tab.key}
+            tab={tab}
+            isActive={activeTab === tab.key}
+            onClick={() => setActiveTab(tab.key)}
+          />
+        ))}
+      </div>
+    </motion.section>
   );
 };
 
