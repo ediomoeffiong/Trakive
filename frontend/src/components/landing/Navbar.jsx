@@ -165,7 +165,7 @@ const Navbar = () => {
             style={{
               padding: '0.5rem 1.125rem',
               borderRadius: '0.625rem',
-              background: 'var(--color-primary-600)',
+              background: '#00b4d8',
               color: '#ffffff',
               fontWeight: 600,
               fontSize: '0.875rem',
@@ -174,8 +174,8 @@ const Navbar = () => {
               display: 'inline-flex',
               alignItems: 'center',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-primary-700)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(37,99,235,0.3)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-primary-600)'; e.currentTarget.style.boxShadow = 'none'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#0096c7'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,180,216,0.3)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#00b4d8'; e.currentTarget.style.boxShadow = 'none'; }}
           >
             Get Started
           </Link>
@@ -272,7 +272,7 @@ const Navbar = () => {
                   style={{
                     padding: '0.75rem 1rem',
                     borderRadius: '0.625rem',
-                    background: 'var(--color-primary-600)',
+                    background: '#00b4d8',
                     color: '#ffffff',
                     fontWeight: 600,
                     fontSize: '0.9375rem',

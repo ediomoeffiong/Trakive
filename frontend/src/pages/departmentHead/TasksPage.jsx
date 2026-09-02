@@ -176,12 +176,12 @@ const TasksPage = () => {
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '3rem' }}>
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1e40af 100%)', borderRadius: '1.25rem', padding: '1.75rem 2rem', color: '#fff', boxShadow: '0 8px 32px rgba(30,64,175,0.22)' }}>
+      <div style={{ background: '#00b4d8', borderRadius: '1.25rem', padding: '1.75rem 2rem', color: '#fff', boxShadow: '0 8px 32px rgba(0,180,216,0.22)' }}>
         <span style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'rgba(255,255,255,0.15)', padding: '0.25rem 0.75rem', borderRadius: 99, display: 'inline-block', marginBottom: '0.625rem' }}>
           Task Monitoring
         </span>
         <h2 style={{ margin: '0 0 0.375rem', fontSize: '1.625rem', fontWeight: 900 }}>Department Tasks</h2>
-        <p style={{ margin: 0, fontSize: '0.9375rem', color: '#93c5fd' }}>
+        <p style={{ margin: 0, fontSize: '0.9375rem', color: 'rgba(255, 255, 255, 0.9)' }}>
           Read-only overview of <strong style={{ color: '#fff' }}>{taskStats?.total ?? tasks.length} tasks</strong> across all engineering tracks.
         </p>
       </div>

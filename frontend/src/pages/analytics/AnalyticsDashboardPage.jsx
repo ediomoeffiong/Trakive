@@ -83,7 +83,7 @@ export default function AnalyticsDashboardPage() {
       {/* ── Top Header Banner & Role Preview Switcher ─────────────────────────── */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #1e293b 0%, #1e3a8a 100%)',
+          background: '#00b4d8',
           borderRadius: '1.25rem',
           padding: '1.75rem 2rem',
           color: '#ffffff',
@@ -115,7 +115,7 @@ export default function AnalyticsDashboardPage() {
           <h2 style={{ margin: '0.25rem 0', fontSize: '1.75rem', fontWeight: 800 }}>
             Reports & Performance Intelligence
           </h2>
-          <p style={{ margin: 0, fontSize: '0.9375rem', color: '#c7d2fe', maxWidth: '600px' }}>
+          <p style={{ margin: 0, fontSize: '0.9375rem', color: 'rgba(255, 255, 255, 0.9)', maxWidth: '600px' }}>
             Executive dashboards, productivity metrics, 7-skill evaluations, and AI automated insights.
           </p>
         </div>
