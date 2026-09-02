@@ -185,26 +185,26 @@ const Dashboard = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
       
       {/* ── 1. Welcome Section ────────────────────────────────────────────────── */}
-      <section style={{ background: 'linear-gradient(135deg, #1e293b 0%, #1e3a8a 100%)', borderRadius: '1.125rem', padding: '2rem', color: '#fff', boxShadow: '0 8px 32px rgba(37,99,235,0.22)' }}>
+      <section style={{ background: '#00b4d8', borderRadius: '1.125rem', padding: '2rem', color: '#fff', boxShadow: '0 8px 32px rgba(37,99,235,0.22)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', mdDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
           <div>
             <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: '#fff' }}>
               {getGreeting()}, {user?.name?.split(' ')[0] || 'Intern'} 👋
             </h2>
-            <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.875rem', lineHeight: 1.6 }}>
+            <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.875rem', lineHeight: 1.6 }}>
               You're making excellent progress this week.
             </p>
           </div>
           {progress && (
-            <div style={{ minWidth: '240px', background: 'rgba(255, 255, 255, 0.08)', padding: '1rem', borderRadius: '0.75rem', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.09)' }}>
+            <div style={{ minWidth: '240px', background: 'rgba(255, 255, 255, 0.12)', padding: '1rem', borderRadius: '0.75rem', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.09)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.8125rem' }}>
                 <span style={{ opacity: 0.9, fontWeight: 500 }}>Profile Completion</span>
                 <span style={{ fontWeight: 700 }}>{progress.profileCompletion?.value}%</span>
               </div>
-              <div style={{ height: '6px', background: 'rgba(255, 255, 255, 0.2)', borderRadius: '99px', overflow: 'hidden' }}>
+              <div style={{ height: '6px', background: 'rgba(255, 255, 255, 0.25)', borderRadius: '99px', overflow: 'hidden' }}>
                 <div style={{ width: `${progress.profileCompletion?.value}%`, height: '100%', background: 'var(--color-primary-400)', transition: 'width 0.8s ease-out' }} />
               </div>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.9)' }}>
                 {progress.internship?.durationText}
               </p>
             </div>

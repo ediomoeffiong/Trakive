@@ -43,7 +43,7 @@ const FormStepper = ({ currentStep = 1, steps = [] }) => {
           top: '18px',
           left: 0,
           height: '4px',
-          backgroundColor: 'var(--color-primary-600)',
+          backgroundColor: '#00b4d8', // CHANGED
           zIndex: 2,
         }}
       />
@@ -69,14 +69,14 @@ const FormStepper = ({ currentStep = 1, steps = [] }) => {
             <motion.div
               animate={{
                 backgroundColor: isCompleted
-                  ? 'var(--color-success-600)'
+                  ? '#00b4d8' // CHANGED from success
                   : isActive
-                  ? 'var(--color-primary-600)'
+                  ? '#00b4d8' // CHANGED from primary
                   : '#ffffff',
                 borderColor: isCompleted
-                  ? 'var(--color-success-600)'
+                  ? '#00b4d8' // CHANGED from success
                   : isActive
-                  ? 'var(--color-primary-600)'
+                  ? '#00b4d8' // CHANGED from primary
                   : 'var(--color-neutral-300)',
                 color: isCompleted || isActive ? '#ffffff' : 'var(--color-neutral-500)',
               }}
@@ -91,7 +91,7 @@ const FormStepper = ({ currentStep = 1, steps = [] }) => {
                 justifyContent: 'center',
                 fontWeight: 700,
                 fontSize: '0.875rem',
-                boxShadow: isActive ? '0 0 0 4px rgb(37 99 235 / 0.15)' : 'none',
+                boxShadow: isActive ? '0 0 0 4px rgb(0 180 216 / 0.15)' : 'none', // CHANGED
               }}
             >
               {isCompleted ? (
@@ -115,9 +115,9 @@ const FormStepper = ({ currentStep = 1, steps = [] }) => {
                 fontSize: '0.75rem',
                 fontWeight: isActive || isCompleted ? 600 : 500,
                 color: isActive
-                  ? 'var(--color-neutral-900)'
+                  ? '#00b4d8' // CHANGED
                   : isCompleted
-                  ? 'var(--color-success-700)'
+                  ? '#00b4d8' // CHANGED from success
                   : 'var(--color-neutral-400)',
                 textAlign: 'center',
                 whiteSpace: 'nowrap',
@@ -132,4 +132,4 @@ const FormStepper = ({ currentStep = 1, steps = [] }) => {
   );
 };
 
-export default FormStepper;
+ export default FormStepper;

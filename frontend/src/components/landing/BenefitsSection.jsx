@@ -162,7 +162,7 @@ const BenefitsSection = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <div style={{
                 width: '40px', height: '40px', borderRadius: '10px',
-                background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center',
+                background: 'var(--color-primary-600)', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', color: 'var(--color-primary-300)', fontSize: '1.25rem',
               }}>
                 <RiIcons.RiBuilding2Line aria-hidden />
