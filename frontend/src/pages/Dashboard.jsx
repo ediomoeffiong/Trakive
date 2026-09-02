@@ -196,12 +196,12 @@ const Dashboard = () => {
             </p>
           </div>
           {progress && (
-            <div style={{ minWidth: '240px', background: 'rgba(255, 255, 255, 0.12)', padding: '1rem', borderRadius: '0.75rem', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.09)' }}>
+            <div style={{ minWidth: '240px', background: '#00b4d8', padding: '1rem', borderRadius: '0.75rem', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.09)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.8125rem' }}>
                 <span style={{ opacity: 0.9, fontWeight: 500 }}>Profile Completion</span>
                 <span style={{ fontWeight: 700 }}>{progress.profileCompletion?.value}%</span>
               </div>
-              <div style={{ height: '6px', background: 'rgba(255, 255, 255, 0.25)', borderRadius: '99px', overflow: 'hidden' }}>
+              <div style={{ height: '6px', background: '#00b4d8', borderRadius: '99px', overflow: 'hidden' }}>
                 <div style={{ width: `${progress.profileCompletion?.value}%`, height: '100%', background: 'var(--color-primary-400)', transition: 'width 0.8s ease-out' }} />
               </div>
               <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.9)' }}>

@@ -49,6 +49,10 @@
   --color-neutral-800: #1e293b;
   --color-neutral-900: #0f172a;
 
+  /* Shared surfaces used by components and inline styles */
+  --surface-page:    var(--color-neutral-50);
+  --surface-primary: #ffffff;
+
   /* Sidebar dimensions */
   --sidebar-width:           240px;
   --sidebar-collapsed-width: 72px;
@@ -85,7 +89,7 @@ html {
 }
 
 body {
-  background-color: var(--color-neutral-50);
+  background-color: var(--surface-page);
   color: var(--color-neutral-800);
   min-height: 100dvh;
 }
@@ -157,7 +161,7 @@ p  { color: var(--color-neutral-600); }
   left: 0;
   height: 100dvh;
   width: var(--sidebar-width);
-  background: #ffffff;
+  background: var(--surface-primary);
   box-shadow: var(--shadow-sidebar);
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 40;
@@ -187,7 +191,7 @@ p  { color: var(--color-neutral-600); }
   position: sticky;
   top: 0;
   height: var(--topbar-height);
-  background: #ffffff;
+  background: var(--surface-primary);
   box-shadow: var(--shadow-topbar);
   z-index: 30;
   display: flex;
@@ -218,7 +222,7 @@ p  { color: var(--color-neutral-600); }
 
 /* ── Card ───────────────────────────────────────────────────────────────────── */
 .card {
-  background: #ffffff;
+  background: var(--surface-primary);
   border: 1px solid var(--color-neutral-200);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
@@ -463,7 +467,7 @@ p  { color: var(--color-neutral-600); }
   border-radius: 0.625rem;
   font-size: 0.9rem;
   font-family: var(--font-sans);
-  background: #fff;
+  background: var(--surface-primary);
   color: var(--color-neutral-800);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   outline: none;
@@ -574,6 +578,8 @@ a {
   --color-neutral-700: #e2e8f0;
   --color-neutral-800: #f1f5f9;
   --color-neutral-900: #f8fafc;
+  --surface-page:    #0b1120;
+  --surface-primary: #111827;
 
   /* Shadow deepening */
   --shadow-card:       0 1px 4px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
@@ -584,21 +590,21 @@ a {
 
 /* Dark-mode element overrides */
 .dark body {
-  background-color: var(--color-neutral-50);
+  background-color: var(--surface-page);
   color: var(--color-neutral-800);
 }
 
 .dark .card {
-  background: var(--color-neutral-100);
+  background: var(--surface-primary);
   border: 1px solid var(--color-neutral-200);
 }
 
 .dark .app-sidebar {
-  background: var(--color-neutral-100);
+  background: var(--surface-primary);
 }
 
 .dark .app-topbar {
-  background: var(--color-neutral-100);
+  background: var(--surface-primary);
   border-bottom-color: var(--color-neutral-200);
 }
 
@@ -1062,7 +1068,7 @@ a {
   overflow: hidden;
   border: 1px solid var(--color-neutral-200);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--surface-primary);
   box-shadow: 0 18px 44px -22px rgb(15 23 42 / 0.55);
 }
 
@@ -1440,7 +1446,7 @@ a {
   align-items: start;
   padding: 0.78rem 0.95rem;
   border-bottom: 1px solid var(--color-neutral-100);
-  background: #fff;
+  background: var(--surface-primary);
 }
 
 .profile-info-row:last-child {
@@ -1588,7 +1594,7 @@ a {
   padding: 0.7rem 0.75rem;
   border: 1px solid var(--color-neutral-100);
   border-radius: 0.65rem;
-  background: #fff;
+  background: var(--surface-primary);
 }
 
 .profile-list-icon {
@@ -1813,6 +1819,19 @@ a {
   }
 }
 
+/* Keep utility and component surfaces consistent with the active theme. */
+.dark .bg-white,
+.dark [style*="background: #fff"],
+.dark [style*="background: #ffffff"],
+.dark [style*="background: rgb(255, 255, 255)"],
+.dark [style*="background: rgb(255 255 255)"],
+.dark [style*="background-color: #fff"],
+.dark [style*="background-color: #ffffff"],
+.dark [style*="background-color: rgb(255, 255, 255)"],
+.dark [style*="background-color: rgb(255 255 255)"] {
+  background: var(--surface-primary) !important;
+}
+
 @media (max-width: 640px) {
   .profile-overview-card-inner,
   .profile-completion-card-inner {
@@ -1864,4 +1883,34 @@ a {
     align-items: stretch;
     flex-direction: column;
   }
+}
+/* TRAKIVE DARK MODE FIX - EXECUTIVE SUMMARY CARD LABELS */
+
+/* 1. Target only when dark mode is active. 
+   Trakive likely adds .dark or data-theme="dark" to <html> or <body> */
+.dark .executive-summary-card .text-gray-500,
+.dark .executive-summary-card .text-gray-400,
+.dark [class*="ExecutiveSummary"] .text-gray-500,
+.dark [class*="ExecutiveSummary"] .text-gray-400 {
+  color: #cbd5e1 !important; /* light slate - readable on dark */
+}
+
+/* 2. Make the bold numbers/labels pop more */
+.dark .executive-summary-card .font-semibold,
+.dark .executive-summary-card .font-bold {
+  color: #f8fafc !important; /* pure white */
+}
+
+/* 3. If cards themselves stay white, give them dark bg in dark mode */
+.dark .executive-summary-card {
+  background: #1e293b !important; /* slate-800 */
+  border: 1px solid #334155 !important; /* slate-700 */
+}
+
+/* 4. Specific fix for the 4 labels you circled */
+.dark .text-gray-500:contains("Performance Rating"),
+.dark .text-gray-500:contains("Growth Spike"),
+.dark .text-gray-500:contains("Turnaround SLA"),
+.dark .text-gray-500:contains("Avg Dept Rating") {
+  color: #94a3b8 !important;
 }
