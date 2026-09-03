@@ -61,11 +61,11 @@ const InternManagementPage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
         style={{
-          background: 'linear-gradient(135deg, #1e293b 0%, #312e81 60%, #4f46e5 100%)',
+          background: '#00b4d8',
           borderRadius: '1.25rem',
           padding: '1.75rem 2rem',
           color: '#ffffff',
-          boxShadow: '0 8px 32px rgba(79, 70, 229, 0.22)',
+          boxShadow: '0 8px 32px rgba(0, 180, 216, 0.22)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',

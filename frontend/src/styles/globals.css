@@ -813,7 +813,7 @@ a {
 }
 
 .profile-avatar-ring {
-  --profile-ring-color: var(--color-danger-500);
+  --profile-ring-color: #00b4d8;
   display: grid;
   width: 86px;
   height: 86px;
@@ -834,7 +834,7 @@ a {
 }
 
 .profile-avatar-ring[data-tone="danger"] {
-  --profile-ring-color: var(--color-danger-500);
+  --profile-ring-color: #00b4d8;
 }
 
 .profile-avatar-progress {
@@ -1004,7 +1004,7 @@ a {
 }
 
 .profile-completion-danger {
-  background: var(--color-danger-500);
+  background: #00b4d8;
 }
 
 .profile-completion-label {
@@ -1022,7 +1022,7 @@ a {
 }
 
 .profile-completion-text-danger {
-  color: var(--color-danger-700);
+  color: #00b4d8;
 }
 
 .profile-header-actions {
@@ -1884,33 +1884,129 @@ a {
     flex-direction: column;
   }
 }
-/* TRAKIVE DARK MODE FIX - EXECUTIVE SUMMARY CARD LABELS */
-
-/* 1. Target only when dark mode is active. 
-   Trakive likely adds .dark or data-theme="dark" to <html> or <body> */
-.dark .executive-summary-card .text-gray-500,
-.dark .executive-summary-card .text-gray-400,
-.dark [class*="ExecutiveSummary"] .text-gray-500,
-.dark [class*="ExecutiveSummary"] .text-gray-400 {
-  color: #cbd5e1 !important; /* light slate - readable on dark */
+[style*="background: rgb(254, 242, 242)"] {
+  background: var(--color-neutral-50) !important; /* slate-700 */
+}
+[style*="background: rgb(248, 250, 252)"] {
+  background: var(--color-neutral-50) !important; /* slate-700 */
+}
+[style*="background: rgb(240, 253, 244)"] {
+  background: var(--color-neutral-50) !important; /* slate-700 */
+}
+/* DARK MODE: MAKE BADGE TEXT BRIGHT */
+.dark [style*="rgb(240, 253, 244)"] {
+  background: var(--color-neutral-50) !important; /* darker than 50 for more contrast */
+  background-color: var(--color-neutral-50) !important;
+  border: 1px solid var(--color-neutral-200) !important;
 }
 
-/* 2. Make the bold numbers/labels pop more */
-.dark .executive-summary-card .font-semibold,
-.dark .executive-summary-card .font-bold {
-  color: #f8fafc !important; /* pure white */
+/* Force the number to be pure white and bold */
+.dark [style*="rgb(240, 253, 244)"] {
+  color: #ffffff !important;
+  font-weight: 700 !important;
 }
 
-/* 3. If cards themselves stay white, give them dark bg in dark mode */
-.dark .executive-summary-card {
-  background: #1e293b !important; /* slate-800 */
-  border: 1px solid #334155 !important; /* slate-700 */
+/* Force any label/text inside to be bright too */
+.dark [style*="rgb(240, 253, 244)"] *,
+.dark [style*="rgb(240, 253, 244)"] span,
+.dark [style*="rgb(240, 253, 244)"] div {
+  color: #f8fafc !important; /* slate-50 */
+  opacity: 1 !important; /* kill any 0.5 opacity */
+}
+/* DARK MODE: MAKE BADGE TEXT BRIGHT */
+.dark [style*="rgb(239, 246, 255)"] {
+  background: var(--color-neutral-50) !important; /* darker than 50 for more contrast */
+  background-color: var(--color-neutral-50) !important;
+  border: 1px solid var(--color-neutral-200) !important;
 }
 
-/* 4. Specific fix for the 4 labels you circled */
-.dark .text-gray-500:contains("Performance Rating"),
-.dark .text-gray-500:contains("Growth Spike"),
-.dark .text-gray-500:contains("Turnaround SLA"),
-.dark .text-gray-500:contains("Avg Dept Rating") {
-  color: #94a3b8 !important;
+/* Force the number to be pure white and bold */
+.dark [style*="rgb(239, 246, 255)"] {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Force any label/text inside to be bright too */
+.dark [style*="rgb(239, 246, 255)"] *,
+.dark [style*="rgb(239, 246, 255)"] span,
+.dark [style*="rgb(239, 246, 255)"] div {
+  color: #f8fafc !important; /* slate-50 */
+  opacity: 1 !important; /* kill any 0.5 opacity */
+}
+/* DARK MODE: MAKE BADGE TEXT BRIGHT */
+.dark [style*="rgb(245, 243, 255)"] {
+  background: var(--color-neutral-50) !important; /* darker than 50 for more contrast */
+  background-color: var(--color-neutral-50) !important;
+  border: 1px solid var(--color-neutral-200) !important;
+}
+
+/* Force the number to be pure white and bold */
+.dark [style*="rgb(245, 243, 255)"] {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Force any label/text inside to be bright too */
+.dark [style*="rgb(245, 243, 255)"] *,
+.dark [style*="rgb(245, 243, 255)"] span,
+.dark [style*="rgb(245, 243, 255)"] div {
+  color: #f8fafc !important; /* slate-50 */
+  opacity: 1 !important; /* kill any 0.5 opacity */
+}
+/* DARK MODE: MAKE BADGE TEXT BRIGHT */
+.dark [style*="rgb(255, 251, 230)"] {
+  background: var(--color-neutral-50) !important; /* darker than 50 for more contrast */
+  background-color: var(--color-neutral-50) !important;
+  border: 1px solid var(--color-neutral-200) !important;
+}
+
+/* Force the number to be pure white and bold */
+.dark [style*="rgb(255, 251, 230)"] {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Force any label/text inside to be bright too */
+.dark [style*="rgb(255, 251, 230)"] *,
+.dark [style*="rgb(255, 251, 230)"] span,
+.dark [style*="rgb(255, 251, 230)"] div {
+  color: #f8fafc !important; /* slate-50 */
+  opacity: 1 !important; /* kill any 0.5 opacity */
+}
+/* DARK MODE: MAKE BADGE TEXT BRIGHT */
+.dark [style*="rgb(254, 242, 242)"] {
+  background: var(--color-neutral-50) !important; /* darker than 50 for more contrast */
+  background-color: var(--color-neutral-50) !important;
+  border: 1px solid var(--color-neutral-200) !important;
+}
+
+/* Force the number to be pure white and bold */
+.dark [style*="rgb(254, 242, 242)"] {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Force any label/text inside to be bright too */
+.dark [style*="rgb(254, 242, 242)"] *,
+.dark [style*="rgb(254, 242, 242)"] span,
+.dark [style*="rgb(254, 242, 242)"] div {
+  color: #f8fafc !important; /* slate-50 */
+  opacity: 1 !important; /* kill any 0.5 opacity */
+}
+/* MAKE "BUILD REPORT" TAB MATCH THE OTHER 2 IN DARK MODE */
+.dark div[style*="display: flex"][style*="gap: 0.5rem"] > button:first-child {
+  background-color: rgba(255, 255, 255, 0.15) !important; /* same semi-transparent white */
+  color: rgb(255, 255, 255) !important; /* white text */
+  border: 1px solid rgba(255, 255, 255, 0.2) !important; /* same border */
+  font-weight: 600 !important;
+}
+
+/* Override the inline color too */
+.dark div[style*="display: flex"][style*="gap: 0.5rem"] > button:first-child[style*="color: rgb(30, 41, 59)"] {
+  color: rgb(255, 255, 255) !important;
+}
+
+/* Override the inline background too */
+.dark div[style*="display: flex"][style*="gap: 0.5rem"] > button:first-child[style*="background: rgb(255, 255, 255)"] {
+  background-color: rgba(255, 255, 255, 0.15) !important;
 }

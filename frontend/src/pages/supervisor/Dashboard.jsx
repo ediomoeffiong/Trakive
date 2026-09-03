@@ -70,7 +70,7 @@ const SupervisorDashboardPage = () => {
       {/* Welcome Banner */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #1e293b 0%, #1e3a8a 100%)',
+          background: '#00b4d8',
           borderRadius: '1.25rem',
           padding: '1.75rem 2rem',
           color: '#ffffff',
