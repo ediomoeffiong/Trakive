@@ -24,6 +24,7 @@ const Register = () => {
   const clearError = useAppStore((state) => state.clearError);
 
   const [step, setStep] = useState(1);
+  const [role, setRole] = useState('Intern');
   const totalSteps = 3;
 
   const {
@@ -38,7 +39,7 @@ const Register = () => {
       name: '',
       email: '',
       phone: '',
-      department: '',
+      department: 'Fifthlab',
       startDate: '',
       endDate: '',
       password: '',
@@ -56,7 +57,7 @@ const Register = () => {
     if (step === 1) {
       fieldsToValidate = ['name', 'email', 'phone'];
     } else if (step === 2) {
-      fieldsToValidate = ['department', 'startDate', 'endDate'];
+      fieldsToValidate = role === 'Supervisor' ? ['department'] : ['department', 'startDate', 'endDate'];
     }
 
     const isStepValid = await trigger(fieldsToValidate);
@@ -75,7 +76,10 @@ const Register = () => {
       const response = await registerFn({
         name: data.name,
         email: data.email,
-        department: data.department,
+        department: data.department || 'Fifthlab',
+        startDate: role === 'Supervisor' ? '' : data.startDate,
+        endDate: role === 'Supervisor' ? '' : data.endDate,
+        role: role,
         password: data.password,
       });
       toast.success(response.message || 'Registration successful!');
@@ -87,21 +91,48 @@ const Register = () => {
 
   return (
     <AuthCard>
-      <FormStepper currentStep={step} steps={['Personal', 'Details', 'Security']} />
+      {/* Top right Supervisor Registration switcher */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--color-neutral-200)' }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-primary-600)' }}>
+          {role === 'Supervisor' ? 'Supervisor Signup' : 'Intern Signup'}
+        </span>
+        <button
+          type="button"
+          onClick={() => setRole(role === 'Intern' ? 'Supervisor' : 'Intern')}
+          style={{
+            padding: '0.375rem 0.75rem',
+            borderRadius: '0.5rem',
+            fontSize: '0.8125rem',
+            fontWeight: 600,
+            background: 'var(--color-primary-50)',
+            border: '1px solid var(--color-primary-200)',
+            color: 'var(--color-primary-700)',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <FiUser /> {role === 'Intern' ? 'Sign Up as a Supervisor' : 'Sign Up as an Intern'}
+        </button>
+      </div>
+
+      <FormStepper currentStep={step} steps={['Personal', role === 'Supervisor' ? 'Role Info' : 'Details', 'Security']} />
 
       <AuthHeader
         title={
           step === 1
             ? 'Personal Details'
             : step === 2
-              ? 'Internship Details'
+              ? (role === 'Supervisor' ? 'Supervisor Details' : 'Internship Details')
               : 'Security Settings'
         }
         subtitle={
           step === 1
-            ? 'Provide your contact information to set up your intern profile.'
+            ? `Provide your contact information to set up your ${role.toLowerCase()} profile.`
             : step === 2
-              ? 'Add your assigned department and internship duration.'
+              ? (role === 'Supervisor' ? 'Select your department and management domain.' : 'Add your assigned department and internship duration.')
               : 'Create a password to keep your dashboard and records secure.'
         }
       />
@@ -189,31 +220,36 @@ const Register = () => {
               )}
             </div>
 
-            <Input
-              id="reg-start"
-              label="Internship Start Date"
-              type="date"
-              leftAddon={<FiCalendar className="text-neutral-400" />}
-              error={errors.startDate?.message}
-              {...register('startDate', { required: 'Start date is required' })}
-            />
+            {role === 'Intern' && (
+              <>
+                <Input
+                  id="reg-start"
+                  label="Internship Start Date"
+                  type="date"
+                  leftAddon={<FiCalendar className="text-neutral-400" />}
+                  error={errors.startDate?.message}
+                  {...register('startDate', { required: role === 'Intern' ? 'Start date is required' : false })}
+                />
 
-            <Input
-              id="reg-end"
-              label="Internship End Date"
-              type="date"
-              leftAddon={<FiCalendar className="text-neutral-400" />}
-              error={errors.endDate?.message}
-              {...register('endDate', {
-                required: 'End date is required',
-                validate: (val, formValues) => {
-                  if (new Date(val) <= new Date(formValues.startDate)) {
-                    return 'End date must be after start date';
-                  }
-                  return true;
-                },
-              })}
-            />
+                <Input
+                  id="reg-end"
+                  label="Internship End Date"
+                  type="date"
+                  leftAddon={<FiCalendar className="text-neutral-400" />}
+                  error={errors.endDate?.message}
+                  {...register('endDate', {
+                    required: role === 'Intern' ? 'End date is required' : false,
+                    validate: (val, formValues) => {
+                      if (role !== 'Intern') return true;
+                      if (!val || new Date(val) <= new Date(formValues.startDate)) {
+                        return 'End date must be after start date';
+                      }
+                      return true;
+                    },
+                  })}
+                />
+              </>
+            )}
           </div>
         )}
 

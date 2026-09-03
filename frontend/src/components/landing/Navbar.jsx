@@ -11,6 +11,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { RiMenuLine, RiCloseLine } from 'react-icons/ri';
 import { navLinks } from '../../data/navigation';
 import { ROUTES } from '../../constants';
+import { useAppStore } from '../../store/useAppStore';
+import { getRoleDefaultRoute } from '../../utils';
 
 // ── Logo ──────────────────────────────────────────────────────────────────────
 function Logo() {
@@ -57,6 +59,10 @@ function Logo() {
 
 // ── Navbar ────────────────────────────────────────────────────────────────────
 const Navbar = () => {
+  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
+  const user = useAppStore((state) => state.user);
+  const dashboardRoute = getRoleDefaultRoute(user?.role);
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -138,47 +144,72 @@ const Navbar = () => {
           className="desktop-cta"
           style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexShrink: 0 }}
         >
-          <Link
-            to={ROUTES.LOGIN}
-            id="navbar-login-btn"
-            style={{
-              padding: '0.5rem 1.125rem',
-              borderRadius: '0.625rem',
-              border: '1.5px solid var(--color-neutral-200)',
-              background: 'transparent',
-              color: 'var(--color-neutral-700)',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              textDecoration: 'none',
-              transition: 'all 0.15s ease',
-              display: 'inline-flex',
-              alignItems: 'center',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--color-neutral-400)'; e.currentTarget.style.background = 'var(--color-neutral-50)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-neutral-200)'; e.currentTarget.style.background = 'transparent'; }}
-          >
-            Log in
-          </Link>
-          <Link
-            to={ROUTES.REGISTER}
-            id="navbar-register-btn"
-            style={{
-              padding: '0.5rem 1.125rem',
-              borderRadius: '0.625rem',
-              background: '#00b4d8',
-              color: '#ffffff',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              textDecoration: 'none',
-              transition: 'all 0.15s ease',
-              display: 'inline-flex',
-              alignItems: 'center',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#0096c7'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,180,216,0.3)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#00b4d8'; e.currentTarget.style.boxShadow = 'none'; }}
-          >
-            Get Started
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              to={dashboardRoute}
+              id="navbar-dashboard-btn"
+              style={{
+                padding: '0.5rem 1.25rem',
+                borderRadius: '0.625rem',
+                background: '#00b4d8',
+                color: '#ffffff',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                textDecoration: 'none',
+                transition: 'all 0.15s ease',
+                display: 'inline-flex',
+                alignItems: 'center',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#0096c7'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,180,216,0.3)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#00b4d8'; e.currentTarget.style.boxShadow = 'none'; }}
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                to={ROUTES.LOGIN}
+                id="navbar-login-btn"
+                style={{
+                  padding: '0.5rem 1.125rem',
+                  borderRadius: '0.625rem',
+                  border: '1.5px solid var(--color-neutral-200)',
+                  background: 'transparent',
+                  color: 'var(--color-neutral-700)',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  textDecoration: 'none',
+                  transition: 'all 0.15s ease',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--color-neutral-400)'; e.currentTarget.style.background = 'var(--color-neutral-50)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-neutral-200)'; e.currentTarget.style.background = 'transparent'; }}
+              >
+                Log in
+              </Link>
+              <Link
+                to={ROUTES.REGISTER}
+                id="navbar-register-btn"
+                style={{
+                  padding: '0.5rem 1.125rem',
+                  borderRadius: '0.625rem',
+                  background: '#00b4d8',
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  textDecoration: 'none',
+                  transition: 'all 0.15s ease',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#0096c7'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,180,216,0.3)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#00b4d8'; e.currentTarget.style.boxShadow = 'none'; }}
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile hamburger */}
@@ -247,42 +278,65 @@ const Navbar = () => {
               <div style={{ height: '1px', background: 'var(--color-neutral-100)', margin: '0.5rem 0' }} />
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '0.25rem' }}>
-                <Link
-                  to={ROUTES.LOGIN}
-                  id="mobile-login-btn"
-                  onClick={() => setMobileOpen(false)}
-                  style={{
-                    padding: '0.75rem 1rem',
-                    borderRadius: '0.625rem',
-                    border: '1.5px solid var(--color-neutral-200)',
-                    color: 'var(--color-neutral-700)',
-                    fontWeight: 600,
-                    fontSize: '0.9375rem',
-                    textDecoration: 'none',
-                    textAlign: 'center',
-                    display: 'block',
-                  }}
-                >
-                  Log in
-                </Link>
-                <Link
-                  to={ROUTES.REGISTER}
-                  id="mobile-register-btn"
-                  onClick={() => setMobileOpen(false)}
-                  style={{
-                    padding: '0.75rem 1rem',
-                    borderRadius: '0.625rem',
-                    background: '#00b4d8',
-                    color: '#ffffff',
-                    fontWeight: 600,
-                    fontSize: '0.9375rem',
-                    textDecoration: 'none',
-                    textAlign: 'center',
-                    display: 'block',
-                  }}
-                >
-                  Get Started Free
-                </Link>
+                {isAuthenticated ? (
+                  <Link
+                    to={dashboardRoute}
+                    id="mobile-dashboard-btn"
+                    onClick={() => setMobileOpen(false)}
+                    style={{
+                      padding: '0.75rem 1rem',
+                      borderRadius: '0.625rem',
+                      background: '#00b4d8',
+                      color: '#ffffff',
+                      fontWeight: 600,
+                      fontSize: '0.9375rem',
+                      textDecoration: 'none',
+                      textAlign: 'center',
+                      display: 'block',
+                    }}
+                  >
+                    Dashboard
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      to={ROUTES.LOGIN}
+                      id="mobile-login-btn"
+                      onClick={() => setMobileOpen(false)}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        borderRadius: '0.625rem',
+                        border: '1.5px solid var(--color-neutral-200)',
+                        color: 'var(--color-neutral-700)',
+                        fontWeight: 600,
+                        fontSize: '0.9375rem',
+                        textDecoration: 'none',
+                        textAlign: 'center',
+                        display: 'block',
+                      }}
+                    >
+                      Log in
+                    </Link>
+                    <Link
+                      to={ROUTES.REGISTER}
+                      id="mobile-register-btn"
+                      onClick={() => setMobileOpen(false)}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        borderRadius: '0.625rem',
+                        background: '#00b4d8',
+                        color: '#ffffff',
+                        fontWeight: 600,
+                        fontSize: '0.9375rem',
+                        textDecoration: 'none',
+                        textAlign: 'center',
+                        display: 'block',
+                      }}
+                    >
+                      Get Started Free
+                    </Link>
+                  </>
+                )}
               </div>
             </nav>
           </motion.div>

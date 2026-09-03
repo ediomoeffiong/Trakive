@@ -89,10 +89,10 @@ function NotificationsTabContent({ isMobile }) {
           )
         ) : (
           <AnimatePresence>
-            {grouped.today.length > 0 && <NotificationGroup label="Today" notifications={grouped.today} {...listProps} />}
-            {grouped.yesterday.length > 0 && <NotificationGroup label="Yesterday" notifications={grouped.yesterday} {...listProps} />}
-            {grouped.thisWeek.length > 0 && <NotificationGroup label="This Week" notifications={grouped.thisWeek} {...listProps} />}
-            {grouped.older.length > 0 && <NotificationGroup label="Older" notifications={grouped.older} {...listProps} />}
+            {grouped.today.length > 0 && <NotificationGroup key="group-today" label="Today" notifications={grouped.today} {...listProps} />}
+            {grouped.yesterday.length > 0 && <NotificationGroup key="group-yesterday" label="Yesterday" notifications={grouped.yesterday} {...listProps} />}
+            {grouped.thisWeek.length > 0 && <NotificationGroup key="group-thisWeek" label="This Week" notifications={grouped.thisWeek} {...listProps} />}
+            {grouped.older.length > 0 && <NotificationGroup key="group-older" label="Older" notifications={grouped.older} {...listProps} />}
           </AnimatePresence>
         )}
       </div>

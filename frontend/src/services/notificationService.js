@@ -37,6 +37,39 @@ const getEffectiveRole = (explicitRole) => {
   }
 };
 
+const isDemoUser = () => {
+  try {
+    const user = useAppStore.getState()?.user;
+    if (!user) return false;
+    const demoIds = ['u-1', 'u-2', 'u-3', 'u-4'];
+    const demoEmails = ['intern@trakive.com', 'supervisor@trakive.com', 'hr@trakive.com', 'head@trakive.com'];
+    return demoIds.includes(user.id) || demoEmails.includes(user.email?.toLowerCase());
+  } catch {
+    return false;
+  }
+};
+
+// Helper to get/set localStorage key for user notifications
+const getUserNotifKey = (role) => {
+  try {
+    const user = useAppStore.getState()?.user;
+    const userId = user?.id || 'guest';
+    const activeRole = getEffectiveRole(role);
+    return `trakive_notifs_${userId}_${activeRole.toLowerCase().replace(/\s+/g, '_')}`;
+  } catch {
+    return 'trakive_notifs_guest';
+  }
+};
+
+const saveUserNotifications = (notifs, role) => {
+  try {
+    const key = getUserNotifKey(role);
+    localStorage.setItem(key, JSON.stringify(notifs));
+  } catch {
+    // ignore storage errors
+  }
+};
+
 export const notificationService = {
   /**
    * Fetch all notifications for a given role (or active user role).
@@ -44,12 +77,49 @@ export const notificationService = {
    * @returns {Promise<Array>}
    */
   getNotifications: async (role) => {
-    await delay(500);
+    await delay(250);
     const activeRole = getEffectiveRole(role);
-    if (activeRole === 'Supervisor') {
-      return [..._supervisorNotifications];
+    const key = getUserNotifKey(activeRole);
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      return JSON.parse(saved);
     }
-    return [..._internNotifications];
+    // Initialize with default dataset for role
+    const initial = activeRole === 'Supervisor' ? [...mockSupervisorNotifications] : [...mockNotifications];
+    saveUserNotifications(initial, activeRole);
+    return initial;
+  },
+
+  /**
+   * Create & dispatch a real notification.
+   * @param {object} data
+   * @param {string} [role]
+   * @returns {Promise<object>} Created notification
+   */
+  createNotification: async (data, role) => {
+    const activeRole = getEffectiveRole(role);
+    const newNotif = {
+      id: `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      category: data.category || 'system_update',
+      title: data.title || 'Notification',
+      shortDescription: data.shortDescription || data.message || '',
+      message: data.message || data.shortDescription || '',
+      timestamp: 'Just now',
+      date: new Date().toISOString(),
+      isRead: false,
+      isArchived: false,
+      sender: data.sender || { name: 'System', role: 'Automated', avatar: null },
+      relatedModule: data.relatedModule || 'dashboard',
+      relatedId: data.relatedId || null,
+      actionLabel: data.actionLabel || 'View Details',
+      actionRoute: data.actionRoute || (activeRole === 'Supervisor' ? '/supervisor/dashboard' : '/dashboard'),
+      priority: data.priority || 'normal',
+    };
+
+    const existing = await notificationService.getNotifications(activeRole);
+    const updated = [newNotif, ...existing];
+    saveUserNotifications(updated, activeRole);
+    return newNotif;
   },
 
   /**
@@ -58,7 +128,7 @@ export const notificationService = {
    * @returns {Promise<Array>}
    */
   getAnnouncements: async (role) => {
-    await delay(400);
+    await delay(250);
     const activeRole = getEffectiveRole(role);
     if (activeRole === 'Supervisor') {
       return [...mockSupervisorAnnouncements];
@@ -72,7 +142,7 @@ export const notificationService = {
    * @returns {Promise<Array>}
    */
   getReminders: async (role) => {
-    await delay(350);
+    await delay(250);
     const activeRole = getEffectiveRole(role);
     if (activeRole === 'Supervisor') {
       return [...mockSupervisorReminders];
@@ -86,7 +156,7 @@ export const notificationService = {
    * @returns {Promise<object>}
    */
   getPreferences: async (role) => {
-    await delay(300);
+    await delay(200);
     const activeRole = getEffectiveRole(role);
     if (activeRole === 'Supervisor') {
       return { ..._supervisorPreferences };
@@ -101,18 +171,12 @@ export const notificationService = {
    * @returns {Promise<object>} Updated notification
    */
   markAsRead: async (id, role) => {
-    await delay(200);
+    await delay(150);
     const activeRole = getEffectiveRole(role);
-    if (activeRole === 'Supervisor') {
-      _supervisorNotifications = _supervisorNotifications.map((n) =>
-        n.id === id ? { ...n, isRead: true } : n
-      );
-      return _supervisorNotifications.find((n) => n.id === id);
-    }
-    _internNotifications = _internNotifications.map((n) =>
-      n.id === id ? { ...n, isRead: true } : n
-    );
-    return _internNotifications.find((n) => n.id === id);
+    const list = await notificationService.getNotifications(activeRole);
+    const updated = list.map((n) => (n.id === id ? { ...n, isRead: true } : n));
+    saveUserNotifications(updated, activeRole);
+    return updated.find((n) => n.id === id);
   },
 
   /**
@@ -122,18 +186,12 @@ export const notificationService = {
    * @returns {Promise<object>} Updated notification
    */
   markAsUnread: async (id, role) => {
-    await delay(200);
+    await delay(150);
     const activeRole = getEffectiveRole(role);
-    if (activeRole === 'Supervisor') {
-      _supervisorNotifications = _supervisorNotifications.map((n) =>
-        n.id === id ? { ...n, isRead: false } : n
-      );
-      return _supervisorNotifications.find((n) => n.id === id);
-    }
-    _internNotifications = _internNotifications.map((n) =>
-      n.id === id ? { ...n, isRead: false } : n
-    );
-    return _internNotifications.find((n) => n.id === id);
+    const list = await notificationService.getNotifications(activeRole);
+    const updated = list.map((n) => (n.id === id ? { ...n, isRead: false } : n));
+    saveUserNotifications(updated, activeRole);
+    return updated.find((n) => n.id === id);
   },
 
   /**
@@ -142,14 +200,12 @@ export const notificationService = {
    * @returns {Promise<Array>}
    */
   markAllAsRead: async (role) => {
-    await delay(300);
+    await delay(200);
     const activeRole = getEffectiveRole(role);
-    if (activeRole === 'Supervisor') {
-      _supervisorNotifications = _supervisorNotifications.map((n) => ({ ...n, isRead: true }));
-      return [..._supervisorNotifications];
-    }
-    _internNotifications = _internNotifications.map((n) => ({ ...n, isRead: true }));
-    return [..._internNotifications];
+    const list = await notificationService.getNotifications(activeRole);
+    const updated = list.map((n) => ({ ...n, isRead: true }));
+    saveUserNotifications(updated, activeRole);
+    return updated;
   },
 
   /**
@@ -159,13 +215,11 @@ export const notificationService = {
    * @returns {Promise<{ success: boolean }>}
    */
   deleteNotification: async (id, role) => {
-    await delay(250);
+    await delay(150);
     const activeRole = getEffectiveRole(role);
-    if (activeRole === 'Supervisor') {
-      _supervisorNotifications = _supervisorNotifications.filter((n) => n.id !== id);
-    } else {
-      _internNotifications = _internNotifications.filter((n) => n.id !== id);
-    }
+    const list = await notificationService.getNotifications(activeRole);
+    const updated = list.filter((n) => n.id !== id);
+    saveUserNotifications(updated, activeRole);
     return { success: true };
   },
 
@@ -176,18 +230,12 @@ export const notificationService = {
    * @returns {Promise<object>} Updated notification
    */
   archiveNotification: async (id, role) => {
-    await delay(250);
+    await delay(150);
     const activeRole = getEffectiveRole(role);
-    if (activeRole === 'Supervisor') {
-      _supervisorNotifications = _supervisorNotifications.map((n) =>
-        n.id === id ? { ...n, isArchived: true } : n
-      );
-      return _supervisorNotifications.find((n) => n.id === id);
-    }
-    _internNotifications = _internNotifications.map((n) =>
-      n.id === id ? { ...n, isArchived: true } : n
-    );
-    return _internNotifications.find((n) => n.id === id);
+    const list = await notificationService.getNotifications(activeRole);
+    const updated = list.map((n) => (n.id === id ? { ...n, isArchived: true } : n));
+    saveUserNotifications(updated, activeRole);
+    return updated.find((n) => n.id === id);
   },
 
   /**
@@ -197,7 +245,7 @@ export const notificationService = {
    * @returns {Promise<object>} Updated preferences
    */
   updatePreferences: async (prefs, role) => {
-    await delay(350);
+    await delay(200);
     const activeRole = getEffectiveRole(role);
     if (activeRole === 'Supervisor') {
       _supervisorPreferences = { ..._supervisorPreferences, ...prefs };

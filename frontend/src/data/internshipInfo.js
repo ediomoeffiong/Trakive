@@ -4,44 +4,53 @@
  */
 
 export const mockInternshipInfo = {
-  employeeId: '',
-  department: '',
-  team: '',
-  organization: 'Trakive',
-  office: '',
+  employeeId: 'TRK-2026-0042',
+  department: 'Fifthlab',
+  team: 'Engineering & Product',
+  organization: 'Fifthlab',
+  office: 'Lagos HQ',
 
-  startDate: '',
-  endDate: '',
-  durationWeeks: 0,
-  durationMonths: 0,
+  startDate: '2026-06-01',
+  endDate: '2026-12-01',
+  datesVerified: false,
+  dateVerificationStatus: 'Pending Supervisor Verification',
+  durationWeeks: 24,
+  durationMonths: 6,
 
-  status: 'Pending',
-  statusColor: '#64748b',
+  status: 'Active',
+  statusColor: '#10b981',
 
-  workLocation: '',
-  workHours: '',
-  daysPerWeek: 0,
+  workLocation: 'Hybrid / Lagos',
+  workHours: '9:00 AM - 5:00 PM',
+  daysPerWeek: 5,
 
   supervisor: {
-    id: '',
-    name: '',
-    title: '',
-    email: '',
-    phone: '',
-    department: '',
+    id: 'sup-tochukwu',
+    name: 'Tochukwu Mgbemmena',
+    title: 'Lead Supervisor & Managing Partner',
+    email: 'tochukwu@fifthlab.com',
+    phone: '+234 803 123 4567',
+    department: 'Fifthlab Management',
     avatarUrl: null,
   },
 
-  hrContact: {
-    name: '',
-    title: '',
-    email: '',
-    phone: '',
+  secondarySupervisor: {
+    id: null,
+    name: null,
+    title: null,
+    email: null,
   },
 
-  stipendRange: '',
+  hrContact: {
+    name: 'HR Administration',
+    title: 'People Operations',
+    email: 'hr@fifthlab.com',
+    phone: '+234 802 987 6543',
+  },
 
-  weeksCompleted: 0,
-  weeksRemaining: 0,
-  completionPercentage: 0,
+  stipendRange: 'Standard Intern',
+
+  weeksCompleted: 12,
+  weeksRemaining: 12,
+  completionPercentage: 50,
 };

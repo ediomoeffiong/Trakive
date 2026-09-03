@@ -184,6 +184,44 @@ const Dashboard = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
       
+      {/* Action Required Banner for Incomplete Setup */}
+      {(!user?.hasCompletedOnboarding || !user?.profileCompleted || (progress?.onboarding && progress.onboarding.value < 100)) && (
+        <div style={{
+          background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+          border: '1px solid #fde68a',
+          borderRadius: '1.125rem',
+          padding: '1.125rem 1.5rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem',
+          boxShadow: '0 4px 12px rgba(245, 158, 11, 0.12)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+            <div style={{
+              width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem',
+              background: '#fde68a', color: '#92400e', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1.25rem', flexShrink: 0
+            }}>
+              📋
+            </div>
+            <div>
+              <h4 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 700, color: '#92400e' }}>
+                Account Setup Pending
+              </h4>
+              <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8125rem', color: '#b45309' }}>
+                Please finish your onboarding checklist steps and complete your profile details.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
+            <Button size="sm" onClick={() => navigate(ROUTES.ONBOARDING)}>
+              Finish Onboarding
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => navigate(ROUTES.PROFILE)}>
+              Complete Profile
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* ── 1. Welcome Section ────────────────────────────────────────────────── */}
       <section style={{ background: '#00b4d8', borderRadius: '1.125rem', padding: '2rem', color: '#fff', boxShadow: '0 8px 32px rgba(37,99,235,0.22)' }}>
         <div style={{ display: 'flex', flexDirection: 'column', mdDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>

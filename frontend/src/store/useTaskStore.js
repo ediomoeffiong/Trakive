@@ -1,10 +1,6 @@
-/**
- * @file useTaskStore.js
- * @description Zustand store for managing task states, details, filtering, sorting, uploads, and comments.
- */
-
 import { create } from 'zustand';
 import { taskService } from '../services';
+import { useNotificationStore } from './useNotificationStore';
 
 const initialFilters = {
   searchQuery: '',
@@ -94,6 +90,16 @@ export const useTaskStore = create((set, get) => ({
           updatingStatus: false,
         };
       });
+
+      // Dispatch notification
+      useNotificationStore.getState().addNotification({
+        category: status === 'completed' ? 'task_completed' : 'task_updated',
+        title: status === 'completed' ? 'Task Completed' : 'Task Status Updated',
+        shortDescription: `Task status changed to ${status}.`,
+        message: `Task '${updatedTask?.title || 'Task'}' status has been updated to '${status}'.`,
+        actionLabel: 'View Task',
+        actionRoute: `/dashboard/tasks/${taskId}`,
+      });
     } catch (err) {
       set({ error: err.message, updatingStatus: false });
     }
@@ -126,6 +132,16 @@ export const useTaskStore = create((set, get) => ({
           submittingDeliverable: false,
         };
       });
+
+      // Dispatch notification
+      useNotificationStore.getState().addNotification({
+        category: 'task_submitted',
+        title: 'Task Deliverable Submitted',
+        shortDescription: 'Your deliverable was submitted for supervisor review.',
+        message: `Deliverable '${fileMetadata.name || 'file'}' was submitted. Your mentor will review and provide feedback.`,
+        actionLabel: 'View Deliverable',
+        actionRoute: `/dashboard/tasks/${taskId}`,
+      });
     } catch (err) {
       set({ error: err.message, submittingDeliverable: false });
       throw err;
@@ -148,6 +164,16 @@ export const useTaskStore = create((set, get) => ({
             : null,
           addingComment: false,
         };
+      });
+
+      // Dispatch notification
+      useNotificationStore.getState().addNotification({
+        category: 'task_comment',
+        title: 'New Comment Posted',
+        shortDescription: 'Comment added to task discussion.',
+        message: `New comment posted: "${message.slice(0, 60)}${message.length > 60 ? '...' : ''}"`,
+        actionLabel: 'View Discussion',
+        actionRoute: `/dashboard/tasks/${taskId}`,
       });
     } catch (err) {
       set({ error: err.message, addingComment: false });

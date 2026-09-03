@@ -6,11 +6,17 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { RiArrowRightLine, RiShieldCheckLine } from 'react-icons/ri';
-import { fadeInUp, staggerContainer, staggerItem } from '../../animations/variants';
+import { staggerContainer, staggerItem } from '../../animations/variants';
 import Badge from '../ui/Badge';
 import { ROUTES } from '../../constants';
+import { useAppStore } from '../../store/useAppStore';
+import { getRoleDefaultRoute } from '../../utils';
 
 const HeroSection = () => {
+  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
+  const user = useAppStore((state) => state.user);
+  const dashboardRoute = getRoleDefaultRoute(user?.role);
+
   return (
     <section
       id="hero"
@@ -22,18 +28,36 @@ const HeroSection = () => {
       }}
     >
       {/* Decorative background blobs */}
-      <div aria-hidden style={{
-        position: 'absolute', top: '-120px', left: '-160px',
-        width: '500px', height: '500px', borderRadius: '50%',
-        background: 'var(--color-primary-600)', opacity: 0.05,
-        filter: 'blur(80px)', pointerEvents: 'none',
-      }} />
-      <div aria-hidden style={{
-        position: 'absolute', bottom: '-100px', right: '-120px',
-        width: '400px', height: '400px', borderRadius: '50%',
-        background: 'var(--color-primary-400)', opacity: 0.05,
-        filter: 'blur(70px)', pointerEvents: 'none',
-      }} />
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: '-120px',
+          left: '-160px',
+          width: '500px',
+          height: '500px',
+          borderRadius: '50%',
+          background: 'var(--color-primary-600)',
+          opacity: 0.05,
+          filter: 'blur(80px)',
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          bottom: '-100px',
+          right: '-120px',
+          width: '400px',
+          height: '400px',
+          borderRadius: '50%',
+          background: 'var(--color-primary-400)',
+          opacity: 0.05,
+          filter: 'blur(70px)',
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* Content */}
       <motion.div
@@ -98,65 +122,101 @@ const HeroSection = () => {
           variants={staggerItem}
           style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}
         >
-          <Link
-            to={ROUTES.REGISTER}
-            id="hero-get-started-btn"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.8125rem 1.625rem',
-              borderRadius: '0.75rem',
-              background: '#00b4d8',
-              color: '#ffffff',
-              fontWeight: 700,
-              fontSize: '1rem',
-              textDecoration: 'none',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 4px 14px rgba(0,180,216,0.25)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#0096c7';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,180,216,0.35)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#00b4d8';
-              e.currentTarget.style.transform = 'none';
-              e.currentTarget.style.boxShadow = '0 4px 14px rgba(37,99,235,0.25)';
-            }}
-          >
-            Get Started Free
-            <RiArrowRightLine aria-hidden />
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              to={dashboardRoute}
+              id="hero-dashboard-btn"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.8125rem 1.625rem',
+                borderRadius: '0.75rem',
+                background: '#00b4d8',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: '1rem',
+                textDecoration: 'none',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 4px 14px rgba(0,180,216,0.25)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#0096c7';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,180,216,0.35)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#00b4d8';
+                e.currentTarget.style.transform = 'none';
+                e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,180,216,0.25)';
+              }}
+            >
+              Go to Dashboard
+              <RiArrowRightLine aria-hidden />
+            </Link>
+          ) : (
+            <>
+              <Link
+                to={ROUTES.REGISTER}
+                id="hero-get-started-btn"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.8125rem 1.625rem',
+                  borderRadius: '0.75rem',
+                  background: '#00b4d8',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 14px rgba(0,180,216,0.25)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#0096c7';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,180,216,0.35)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#00b4d8';
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(37,99,235,0.25)';
+                }}
+              >
+                Get Started Free
+                <RiArrowRightLine aria-hidden />
+              </Link>
 
-          <Link
-            to={ROUTES.LOGIN}
-            id="hero-login-btn"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '0.8125rem 1.625rem',
-              borderRadius: '0.75rem',
-              border: '1.5px solid var(--color-neutral-200)',
-              background: '#ffffff',
-              color: 'var(--color-neutral-700)',
-              fontWeight: 600,
-              fontSize: '1rem',
-              textDecoration: 'none',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'var(--color-neutral-400)';
-              e.currentTarget.style.background = 'var(--color-neutral-50)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--color-neutral-200)';
-              e.currentTarget.style.background = '#ffffff';
-            }}
-          >
-            Log in
-          </Link>
+              <Link
+                to={ROUTES.LOGIN}
+                id="hero-login-btn"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '0.8125rem 1.625rem',
+                  borderRadius: '0.75rem',
+                  border: '1.5px solid var(--color-neutral-200)',
+                  background: '#ffffff',
+                  color: 'var(--color-neutral-700)',
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  textDecoration: 'none',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-neutral-400)';
+                  e.currentTarget.style.background = 'var(--color-neutral-50)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-neutral-200)';
+                  e.currentTarget.style.background = '#ffffff';
+                }}
+              >
+                Log in
+              </Link>
+            </>
+          )}
         </motion.div>
 
         {/* Trust micro-copy */}
