@@ -4,7 +4,7 @@
  * Displays stats summary, filter tabs, and animated review cards.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   RiFileTextLine,
@@ -40,6 +40,7 @@ const STATUS_TABS = [
 
 export default function ReviewsList() {
   const {
+    reviews,
     statusFilter,
     setStatusFilter,
     loadingReviews,
@@ -50,7 +51,10 @@ export default function ReviewsList() {
     fetchPerformanceTrends,
   } = useReviewStore();
 
-  const filteredReviews = useReviewStore(getFilteredReviews);
+  const filteredReviews = useMemo(
+    () => getFilteredReviews({ reviews, statusFilter }),
+    [reviews, statusFilter]
+  );
 
   // Load data on mount
   useEffect(() => {
