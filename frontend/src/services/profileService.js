@@ -220,12 +220,75 @@ const getRoleDefaults = (role) => {
   return { ...mockProfile, role: normalizedRole };
 };
 
+const hasRealBackendToken = () => {
+  try {
+    const user = useAppStore.getState()?.user;
+    if (!user || !user.token) return false;
+    return !user.token.startsWith('mock-');
+  } catch {
+    return false;
+  }
+};
+
+const isDemoUser = () => {
+  try {
+    const user = useAppStore.getState()?.user;
+    if (!user) return false;
+    const demoIds = ['u-1', 'u-2', 'u-3', 'u-4'];
+    const demoEmails = ['intern@trakive.com', 'supervisor@trakive.com', 'hr@trakive.com', 'head@trakive.com'];
+    return demoIds.includes(user.id) || demoEmails.includes(user.email?.toLowerCase());
+  } catch {
+    return false;
+  }
+};
+
 const getCurrentUserProfile = (explicitRole) => {
   const currentUser = useAppStore.getState()?.user;
   const role = normalizeRole(explicitRole || currentUser?.role);
   const { firstName, lastName } = splitName(currentUser?.name);
-  const defaults = getRoleDefaults(role);
 
+  if (!isDemoUser() && currentUser) {
+    const userProfileKey = `trakive_user_profile_${currentUser.id}`;
+    const saved = localStorage.getItem(userProfileKey);
+    const savedData = saved ? JSON.parse(saved) : {};
+
+    return {
+      id: currentUser.id,
+      firstName: savedData.firstName ?? currentUser.firstName ?? firstName ?? '',
+      lastName: savedData.lastName ?? currentUser.lastName ?? lastName ?? '',
+      fullName: savedData.fullName ?? (([savedData.firstName ?? firstName, savedData.lastName ?? lastName].filter(Boolean).join(' ')) || currentUser.name || ''),
+      email: currentUser.email ?? '',
+      phone: savedData.phone ?? currentUser.phone ?? '',
+      dateOfBirth: savedData.dateOfBirth ?? '',
+      gender: savedData.gender ?? '',
+      address: savedData.address ?? '',
+      city: savedData.city ?? '',
+      state: savedData.state ?? '',
+      country: savedData.country ?? '',
+      avatarUrl: savedData.avatarUrl ?? currentUser.avatarUrl ?? null,
+      role,
+      jobTitle: savedData.jobTitle ?? role,
+      department: savedData.department ?? currentUser.department ?? 'General',
+      organization: 'Trakive',
+      employeeId: savedData.employeeId ?? `EMP-${currentUser.id.replace('custom-', '').slice(-6)}`,
+      supervisorId: savedData.supervisorId ?? '',
+      supervisorName: savedData.supervisorName ?? 'Pending Assignment',
+      supervisorEmail: savedData.supervisorEmail ?? '',
+      status: savedData.status ?? 'Pending',
+      bio: savedData.bio ?? currentUser.bio ?? '',
+      institution: savedData.institution ?? '',
+      fieldOfStudy: savedData.fieldOfStudy ?? '',
+      academicYear: savedData.academicYear ?? '',
+      startDate: savedData.startDate ?? currentUser.startDate ?? '',
+      endDate: savedData.endDate ?? currentUser.endDate ?? '',
+      lastLogin: currentUser.lastLogin ?? new Date().toISOString(),
+      emailVerified: true,
+      createdAt: currentUser.createdAt ?? new Date().toISOString(),
+      updatedAt: savedData.updatedAt ?? new Date().toISOString(),
+    };
+  }
+
+  const defaults = getRoleDefaults(role);
   return {
     ...mockProfile,
     ...defaults,
@@ -258,25 +321,28 @@ export const profileService = {
    * @returns {Promise<Object>}
    */
   getProfile: async (role) => {
-    try {
-      const result = apiData(await api.get('/users/profile'));
-      _backendProfile = result;
-      _backendRoleProfile = result?.role_profile ?? null;
-      const mapped = mapBackendProfile(result);
-      if (mapped) return mapped;
-    } catch (error) {
-      if (error?.response?.status === 401 || error?.response?.status === 403) {
-        throw error;
+    if (hasRealBackendToken()) {
+      try {
+        const result = apiData(await api.get('/users/profile'));
+        _backendProfile = result;
+        _backendRoleProfile = result?.role_profile ?? null;
+        const mapped = mapBackendProfile(result);
+        if (mapped) return mapped;
+      } catch (error) {
+        // Backend request failed or unauthenticated; proceed with fallback profile data
       }
     }
 
     await delay(250);
     const activeRole = getEffectiveRole(role);
     const sessionProfile = getCurrentUserProfile(activeRole);
-    if (activeRole === 'Supervisor') {
-      return { ...sessionProfile, ..._supervisorProfile, ...sessionProfile };
+    if (isDemoUser()) {
+      if (activeRole === 'Supervisor') {
+        return { ...sessionProfile, ..._supervisorProfile, ...sessionProfile };
+      }
+      return { ...sessionProfile, ..._internProfile, ...sessionProfile };
     }
-    return { ...sessionProfile, ..._internProfile, ...sessionProfile };
+    return sessionProfile;
   },
 
   /**
@@ -293,13 +359,35 @@ export const profileService = {
       const mapped = mapBackendProfile(result);
       if (mapped) return mapped;
     } catch (error) {
-      if (error?.response?.status === 401 || error?.response?.status === 403) {
-        throw error;
-      }
+      // Backend request failed or unauthenticated; fall back to local store updates
     }
 
     await delay(300);
     const activeRole = getEffectiveRole(role);
+
+    if (!isDemoUser()) {
+      const currentUser = useAppStore.getState()?.user;
+      if (currentUser) {
+        const userProfileKey = `trakive_user_profile_${currentUser.id}`;
+        const currentProfile = getCurrentUserProfile(activeRole);
+        const updated = { ...currentProfile, ...updates, updatedAt: new Date().toISOString() };
+        localStorage.setItem(userProfileKey, JSON.stringify(updated));
+
+        // Mark profileCompleted in user metadata
+        const userMetaKey = `trakive_user_meta_${currentUser.id}`;
+        const storedMetaJson = localStorage.getItem(userMetaKey);
+        const userMeta = storedMetaJson ? JSON.parse(storedMetaJson) : {};
+        userMeta.profileCompleted = true;
+        localStorage.setItem(userMetaKey, JSON.stringify(userMeta));
+
+        if (useAppStore.getState()?.updateUserMeta) {
+          useAppStore.getState().updateUserMeta({ profileCompleted: true });
+        }
+
+        return updated;
+      }
+    }
+
     if (activeRole === 'Supervisor') {
       _supervisorProfile = { ...getCurrentUserProfile(activeRole), ..._supervisorProfile, ...updates, updatedAt: new Date().toISOString() };
       return { ..._supervisorProfile };
@@ -342,14 +430,12 @@ export const profileService = {
         : _backendProfile;
       return { avatarUrl };
     } catch (error) {
-      if (error?.response?.status === 401 || error?.response?.status === 403) {
-        throw error;
-      }
+      // Backend request failed or unauthenticated; fallback to local url upload
     }
 
     const activeRole = getEffectiveRole(role);
     if (activeRole === 'Supervisor') {
-      _supervisorProfile = { ..._supervisorProfile, avatarUrl: localUrl, updatedAt: new Date().toISOString() };
+      _supervisorProfile = { ..._supervisorProfile, avatarUrl: localUrl, hasCustomAvatar: true, updatedAt: new Date().toISOString() };
       _supervisorActivities.unshift({
         id: `act_sup_${Date.now()}`,
         type: 'avatar_updated',
@@ -364,7 +450,7 @@ export const profileService = {
         ip: '—',
       });
     } else {
-      _internProfile = { ..._internProfile, avatarUrl: localUrl, updatedAt: new Date().toISOString() };
+      _internProfile = { ..._internProfile, avatarUrl: localUrl, hasCustomAvatar: true, updatedAt: new Date().toISOString() };
       _internActivities.unshift({
         id: `act_${Date.now()}`,
         type: 'avatar_updated',
@@ -379,7 +465,7 @@ export const profileService = {
         ip: '—',
       });
     }
-    return { avatarUrl: localUrl };
+    return { avatarUrl: localUrl, hasCustomAvatar: true };
   },
 
   /**
@@ -428,12 +514,27 @@ export const profileService = {
     }
 
     await delay(250);
+    if (!isDemoUser()) {
+      const user = useAppStore.getState()?.user;
+      const key = `trakive_user_skills_${user?.id || 'new'}`;
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : [];
+    }
     return [..._skills];
   },
 
   addSkill: async (skill) => {
     await delay(400);
     const newSkill = { id: `skill_${Date.now()}`, ...skill };
+    if (!isDemoUser()) {
+      const user = useAppStore.getState()?.user;
+      const key = `trakive_user_skills_${user?.id || 'new'}`;
+      const saved = localStorage.getItem(key);
+      const current = saved ? JSON.parse(saved) : [];
+      const updated = [...current, newSkill];
+      localStorage.setItem(key, JSON.stringify(updated));
+      return newSkill;
+    }
     _skills = [..._skills, newSkill];
     await persistBackendSkills(_skills);
     return newSkill;
@@ -441,6 +542,15 @@ export const profileService = {
 
   updateSkill: async (skillId, updates) => {
     await delay(350);
+    if (!isDemoUser()) {
+      const user = useAppStore.getState()?.user;
+      const key = `trakive_user_skills_${user?.id || 'new'}`;
+      const saved = localStorage.getItem(key);
+      const current = saved ? JSON.parse(saved) : [];
+      const updated = current.map((s) => (s.id === skillId ? { ...s, ...updates } : s));
+      localStorage.setItem(key, JSON.stringify(updated));
+      return updated.find((s) => s.id === skillId);
+    }
     _skills = _skills.map((s) => (s.id === skillId ? { ...s, ...updates } : s));
     await persistBackendSkills(_skills);
     return _skills.find((s) => s.id === skillId);
@@ -448,6 +558,15 @@ export const profileService = {
 
   removeSkill: async (skillId) => {
     await delay(300);
+    if (!isDemoUser()) {
+      const user = useAppStore.getState()?.user;
+      const key = `trakive_user_skills_${user?.id || 'new'}`;
+      const saved = localStorage.getItem(key);
+      const current = saved ? JSON.parse(saved) : [];
+      const updated = current.filter((s) => s.id !== skillId);
+      localStorage.setItem(key, JSON.stringify(updated));
+      return;
+    }
     _skills = _skills.filter((s) => s.id !== skillId);
     await persistBackendSkills(_skills);
   },
@@ -458,6 +577,9 @@ export const profileService = {
    */
   getAchievements: async () => {
     await delay(350);
+    if (!isDemoUser()) {
+      return [];
+    }
     return [..._achievements];
   },
 
@@ -467,17 +589,23 @@ export const profileService = {
    * @returns {Promise<Array>}
    */
   getDocuments: async (role) => {
-    try {
-      const result = apiData(await api.get('/documents', { params: { limit: 50 } }));
-      const docs = Array.isArray(result) ? result : result?.items;
-      if (Array.isArray(docs)) return docs.map(mapBackendDocument);
-    } catch (error) {
-      if (error?.response?.status === 401 || error?.response?.status === 403) {
-        throw error;
+    if (hasRealBackendToken()) {
+      try {
+        const result = apiData(await api.get('/documents', { params: { limit: 50 } }));
+        const docs = Array.isArray(result) ? result : result?.items;
+        if (Array.isArray(docs)) return docs.map(mapBackendDocument);
+      } catch (error) {
+        // Backend request failed or unauthenticated; proceed with fallback document data
       }
     }
 
     await delay(400);
+    if (!isDemoUser()) {
+      const user = useAppStore.getState()?.user;
+      const key = `trakive_user_documents_${user?.id || 'new'}`;
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : [];
+    }
     const activeRole = getEffectiveRole(role);
     if (activeRole === 'Supervisor') {
       return [..._supervisorDocuments];

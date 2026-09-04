@@ -5,6 +5,19 @@
  */
 
 import { mockTasks, mockTaskComments, mockSubmissions, mockAttachments } from '../data';
+import { useAppStore } from '../store/useAppStore';
+
+const isDemoUser = () => {
+  try {
+    const user = useAppStore.getState()?.user;
+    if (!user) return false;
+    const demoIds = ['u-1', 'u-2', 'u-3', 'u-4'];
+    const demoEmails = ['intern@trakive.com', 'supervisor@trakive.com', 'hr@trakive.com', 'head@trakive.com'];
+    return demoIds.includes(user.id) || demoEmails.includes(user.email?.toLowerCase());
+  } catch {
+    return false;
+  }
+};
 
 // Helper to simulate API delay
 const delay = (ms = 600) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -14,7 +27,13 @@ export const taskService = {
    * Fetch all tasks.
    */
   getTasks: async () => {
-    await delay(500);
+    await delay(350);
+    if (!isDemoUser()) {
+      const user = useAppStore.getState()?.user;
+      const key = `trakive_user_tasks_${user?.id || 'new'}`;
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : [];
+    }
     // Return a copy of the mock tasks array
     return JSON.parse(JSON.stringify(mockTasks));
   },

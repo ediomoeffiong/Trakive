@@ -8,8 +8,14 @@ import { motion } from 'framer-motion';
 import { RiArrowRightLine } from 'react-icons/ri';
 import { scaleIn } from '../../animations/variants';
 import { ROUTES } from '../../constants';
+import { useAppStore } from '../../store/useAppStore';
+import { getRoleDefaultRoute } from '../../utils';
 
 const CTASection = () => {
+  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
+  const user = useAppStore((state) => state.user);
+  const dashboardRoute = getRoleDefaultRoute(user?.role);
+
   return (
     <section
       id="cta"
@@ -72,62 +78,95 @@ const CTASection = () => {
         </p>
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Link
-            to={ROUTES.REGISTER}
-            id="cta-register-btn"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.875rem 1.75rem',
-              borderRadius: '0.75rem',
-              background: '#ffffff',
-              color: 'var(--color-primary-700)',
-              fontWeight: 700,
-              fontSize: '1rem',
-              textDecoration: 'none',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'none';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            Get Started Free
-            <RiArrowRightLine aria-hidden />
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              to={dashboardRoute}
+              id="cta-dashboard-btn"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.875rem 1.75rem',
+                borderRadius: '0.75rem',
+                background: '#ffffff',
+                color: 'var(--color-primary-700)',
+                fontWeight: 700,
+                fontSize: '1rem',
+                textDecoration: 'none',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'none';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              Go to Dashboard
+              <RiArrowRightLine aria-hidden />
+            </Link>
+          ) : (
+            <>
+              <Link
+                to={ROUTES.REGISTER}
+                id="cta-register-btn"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.875rem 1.75rem',
+                  borderRadius: '0.75rem',
+                  background: '#ffffff',
+                  color: 'var(--color-primary-700)',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                Get Started Free
+                <RiArrowRightLine aria-hidden />
+              </Link>
 
-          <Link
-            to={ROUTES.LOGIN}
-            id="cta-login-btn"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '0.875rem 1.75rem',
-              borderRadius: '0.75rem',
-              border: '1.5px solid rgba(255,255,255,0.4)',
-              background: 'transparent',
-              color: '#ffffff',
-              fontWeight: 600,
-              fontSize: '1rem',
-              textDecoration: 'none',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.7)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)';
-            }}
-          >
-            Log In
-          </Link>
+              <Link
+                to={ROUTES.LOGIN}
+                id="cta-login-btn"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '0.875rem 1.75rem',
+                  borderRadius: '0.75rem',
+                  border: '1.5px solid rgba(255,255,255,0.4)',
+                  background: 'transparent',
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  textDecoration: 'none',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.7)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)';
+                }}
+              >
+                Log In
+              </Link>
+            </>
+          )}
         </div>
       </motion.div>
     </section>

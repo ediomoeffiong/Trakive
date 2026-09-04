@@ -43,7 +43,17 @@ export const authService = {
       throw new Error('Invalid credentials. (Hint: use "Password123!" for mock accounts)');
     }
 
-    const { ...safeUser } = user;
+    const userMetaKey = `trakive_user_meta_${user.id}`;
+    const storedMetaJson = localStorage.getItem(userMetaKey);
+    const userMeta = storedMetaJson ? JSON.parse(storedMetaJson) : {};
+
+    const safeUser = {
+      ...user,
+      isFirstLogin: userMeta.isFirstLogin !== undefined ? userMeta.isFirstLogin : (user.isFirstLogin ?? user.id.startsWith('custom-')),
+      hasCompletedOnboarding: userMeta.hasCompletedOnboarding ?? user.hasCompletedOnboarding ?? false,
+      profileCompleted: userMeta.profileCompleted ?? user.profileCompleted ?? false,
+    };
+
     return {
       user: safeUser,
       token: `mock-jwt-token-for-${user.id}`,
@@ -63,17 +73,48 @@ export const authService = {
       throw new Error('An account with this email address already exists.');
     }
 
+    const isSupervisor = data.role === 'Supervisor' || data.role === 'supervisor';
+    const role = isSupervisor ? 'Supervisor' : 'Intern';
+    const isFifthLab = !data.department || data.department.toLowerCase() === 'fifthlab';
+
     const newUser = {
       id: `custom-${Date.now()}`,
       name: data.name,
       email: data.email,
-      role: 'Intern', // Default role for registering
-      department: data.department || 'General',
-      avatarUrl: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(data.name)}`,
-      bio: 'New Intern onboarding via registration.',
+      role: role,
+      department: data.department || 'Fifthlab',
+      phone: data.phone || '',
+      startDate: isSupervisor ? '' : (data.startDate || ''),
+      endDate: isSupervisor ? '' : (data.endDate || ''),
+      datesVerified: isSupervisor ? true : false,
+      dateVerificationStatus: isSupervisor ? 'N/A' : 'Pending Supervisor Verification',
+      supervisorId: isSupervisor ? null : (isFifthLab ? 'sup-tochukwu' : null),
+      supervisorName: isSupervisor ? null : (isFifthLab ? 'Tochukwu Mgbemmena' : null),
+      supervisorEmail: isSupervisor ? null : (isFifthLab ? 'tochukwu@fifthlab.com' : null),
+      secondarySupervisorId: null,
+      secondarySupervisorName: null,
+      avatarUrl: null,
+      hasCustomAvatar: false,
+      bio: '',
+      isFirstLogin: true,
+      hasCompletedOnboarding: isSupervisor ? true : false,
+      profileCompleted: false,
+      isNewUser: true,
+      createdAt: new Date().toISOString(),
     };
 
     saveCustomUser(newUser);
+
+    // Save initial metadata for this user
+    localStorage.setItem(`trakive_user_meta_${newUser.id}`, JSON.stringify({
+      isFirstLogin: true,
+      hasCompletedOnboarding: isSupervisor ? true : false,
+      profileCompleted: false,
+      datesVerified: isSupervisor ? true : false,
+      dateVerificationStatus: isSupervisor ? 'N/A' : 'Pending Supervisor Verification',
+      supervisorName: newUser.supervisorName,
+      secondarySupervisorName: null,
+    }));
 
     return {
       success: true,

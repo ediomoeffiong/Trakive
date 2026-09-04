@@ -6,6 +6,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { onboardingService } from '../services/onboardingService';
+import { useNotificationStore } from './useNotificationStore';
 
 export const useOnboardingStore = create(
   devtools(
@@ -34,6 +35,16 @@ export const useOnboardingStore = create(
           set((state) => ({
             steps: state.steps.map((s) => (s.id === stepId ? updatedStep : s))
           }));
+          if (status === 'completed' || status === 'verified') {
+            useNotificationStore.getState().addNotification({
+              category: 'onboarding_completed',
+              title: `Onboarding Step ${status === 'verified' ? 'Verified' : 'Completed'}`,
+              shortDescription: `Onboarding step '${updatedStep.title}' is now marked as ${status}.`,
+              message: `Great progress! You have completed '${updatedStep.title}'. Keep going to complete your onboarding pathway.`,
+              actionLabel: 'View Onboarding',
+              actionRoute: '/dashboard/onboarding',
+            });
+          }
         } catch (err) {
           set({ error: err.message });
         }

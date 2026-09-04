@@ -15,10 +15,27 @@ const api = axios.create({
   },
 });
 
+// Helper to safely extract Bearer token string
+const getBearerToken = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+    if (!raw) return null;
+    if (raw.startsWith('{')) {
+      const parsed = JSON.parse(raw);
+      const userToken = parsed?.state?.user?.token;
+      if (userToken) return userToken;
+      return null;
+    }
+    return raw;
+  } catch {
+    return null;
+  }
+};
+
 // ── Request Interceptor ──────────────────────────────────────────────────────
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+    const token = getBearerToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -31,15 +48,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const status = error.response?.status;
-
-    if (status === 401) {
-      // Clear stored credentials and redirect to login
-      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.USER);
-      window.location.href = '/login';
-    }
-
+    // Return error rejection to calling services cleanly without hard-redirecting to /login
     return Promise.reject(error);
   },
 );

@@ -5,9 +5,14 @@
 
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../../constants';
+import { useAppStore } from '../../store/useAppStore';
+import { getRoleDefaultRoute } from '../../utils';
 
 const Footer = () => {
   const year = new Date().getFullYear();
+  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
+  const user = useAppStore((state) => state.user);
+  const dashboardRoute = getRoleDefaultRoute(user?.role);
 
   const columns = [
     {
@@ -20,10 +25,12 @@ const Footer = () => {
     },
     {
       heading: 'Account',
-      links: [
-        { label: 'Log In',    to: ROUTES.LOGIN },
-        { label: 'Register',  to: ROUTES.REGISTER },
-      ],
+      links: isAuthenticated
+        ? [{ label: 'Dashboard', to: dashboardRoute }]
+        : [
+            { label: 'Log In',    to: ROUTES.LOGIN },
+            { label: 'Register',  to: ROUTES.REGISTER },
+          ],
     },
     {
       heading: 'Legal',

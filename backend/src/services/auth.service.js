@@ -143,6 +143,8 @@ const AuthService = {
       throw ApiError.forbidden('User account is inactive or suspended');
     }
 
+    const isFirstLogin = !user.last_login_at;
+
     // Update last login time
     await UserModel.updateLastLogin(user.id);
 
@@ -180,8 +182,13 @@ const AuthService = {
       [userProfile.id, refreshTokenHash, ipAddress, userAgent, refreshExpiry]
     );
 
+    const sanitized = UserModel.sanitizeUser(userProfile);
+
     return {
-      user: UserModel.sanitizeUser(userProfile),
+      user: {
+        ...sanitized,
+        isFirstLogin,
+      },
       tokens: {
         accessToken,
         refreshToken,

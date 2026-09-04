@@ -144,7 +144,7 @@ const NotificationDrawer = () => {
 
                 {unreadCount > 0 && (
                   <button
-                    onClick={markAllAsRead}
+                    onClick={() => markAllAsRead(user?.role)}
                     className="btn btn-ghost"
                     style={{
                       fontSize: '0.75rem',

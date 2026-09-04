@@ -13,6 +13,8 @@
  * @param {boolean} [props.online]    Show a green online indicator dot
  */
 
+import { useState } from 'react';
+
 const sizeMap = {
   xs: { width: '24px',  height: '24px',  fontSize: '0.625rem' },
   sm: { width: '32px',  height: '32px',  fontSize: '0.75rem'  },
@@ -45,9 +47,11 @@ const Avatar = ({
   online,
   ...props
 }) => {
+  const [imgError, setImgError] = useState(false);
   const dims = sizeMap[size] ?? sizeMap.md;
   const dotDims = dotSizeMap[size] ?? dotSizeMap.md;
   const initials = getInitials(name);
+  const hasValidSrc = src && !imgError && !src.includes('dicebear.com');
 
   return (
     <div
@@ -55,10 +59,11 @@ const Avatar = ({
       className={className}
       {...props}
     >
-      {src ? (
+      {hasValidSrc ? (
         <img
           src={src}
           alt={name || 'User avatar'}
+          onError={() => setImgError(true)}
           style={{
             ...dims,
             borderRadius: '50%',

@@ -23,7 +23,7 @@ import {
   RiAlarmLine, RiFilterLine,
 } from 'react-icons/ri';
 
-import { useNotificationStore } from '../store';
+import { useNotificationStore, useAppStore } from '../store';
 import {
   NotificationGroup,
   NotificationSearch,
@@ -155,16 +155,16 @@ function NotificationsTabContent({ isMobile }) {
         ) : (
           <AnimatePresence>
             {grouped.today.length > 0 && (
-              <NotificationGroup label="Today" notifications={grouped.today} {...listProps} />
+              <NotificationGroup key="group-today" label="Today" notifications={grouped.today} {...listProps} />
             )}
             {grouped.yesterday.length > 0 && (
-              <NotificationGroup label="Yesterday" notifications={grouped.yesterday} {...listProps} />
+              <NotificationGroup key="group-yesterday" label="Yesterday" notifications={grouped.yesterday} {...listProps} />
             )}
             {grouped.thisWeek.length > 0 && (
-              <NotificationGroup label="This Week" notifications={grouped.thisWeek} {...listProps} />
+              <NotificationGroup key="group-thisWeek" label="This Week" notifications={grouped.thisWeek} {...listProps} />
             )}
             {grouped.older.length > 0 && (
-              <NotificationGroup label="Older" notifications={grouped.older} {...listProps} />
+              <NotificationGroup key="group-older" label="Older" notifications={grouped.older} {...listProps} />
             )}
           </AnimatePresence>
         )}
@@ -341,6 +341,7 @@ const NotificationsPage = () => {
   const [activeTab, setActiveTab] = useState('notifications');
   const isMobile = useIsMobile();
 
+  const user = useAppStore((s) => s.user);
   const fetchAll = useNotificationStore((s) => s.fetchAll);
   const markAllAsRead = useNotificationStore((s) => s.markAllAsRead);
   const startSimulatedUpdates = useNotificationStore((s) => s.startSimulatedUpdates);
@@ -352,14 +353,14 @@ const NotificationsPage = () => {
   const unreadCount = getUnreadCount();
 
   useEffect(() => {
-    fetchAll();
+    fetchAll(user?.role);
     // Start simulated real-time updates (replace with WS in production)
     startSimulatedUpdates();
     return () => stopSimulatedUpdates();
-  }, []); // eslint-disable-line
+  }, [user?.role]); // eslint-disable-line
 
   const handleMarkAll = async () => {
-    await markAllAsRead();
+    await markAllAsRead(user?.role);
     toast.success('All notifications marked as read.');
   };
 

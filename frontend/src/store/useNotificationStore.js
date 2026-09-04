@@ -7,6 +7,7 @@
  */
 
 import { create } from 'zustand';
+import { toast } from 'react-hot-toast';
 import { notificationService } from '../services';
 
 export const useNotificationStore = create((set, get) => ({
@@ -95,7 +96,25 @@ export const useNotificationStore = create((set, get) => ({
 
   // ── CRUD Actions ───────────────────────────────────────────────────────────
 
-  markAsRead: async (id) => {
+  addNotification: async (data, role) => {
+    try {
+      const created = await notificationService.createNotification(data, role);
+      set((state) => ({
+        notifications: [created, ...state.notifications],
+      }));
+      toast(created.title, {
+        icon: '🔔',
+        style: {
+          borderLeft: '4px solid #6366f1',
+        },
+      });
+      return created;
+    } catch (err) {
+      console.error('Failed to dispatch notification:', err);
+    }
+  },
+
+  markAsRead: async (id, role) => {
     // Optimistic update
     set((state) => ({
       notifications: state.notifications.map((n) =>
@@ -103,7 +122,7 @@ export const useNotificationStore = create((set, get) => ({
       ),
     }));
     try {
-      await notificationService.markAsRead(id);
+      await notificationService.markAsRead(id, role);
     } catch {
       // Rollback on failure
       set((state) => ({
@@ -114,14 +133,14 @@ export const useNotificationStore = create((set, get) => ({
     }
   },
 
-  markAsUnread: async (id) => {
+  markAsUnread: async (id, role) => {
     set((state) => ({
       notifications: state.notifications.map((n) =>
         n.id === id ? { ...n, isRead: false } : n
       ),
     }));
     try {
-      await notificationService.markAsUnread(id);
+      await notificationService.markAsUnread(id, role);
     } catch {
       set((state) => ({
         notifications: state.notifications.map((n) =>
@@ -131,19 +150,19 @@ export const useNotificationStore = create((set, get) => ({
     }
   },
 
-  markAllAsRead: async () => {
+  markAllAsRead: async (role) => {
     const prev = get().notifications;
     set((state) => ({
       notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
     }));
     try {
-      await notificationService.markAllAsRead();
+      await notificationService.markAllAsRead(role);
     } catch {
       set({ notifications: prev });
     }
   },
 
-  deleteNotification: async (id) => {
+  deleteNotification: async (id, role) => {
     const prev = get().notifications;
     // Close detail panel if deleted notification was selected
     if (get().selectedNotification?.id === id) {
@@ -153,13 +172,13 @@ export const useNotificationStore = create((set, get) => ({
       notifications: state.notifications.filter((n) => n.id !== id),
     }));
     try {
-      await notificationService.deleteNotification(id);
+      await notificationService.deleteNotification(id, role);
     } catch {
       set({ notifications: prev });
     }
   },
 
-  archiveNotification: async (id) => {
+  archiveNotification: async (id, role) => {
     if (get().selectedNotification?.id === id) {
       set({ selectedNotification: null });
     }
@@ -169,7 +188,7 @@ export const useNotificationStore = create((set, get) => ({
       ),
     }));
     try {
-      await notificationService.archiveNotification(id);
+      await notificationService.archiveNotification(id, role);
     } catch {
       set((state) => ({
         notifications: state.notifications.map((n) =>

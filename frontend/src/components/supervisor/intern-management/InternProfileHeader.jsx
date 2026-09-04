@@ -1,10 +1,5 @@
-/**
- * @file InternProfileHeader.jsx
- * @description Detailed intern profile header card with avatar, internship info,
- * status badge, duration, and quick action buttons.
- */
-
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
@@ -18,7 +13,8 @@ import {
   RiLinkedinBoxLine,
   RiMapPinLine,
   RiTimeLine,
-  RiArrowLeftLine,
+  RiUserAddLine,
+  RiCalendarCheckLine,
 } from 'react-icons/ri';
 import Avatar from '../../ui/Avatar';
 import { ROUTES } from '../../../constants';
@@ -35,6 +31,13 @@ const TREND_COLORS = {
   down: { color: '#ef4444', bg: '#fee2e2', label: '↓ Trending down' },
   stable: { color: '#6366f1', bg: '#e0e7ff', label: '→ Stable' },
 };
+
+const SUPERVISOR_OPTIONS = [
+  { id: 'sup-jane', name: 'Jane Smith', role: 'Senior Mentor' },
+  { id: 'sup-mike', name: 'Mike Chen', role: 'Lead Architect' },
+  { id: 'sup-vance', name: 'Dr. Robert Vance', role: 'Research Director' },
+  { id: 'sup-sarah', name: 'Sarah Connor', role: 'DevOps Lead' },
+];
 
 const QuickActionButton = ({ icon: Icon, label, color, bg, onClick }) => (
   <motion.button
@@ -71,11 +74,25 @@ const InfoChip = ({ icon: Icon, label, color = 'var(--color-neutral-600)' }) => 
 
 const InternProfileHeader = ({ profile, performance }) => {
   const navigate = useNavigate();
+  const [datesVerified, setDatesVerified] = useState(profile?.datesVerified || false);
+  const [secondarySupervisor, setSecondarySupervisor] = useState(profile?.secondarySupervisor || null);
+  const [showSecondaryModal, setShowSecondaryModal] = useState(false);
 
   if (!profile) return null;
 
   const statusStyle = STATUS_STYLES[profile.status] || STATUS_STYLES.Active;
   const trendInfo = performance ? TREND_COLORS[performance.trend] || TREND_COLORS.stable : null;
+
+  const handleVerifyDates = () => {
+    setDatesVerified(true);
+    toast.success(`Internship start and end dates verified by Supervisor Tochukwu Mgbemmena!`);
+  };
+
+  const handleAssignSecondary = (sup) => {
+    setSecondarySupervisor(sup.name);
+    setShowSecondaryModal(false);
+    toast.success(`Assigned ${sup.name} as secondary supervisor for ${profile.name}!`);
+  };
 
   const handleAction = (action) => {
     switch (action) {
@@ -105,77 +122,95 @@ const InternProfileHeader = ({ profile, performance }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      style={{
-        background: '#ffffff',
-        borderRadius: '1rem',
-        border: '1px solid var(--color-neutral-200)',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
-        overflow: 'hidden',
-      }}
+      style={{ marginBottom: '1.5rem' }}
     >
-      {/* Gradient Banner */}
       <div
+        className="card p-6"
         style={{
-          background: 'linear-gradient(135deg, #1e293b 0%, #312e81 100%)',
-          padding: '1.25rem 2rem 3.5rem 2rem',
+          borderRadius: '1rem',
+          background: '#ffffff',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+          border: '1px solid var(--color-neutral-200)',
           position: 'relative',
         }}
       >
-        <button
-          onClick={() => navigate(ROUTES.SUPERVISOR_INTERNS)}
+        {/* Banner header accent */}
+        <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            background: 'rgba(255,255,255,0.1)',
-            border: '1px solid rgba(255,255,255,0.15)',
-            borderRadius: '0.5rem',
-            color: '#c7d2fe',
-            fontSize: '0.8125rem',
-            fontWeight: 600,
-            padding: '0.375rem 0.75rem',
-            cursor: 'pointer',
+            height: '6rem',
+            borderRadius: '0.75rem 0.75rem 0 0',
+            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%)',
+            margin: '-1.5rem -1.5rem 0 -1.5rem',
+            position: 'relative',
           }}
         >
-          <RiArrowLeftLine />
-          Back to Interns
-        </button>
+          <button
+            onClick={() => navigate(-1)}
+            style={{
+              position: 'absolute',
+              top: '1rem',
+              left: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.375rem 0.75rem',
+              borderRadius: '0.5rem',
+              background: 'rgba(255, 255, 255, 0.15)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              color: '#ffffff',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            <RiArrowLeftLine /> Back
+          </button>
 
-        <span
-          style={{
-            position: 'absolute',
-            top: '1.25rem',
-            right: '2rem',
-            fontSize: '0.7rem',
-            fontWeight: 700,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            background: 'rgba(255,255,255,0.12)',
-            color: '#c7d2fe',
-            padding: '0.25rem 0.625rem',
-            borderRadius: '99px',
-          }}
-        >
-          {profile.batch}
-        </span>
-      </div>
+          {/* Date verification status badge */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '1rem',
+              right: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+          >
+            <span
+              style={{
+                padding: '0.375rem 0.75rem',
+                borderRadius: '0.5rem',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                background: datesVerified ? 'rgba(16, 185, 129, 0.9)' : 'rgba(245, 158, 11, 0.9)',
+                color: '#ffffff',
+                backdropFilter: 'blur(8px)',
+              }}
+            >
+              {datesVerified ? '✓ Dates Verified by Supervisor' : '⏳ Pending Date Verification'}
+            </span>
+          </div>
+        </div>
 
-      {/* Profile Body */}
-      <div style={{ padding: '0 2rem 1.75rem 2rem', marginTop: '-2.5rem' }}>
+        {/* Profile Content */}
         <div
           style={{
             display: 'flex',
-            alignItems: 'flex-end',
+            flexDirection: 'row',
             justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '1.5rem',
+            marginTop: '-2.5rem',
             flexWrap: 'wrap',
-            gap: '1.25rem',
           }}
         >
-          {/* Left: Avatar + Name */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1.25rem' }}>
+          {/* Left: Avatar & Info */}
+          <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div
               style={{
                 borderRadius: '1rem',
@@ -229,14 +264,14 @@ const InternProfileHeader = ({ profile, performance }) => {
               </div>
 
               <p style={{ margin: '0.25rem 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--color-neutral-500)', fontWeight: 500 }}>
-                {profile.role} · {profile.department}
+                {profile.role} · {profile.department || 'Fifthlab'}
               </p>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-                <InfoChip icon={RiTimeLine} label={`Supervisor: ${profile.supervisor}`} />
+                <InfoChip icon={RiTimeLine} label={`Primary Supervisor: ${profile.supervisor || 'Tochukwu Mgbemmena'}`} />
+                <InfoChip icon={RiTimeLine} label={`Secondary: ${secondarySupervisor || 'None assigned'}`} />
                 <InfoChip icon={RiMapPinLine} label={profile.location} />
                 <InfoChip icon={RiCalendarEventLine} label={`${profile.startDate} → ${profile.endDate}`} />
-                <InfoChip icon={RiTimeLine} label={profile.timezone} />
               </div>
             </div>
           </div>
@@ -259,12 +294,12 @@ const InternProfileHeader = ({ profile, performance }) => {
               <p style={{ margin: 0, fontSize: '1.375rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
                 {profile.onboardingProgress}%
               </p>
-              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-neutral-500)', fontWeight: 600 }}>ONBOARDED</p>
+              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-neutral-500)', fontWeight: 600 }}>ONBOARDING</p>
             </div>
           </div>
         </div>
 
-        {/* Contact Row */}
+        {/* Contact Strip */}
         <div
           style={{
             display: 'flex',
@@ -287,23 +322,12 @@ const InternProfileHeader = ({ profile, performance }) => {
           >
             <RiPhoneLine /> {profile.phone}
           </a>
-          <a
-            href={`https://${profile.linkedin}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', color: '#0a66c2', textDecoration: 'none' }}
-          >
-            <RiLinkedinBoxLine /> LinkedIn
-          </a>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
-            🎓 {profile.university} · {profile.major}
-          </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
             💼 {profile.contractType} · {profile.stipend}
           </span>
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions for Supervisor */}
         <div
           style={{
             display: 'flex',
@@ -312,13 +336,122 @@ const InternProfileHeader = ({ profile, performance }) => {
             marginTop: '1.25rem',
           }}
         >
+          {!datesVerified ? (
+            <QuickActionButton
+              icon={RiCalendarCheckLine}
+              label="Verify Internship Dates"
+              color="#059669"
+              bg="#ecfdf5"
+              onClick={handleVerifyDates}
+            />
+          ) : (
+            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: '#ecfdf5', borderRadius: '0.625rem' }}>
+              ✓ Dates Verified by Tochukwu Mgbemmena
+            </span>
+          )}
+
+          <QuickActionButton
+            icon={RiUserAddLine}
+            label={secondarySupervisor ? `Change Secondary (${secondarySupervisor})` : "Assign Extra Supervisor"}
+            color="#7c3aed"
+            bg="#faf5ff"
+            onClick={() => setShowSecondaryModal(true)}
+          />
           <QuickActionButton icon={RiTaskLine} label="Assign Task" color="#4f46e5" bg="#eef2ff" onClick={() => handleAction('assign-task')} />
           <QuickActionButton icon={RiCalendarEventLine} label="Schedule Review" color="#7c3aed" bg="#faf5ff" onClick={() => handleAction('schedule-review')} />
-          <QuickActionButton icon={RiMessage2Line} label="Send Message" color="#0891b2" bg="#ecfeff" onClick={() => handleAction('message')} />
           <QuickActionButton icon={RiCheckboxCircleLine} label="Approve Onboarding" color="#059669" bg="#ecfdf5" onClick={() => handleAction('approve-onboarding')} />
-          <QuickActionButton icon={RiBarChartLine} label="View Analytics" color="#d97706" bg="#fffbeb" onClick={() => handleAction('analytics')} />
         </div>
       </div>
+
+      {/* Secondary Supervisor Selection Modal */}
+      <AnimatePresence>
+        {showSecondaryModal && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(15, 23, 42, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1rem',
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              style={{
+                background: '#ffffff',
+                borderRadius: '1rem',
+                padding: '1.5rem',
+                width: '100%',
+                maxWidth: '420px',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              }}
+            >
+              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.125rem', fontWeight: 700 }}>
+                Select Extra / Secondary Supervisor
+              </h3>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)', marginBottom: '1.25rem' }}>
+                Primary Supervisor: <strong>Tochukwu Mgbemmena</strong>. Select a co-supervisor for {profile.name}.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                {SUPERVISOR_OPTIONS.map((sup) => (
+                  <button
+                    key={sup.id}
+                    type="button"
+                    onClick={() => handleAssignSecondary(sup)}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '0.625rem',
+                      border: '1px solid var(--color-neutral-200)',
+                      background: 'var(--color-neutral-50)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div>
+                      <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>
+                        {sup.name}
+                      </p>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>
+                        {sup.role}
+                      </p>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-600)' }}>
+                      Assign
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowSecondaryModal(false)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid var(--color-neutral-300)',
+                    background: '#fff',
+                    fontSize: '0.8125rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

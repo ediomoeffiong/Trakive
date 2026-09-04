@@ -4,9 +4,9 @@
  * Features subtle grid layout, backdrop blur particles, and dynamic layout transitions.
  */
 
-import { Outlet } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { APP_NAME } from '../constants';
+import { APP_NAME, ROUTES } from '../constants';
 
 const AuthLayout = () => {
   return (
@@ -53,38 +53,47 @@ const AuthLayout = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: 'easeOut' }}
         style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '0.75rem',
           zIndex: 10,
         }}
       >
-        <div style={{
-          width: '2.75rem',
-          height: '2.75rem',
-          borderRadius: '0.875rem',
-          background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 4px 20px rgba(37, 99, 235, 0.45)',
-          border: '1.5px solid rgba(255, 255, 255, 0.1)',
-        }}>
-          <svg width="22" height="22" viewBox="0 0 16 16" fill="none">
-            <path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" fill="white" opacity="0.9" />
-            <path d="M8 2L14 5.5L8 9L2 5.5L8 2Z" fill="white" />
-          </svg>
-        </div>
-        <div style={{
-          fontSize: '1.375rem',
-          fontWeight: 800,
-          color: '#ffffff',
-          letterSpacing: '-0.03em',
-          textShadow: '0 2px 4px rgba(0,0,0,0.15)',
-        }}>
-          {APP_NAME}
-        </div>
+        <Link
+          to={ROUTES.LANDING}
+          title="Go to home"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.75rem',
+            textDecoration: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{
+            width: '2.75rem',
+            height: '2.75rem',
+            borderRadius: '0.875rem',
+            background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 20px rgba(37, 99, 235, 0.45)',
+            border: '1.5px solid rgba(255, 255, 255, 0.1)',
+          }}>
+            <svg width="22" height="22" viewBox="0 0 16 16" fill="none">
+              <path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" fill="white" opacity="0.9" />
+              <path d="M8 2L14 5.5L8 9L2 5.5L8 2Z" fill="white" />
+            </svg>
+          </div>
+          <div style={{
+            fontSize: '1.375rem',
+            fontWeight: 800,
+            color: '#ffffff',
+            letterSpacing: '-0.03em',
+            textShadow: '0 2px 4px rgba(0,0,0,0.15)',
+          }}>
+            {APP_NAME}
+          </div>
+        </Link>
       </motion.div>
 
       {/* ── Central Authentication Card ── */}

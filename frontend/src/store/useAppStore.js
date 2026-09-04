@@ -8,6 +8,7 @@ import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import { STORAGE_KEYS } from '../constants';
 import { authService } from '../services';
+import { useNotificationStore } from './useNotificationStore';
 
 // ── UI / Shell Slice ──────────────────────────────────────────────────────────
 const createUISlice = (set) => ({
@@ -33,11 +34,46 @@ const createAuthSlice = (set, get) => ({
   clearError: () => set({ error: null }),
   clearAuth: () => set({ user: null, isAuthenticated: false, error: null }),
 
+  dismissFirstLoginPrompt: () => {
+    const { user } = get();
+    if (!user) return;
+    const updatedUser = { ...user, isFirstLogin: false };
+    const userMetaKey = `trakive_user_meta_${user.id}`;
+    const storedMetaJson = localStorage.getItem(userMetaKey);
+    const userMeta = storedMetaJson ? JSON.parse(storedMetaJson) : {};
+    userMeta.isFirstLogin = false;
+    localStorage.setItem(userMetaKey, JSON.stringify(userMeta));
+    set({ user: updatedUser });
+  },
+
+  updateUserMeta: (updates) => {
+    const { user } = get();
+    if (!user) return;
+    const updatedUser = { ...user, ...updates };
+    const userMetaKey = `trakive_user_meta_${user.id}`;
+    const storedMetaJson = localStorage.getItem(userMetaKey);
+    const userMeta = storedMetaJson ? JSON.parse(storedMetaJson) : {};
+    Object.assign(userMeta, updates);
+    localStorage.setItem(userMetaKey, JSON.stringify(userMeta));
+    set({ user: updatedUser });
+  },
+
   login: async (credentials) => {
     set({ isLoading: true, error: null });
     try {
       const response = await authService.login(credentials);
       set({ user: response.user, isAuthenticated: true, isLoading: false });
+
+      // Dispatch security notification
+      useNotificationStore.getState().addNotification({
+        category: 'new_login_detected',
+        title: 'New Login Detected',
+        shortDescription: 'Your account was accessed from a web browser.',
+        message: `Account logged in successfully at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. If this was not you, please update your security settings immediately.`,
+        actionLabel: 'Account Security',
+        actionRoute: response.user?.role === 'Supervisor' ? '/supervisor/profile' : '/dashboard/profile',
+      }, response.user?.role);
+
       return response;
     } catch (err) {
       set({ error: err.message, isLoading: false });
@@ -61,6 +97,9 @@ const createAuthSlice = (set, get) => ({
   logout: async () => {
     set({ isLoading: true, error: null });
     try {
+      if (typeof useNotificationStore.getState()?.stopSimulatedUpdates === 'function') {
+        useNotificationStore.getState().stopSimulatedUpdates();
+      }
       await authService.logout();
       get().clearAuth();
       set({ isLoading: false });

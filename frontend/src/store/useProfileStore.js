@@ -8,6 +8,7 @@
 
 import { create } from 'zustand';
 import { profileService } from '../services/profileService';
+import { useNotificationStore } from './useNotificationStore';
 
 // ── Profile Completion Calculator ─────────────────────────────────────────────
 
@@ -20,7 +21,7 @@ const calculateCompletion = (profile, skills, documents) => {
     {
       key: 'avatar',
       label: 'Upload a profile photo',
-      done: !!profile?.avatarUrl,
+      done: !!(profile?.avatarUrl && profile?.hasCustomAvatar && !profile.avatarUrl.includes('dicebear')),
       priority: 'high',
     },
     {
@@ -207,6 +208,17 @@ export const useProfileStore = create((set, get) => ({
       const { skills, documents } = get();
       const completion = calculateCompletion(profile, skills, documents);
       set({ profile, completion, savingProfile: false });
+
+      // Dispatch real notification
+      useNotificationStore.getState().addNotification({
+        category: 'profile_update',
+        title: 'Profile Information Updated',
+        shortDescription: 'Your profile personal information was updated successfully.',
+        message: 'Your personal details, contact information, and bio have been saved to your account profile.',
+        actionLabel: 'View Profile',
+        actionRoute: profile?.role === 'Supervisor' ? '/supervisor/profile' : '/dashboard/profile',
+      }, profile?.role);
+
       return profile;
     } catch (err) {
       set({ error: err.message, savingProfile: false });
@@ -232,6 +244,17 @@ export const useProfileStore = create((set, get) => ({
       const profile = get().profile;
       const completion = calculateCompletion(profile, skills, documents);
       set({ completion });
+
+      // Dispatch real notification
+      useNotificationStore.getState().addNotification({
+        category: 'profile_update',
+        title: 'Profile Photo Uploaded',
+        shortDescription: 'Your profile photo was updated successfully.',
+        message: 'Your new avatar image has been uploaded and applied across your account portal.',
+        actionLabel: 'View Profile',
+        actionRoute: profile?.role === 'Supervisor' ? '/supervisor/profile' : '/dashboard/profile',
+      }, profile?.role);
+
       return result;
     } catch (err) {
       set({ error: err.message, uploadingAvatar: false });

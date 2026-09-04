@@ -97,6 +97,11 @@ const InternshipInfoCard = () => {
           <InfoItem label="Start Date"    value={formatDate(internship.startDate)} />
           <InfoItem label="End Date"      value={formatDate(internship.endDate)} />
           <InfoItem
+            label="Date Verification"
+            value={internship.datesVerified ? 'Verified by Supervisor' : (internship.dateVerificationStatus || 'Pending Supervisor Verification')}
+            valueColor={internship.datesVerified ? '#10b981' : '#f59e0b'}
+          />
+          <InfoItem
             label="Status"
             value={internship.status}
             valueColor={internship.statusColor}
@@ -147,15 +152,15 @@ const InternshipInfoCard = () => {
       <div className="card p-6">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
           <div>
-            <h2 style={{ fontSize: '0.9375rem', fontWeight: 700 }}>Supervisor</h2>
+            <h2 style={{ fontSize: '0.9375rem', fontWeight: 700 }}>Supervisors</h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--color-neutral-500)' }}>
-              Your direct reporting manager
+              Your assigned management team
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {/* Supervisor avatar */}
+        {/* Primary Supervisor */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
           <div
             style={{
               width: 56,
@@ -171,45 +176,54 @@ const InternshipInfoCard = () => {
               flexShrink: 0,
             }}
           >
-            {getInitials(internship.supervisor?.name)}
+            {getInitials(internship.supervisor?.name || 'Tochukwu Mgbemmena')}
           </div>
 
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>
-              {internship.supervisor?.name}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-neutral-800)', margin: 0 }}>
+                {internship.supervisor?.name || 'Tochukwu Mgbemmena'}
+              </p>
+              <span style={{ fontSize: '0.6875rem', fontWeight: 700, padding: '0.125rem 0.5rem', borderRadius: 99, background: '#ecfdf5', color: '#047857' }}>
+                Primary Supervisor
+              </span>
+            </div>
+            <p style={{ fontSize: '0.825rem', color: 'var(--color-neutral-500)', marginTop: 2 }}>
+              {internship.supervisor?.title || 'Lead Supervisor & Managing Partner'}
             </p>
-            <p style={{ fontSize: '0.825rem', color: 'var(--color-neutral-500)', marginTop: 1 }}>
-              {internship.supervisor?.title}
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.375rem' }}>
               <a
-                href={`mailto:${internship.supervisor?.email}`}
-                style={{
-                  fontSize: '0.8125rem',
-                  color: 'var(--color-primary-600)',
-                  textDecoration: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                }}
+                href={`mailto:${internship.supervisor?.email || 'tochukwu@fifthlab.com'}`}
+                style={{ fontSize: '0.8125rem', color: 'var(--color-primary-600)', textDecoration: 'none' }}
               >
-                {internship.supervisor?.email}
-              </a>
-              <a
-                href={`tel:${internship.supervisor?.phone}`}
-                style={{
-                  fontSize: '0.8125rem',
-                  color: 'var(--color-primary-600)',
-                  textDecoration: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                }}
-              >
-                {internship.supervisor?.phone}
+                {internship.supervisor?.email || 'tochukwu@fifthlab.com'}
               </a>
             </div>
           </div>
+        </div>
+
+        {/* Secondary / Extra Supervisor */}
+        <div
+          style={{
+            padding: '0.75rem 1rem',
+            background: 'var(--color-neutral-50)',
+            borderRadius: '0.75rem',
+            border: '1px dashed var(--color-neutral-300)',
+            marginBottom: '1rem',
+          }}
+        >
+          <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-neutral-600)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Secondary / Co-Supervisor
+          </p>
+          {internship.secondarySupervisor?.name ? (
+            <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-neutral-800)', margin: 0 }}>
+              {internship.secondarySupervisor.name} ({internship.secondarySupervisor.email || 'Assigned'})
+            </p>
+          ) : (
+            <p style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)', margin: 0, italic: 'true' }}>
+              None assigned yet. (Tochukwu Mgbemmena can assign an extra supervisor for your track).
+            </p>
+          )}
         </div>
 
         {/* HR Contact */}
