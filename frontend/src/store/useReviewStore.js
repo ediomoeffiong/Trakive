@@ -124,7 +124,7 @@ export const useReviewStore = create((set, get) => ({
  * Derived selector: returns reviews filtered by the active status filter.
  */
 export const getFilteredReviews = (state) => {
-  const { reviews, statusFilter } = state;
+  const { reviews = [], statusFilter = 'all' } = state || {};
   if (statusFilter === 'all') return reviews;
   return reviews.filter((r) => r.status === statusFilter);
 };
