@@ -53,7 +53,7 @@ const TABS = [
 // ── Recent Activity mini-feed (for dashboard tab) ─────────────────────────────
 const ActivityFeed = ({ items = [] }) => {
   const TYPE_STYLES = {
-    submission: { bg: '#dbeafe', color: '#1e40af', dot: '#3b82f6' },
+    submission: { bg: '#f0f9ff', color: '#1e40af', dot: '#3b82f6' },
     revision:   { bg: '#fef3c7', color: '#92400e', dot: '#f59e0b' },
     overdue:    { bg: '#fee2e2', color: '#991b1b', dot: '#ef4444' },
     completed:  { bg: '#d1fae5', color: '#065f46', dot: '#10b981' },
@@ -347,7 +347,7 @@ const TaskManagementPage = () => {
                 width: '40px',
                 height: '40px',
                 borderRadius: '0.875rem',
-                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                background: '#00b4d8',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -425,12 +425,12 @@ const TaskManagementPage = () => {
               padding: '0.5625rem 1.125rem',
               borderRadius: '0.875rem',
               border: 'none',
-              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+              background: '#00b4d8',
               color: '#fff',
               fontSize: '0.875rem',
               fontWeight: 700,
               cursor: 'pointer',
-              boxShadow: '0 4px 16px rgba(79,70,229,0.28)',
+              boxShadow: '0 4px 16px rgba(0,180,216,0.28)',
             }}
             id="create-task-btn"
           >
@@ -468,7 +468,7 @@ const TaskManagementPage = () => {
                 padding: '0.625rem 1rem',
                 borderRadius: '0.625rem',
                 border: 'none',
-                background: isActive ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : 'transparent',
+                background: isActive ? '#00b4d8' : 'transparent',
                 color: isActive ? '#fff' : 'var(--color-neutral-500)',
                 fontWeight: isActive ? 700 : 500,
                 fontSize: '0.875rem',
@@ -476,7 +476,7 @@ const TaskManagementPage = () => {
                 whiteSpace: 'nowrap',
                 transition: 'all 0.18s ease',
                 flex: '0 0 auto',
-                boxShadow: isActive ? '0 4px 12px rgba(79,70,229,0.25)' : 'none',
+                boxShadow: isActive ? '0 4px 12px rgba(0,180,216,0.25)' : 'none',
               }}
               id={`tab-${id}`}
             >
@@ -622,7 +622,7 @@ const TaskManagementPage = () => {
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => openCreateModal()}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5625rem 1rem', borderRadius: '0.875rem', border: 'none', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(79,70,229,0.25)' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5625rem 1rem', borderRadius: '0.875rem', border: 'none', background: '#00b4d8', color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,180,216,0.25)' }}
               >
                 <RiAddCircleLine /> New Template
               </motion.button>
@@ -632,7 +632,7 @@ const TaskManagementPage = () => {
                 Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} style={{ background: '#fff', borderRadius: '0.875rem', padding: '1.25rem', border: '1px solid var(--color-neutral-200)', height: '180px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {[80, 60, 90, 40].map((w, j) => (
-                      <div key={j} style={{ height: j === 0 ? 16 : 12, width: `${w}%`, background: 'linear-gradient(90deg, #f1f5f9, #e2e8f0, #f1f5f9)', borderRadius: '4px' }} />
+                      <div key={j} style={{ height: j === 0 ? 16 : 12, width: `${w}%`, background: '#00b4d8', borderRadius: '4px' }} />
                     ))}
                   </div>
                 ))
@@ -646,7 +646,7 @@ const TaskManagementPage = () => {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <h3 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: 1.3 }}>{template.name}</h3>
-                    <span style={{ padding: '0.2rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: '#eef2ff', color: '#4338ca', flexShrink: 0 }}>
+                    <span style={{ padding: '0.2rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: '#eff2ff', color: '#4338ca', flexShrink: 0 }}>
                       {template.category}
                     </span>
                   </div>
@@ -662,7 +662,7 @@ const TaskManagementPage = () => {
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}
                       onClick={() => handleUseTemplate(template)}
-                      style={{ flex: 1, padding: '0.5rem', borderRadius: '0.625rem', border: 'none', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: '#fff', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                      style={{ flex: 1, padding: '0.5rem', borderRadius: '0.625rem', border: 'none', background: '#00b4d8', color: '#fff', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
                     >
                       Use Template
                     </motion.button>

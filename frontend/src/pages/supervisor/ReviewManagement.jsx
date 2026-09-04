@@ -329,7 +329,7 @@ const ReviewManagementPage = () => {
       {/* ── Page Header ─────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '0.875rem', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.25rem', boxShadow: '0 4px 16px rgba(79,70,229,0.3)' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '0.875rem', background: '#00b4d8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.25rem', boxShadow: '0 4px 16px rgba(0,180,216,0.3)' }}>
             <RiFileTextLine />
           </div>
           <div>
@@ -355,7 +355,7 @@ const ReviewManagementPage = () => {
             whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(79,70,229,0.35)' }}
             whileTap={{ scale: 0.97 }}
             onClick={() => openSchedulerModal()}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5625rem 1.125rem', borderRadius: '0.875rem', border: 'none', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(79,70,229,0.28)' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5625rem 1.125rem', borderRadius: '0.875rem', border: 'none', background: '#00b4d8', color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,180,216,0.28)' }}
           >
             <RiCalendarCheckLine /> Schedule Review
           </motion.button>
@@ -378,7 +378,7 @@ const ReviewManagementPage = () => {
                 padding: '0.625rem 1rem',
                 borderRadius: '0.625rem',
                 border: 'none',
-                background: isActive ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : 'transparent',
+                background: isActive ? '#00b4d8' : 'transparent',
                 color: isActive ? '#fff' : 'var(--color-neutral-500)',
                 fontWeight: isActive ? 700 : 500,
                 fontSize: '0.875rem',
@@ -386,7 +386,7 @@ const ReviewManagementPage = () => {
                 whiteSpace: 'nowrap',
                 transition: 'all 0.18s ease',
                 flex: '0 0 auto',
-                boxShadow: isActive ? '0 4px 12px rgba(79,70,229,0.25)' : 'none',
+                boxShadow: isActive ? '0 4px 12px rgba(0,180,216,0.25)' : 'none',
               }}
               id={`tab-${id}`}
             >
