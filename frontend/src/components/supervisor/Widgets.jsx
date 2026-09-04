@@ -236,7 +236,7 @@ export const TeamPerformanceSummaryWidget = ({ summary = {} }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: 0.2 }}
       style={{
-        background: 'linear-gradient(135deg, #312e81 0%, #4338ca 100%)',
+        background: '#00b4d8',
         borderRadius: '1rem',
         padding: '1.25rem',
         color: '#ffffff',
