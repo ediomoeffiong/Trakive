@@ -2010,3 +2010,239 @@ a {
 .dark div[style*="display: flex"][style*="gap: 0.5rem"] > button:first-child[style*="background: rgb(255, 255, 255)"] {
   background-color: rgba(255, 255, 255, 0.15) !important;
 }
+/* Target only the runway banner */
+div[style*="linear-gradient(135deg, rgb(30, 41, 59)"] {
+  background: #00b4d8 !important;
+  background-image: none !important;
+  color: #082f49 !important;
+}
+
+/* Also fix the small white text inside */
+div[style*="linear-gradient(135deg, rgb(30, 41, 59)"] p,
+div[style*="linear-gradient(135deg, rgb(30, 41, 59)"] span {
+  color: #082f49 !important;
+}
+/* FIX RUNWAY STATS LABELS - MAKE THEM DARK */
+[style*="font-size: 0.62rem"][style*="text-transform: uppercase"] {
+  color: #082f49 !important; /* dark navy for contrast on #00b4d8 */
+  font-weight: 700 !important;
+  opacity: 1 !important;
+}
+/* ACTIVE FILTER TAB - FIFTHLAB BLUE */
+button[style*="background: var(--color-neutral-900)"] {
+  background: #00b4d8 !important; /* Fifthlab blue */
+  color: #fff !important; /* keep text white */
+  border-color: #00b4d8 !important; /* make border match too */
+}
+
+/* INACTIVE TABS - LIGHT HOVER */
+button[style*="background: var(--color-neutral-500)"] {
+  background: #fff !important;
+  color: #082f49 !important; /* dark text */
+}
+button[style*="background: var(--color-neutral-500)"]:hover {
+  background: rgba(0, 180, 216, 0.1) !important;
+  color: #00b4d8 !important;
+}
+/* DARK MODE: PROGRESS CARD WITH GRADIENT */
+html.dark [style*="linear-gradient(135deg, rgb(238, 242, 255)"],
+body.dark [style*="linear-gradient(135deg, rgb(238, 242, 255)"] {
+  background: transparent !important; /* dark slate to match task cards */
+  background-image: none !important; /* kill the gradient */
+  border: 1px solid #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Make text inside readable in dark mode */
+html.dark [style*="linear-gradient(135deg, rgb(238, 242, 255)"] *,
+body.dark [style*="linear-gradient(135deg, rgb(238, 242, 255)"] * {
+  color: #cbd5e1 !important;
+}
+
+/* LIGHT MODE: KEEP IT WHITE/BLUE */
+@media (prefers-color-scheme: light) {
+  [style*="linear-gradient(135deg, rgb(238, 242, 255)"] {
+    background: linear-gradient(135deg, rgb(238, 242, 255) 0%, transparent 100%) !important;
+  }
+}
+/* CATEGORIES TAB - DARK GLASS IN NIGHT MODE */
+html.dark div[style*="display: flex"][style*="flex-direction: column"] > button:first-child,
+body.dark div[style*="display: flex"][style*="flex-direction: column"] > button:first-child {
+  background: transparent !important; /* dark transparent */
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid transparent !important;
+  color: #f8fafc !important; /* bright white text for "Welcome" */
+}
+
+/* Make the emoji/icon bright too */
+html.dark div[style*="display: flex"][style*="flex-direction: column"] > button:first-child svg,
+html.dark div[style*="display: flex"][style*="flex-direction: column"] > button:first-child span {
+  filter: brightness(1.8) !important;
+}
+
+/* LIGHT MODE: KEEP WHITE */
+@media (prefers-color-scheme: light) {
+  div[style*="display: flex"][style*="flex-direction: column"] > button:first-child {
+    background: rgb(238, 242, 255) !important;
+    color: #1e293b !important; /* dark text */
+  }
+}
+
+/* Other tabs hover effect to match */
+html.dark div[style*="display: flex"][style*="flex-direction: column"] > button:hover {
+  background: rgba(30, 41, 59, 0.5) !important;
+}
+
+/* ========== PROGRESS HEADER CARD - DARK GLASS IN NIGHT MODE ========== */
+html.dark [style*="linear-gradient(135deg, rgb(255, 251, 235)"],
+body.dark [style*="linear-gradient(135deg, rgb(255, 251, 235)"] {
+  background: rgba(30, 41, 59, 0.85) !important; /* dark slate glass */
+  background-image: none !important; /* kill the yellow gradient */
+  border: 1px solid rgba(51, 65, 85, 0.7) !important;
+  color: #f8fafc !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* Make ALL text inside readable */
+html.dark [style*="linear-gradient(135deg, rgb(255, 251, 235)"] *,
+body.dark [style*="linear-gradient(135deg, rgb(255, 251, 235)"] * {
+  color: #f8fafc !important;
+}
+
+/* Make the 0% and "YOUR JOURNEY" text brighter */
+html.dark [style*="linear-gradient(135deg, rgb(255, 251, 235)"] h3,
+html.dark [style*="linear-gradient(135deg, rgb(255, 251, 235)"] p {
+  color: #ffffff !important;
+}
+
+/* ========== LIGHT MODE: KEEP ORIGINAL YELLOW/CREAM ========== */
+@media (prefers-color-scheme: light) {
+  [style*="linear-gradient(135deg, rgb(255, 251, 235)"] {
+    background: linear-gradient(135deg, rgb(255, 251, 235) 0%, rgb(255, 255, 255) 100%) !important;
+    border: 1px solid rgb(253, 230, 138) !important;
+    color: #1e293b !important;
+  }
+}
+
+/* ========== MINT/GREEN CARD - DARK GLASS IN NIGHT MODE ========== */
+html.dark [style*="linear-gradient(135deg, rgb(236, 253, 245)"],
+body.dark [style*="linear-gradient(135deg, rgb(236, 253, 245)"] {
+  background: rgba(30, 41, 59, 0.85) !important; /* dark teal glass */
+  background-image: none !important; /* kill the mint gradient */
+  border: 1px solid rgba(20, 184, 166, 0.4) !important; /* teal border */
+  color: #f0fdfd !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* Make ALL text inside readable */
+html.dark [style*="linear-gradient(135deg, rgb(236, 253, 245)"] *,
+body.dark [style*="linear-gradient(135deg, rgb(236, 253, 245)"] * {
+  color: #f0fdfd !important;
+}
+
+/* Make headings brighter */
+html.dark [style*="linear-gradient(135deg, rgb(236, 253, 245)"] h3,
+html.dark [style*="linear-gradient(135deg, rgb(236, 253, 245)"] h4 {
+  color: #ffffff !important;
+}
+
+/* ========== LIGHT MODE: KEEP ORIGINAL MINT ========== */
+@media (prefers-color-scheme: light) {
+  [style*="linear-gradient(135deg, rgb(236, 253, 245)"] {
+    background: linear-gradient(135deg, rgb(236, 253, 245) 0%, rgb(255, 255, 255) 100%) !important;
+    border: 1px solid rgb(167, 243, 208) !important;
+    color: #0f172a !important;
+  }
+}
+
+/* ========== CYAN/LIGHT-BLUE CARD - DARK GLASS IN NIGHT MODE ========== */
+html.dark [style*="linear-gradient(135deg, rgb(240, 253, 250)"],
+body.dark [style*="linear-gradient(135deg, rgb(240, 253, 250)"] {
+  background: rgba(30, 41, 59, 0.85) !important; /* dark cyan glass */
+  background-image: none !important; /* kill the light gradient */
+  border: 1px solid rgba(34, 211, 238, 0.4) !important; /* cyan border */
+  color: #ecfeff !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* Make ALL text inside readable */
+html.dark [style*="linear-gradient(135deg, rgb(240, 253, 250)"] *,
+body.dark [style*="linear-gradient(135deg, rgb(240, 253, 250)"] * {
+  color: #ecfeff !important;
+}
+
+/* Make headings brighter */
+html.dark [style*="linear-gradient(135deg, rgb(240, 253, 250)"] h3,
+html.dark [style*="linear-gradient(135deg, rgb(240, 253, 250)"] h4 {
+  color: #ffffff !important;
+}
+
+/* ========== LIGHT MODE: KEEP ORIGINAL CYAN ========== */
+@media (prefers-color-scheme: light) {
+  [style*="linear-gradient(135deg, rgb(240, 253, 250)"] {
+    background: linear-gradient(135deg, rgb(240, 253, 250) 0%, rgb(255, 255, 255) 100%) !important;
+    border: 1px solid rgb(153, 246, 228) !important;
+    color: #0f172a !important;
+  }
+}
+
+/* ========== FORCE LOGIN CARD DARK IN NIGHT MODE - OVERRIDES EVERYTHING ========== */
+html.dark div .card.auth-card,
+body.dark div .card.auth-card {
+  background: rgba(30, 41, 59, 0.92) !important;
+  background-color: rgba(30, 41, 59, 0.92) !important;
+  background-image: none !important;
+  border: 1px solid rgba(51, 65, 85, 0.8) !important;
+  border-radius: 1rem !important;
+  color: #f8fafc !important;
+  backdrop-filter: blur(16px) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* FORCE ALL TEXT INSIDE TO BE READABLE */
+html.dark div .card.auth-card *,
+body.dark div .card.auth-card * {
+  color: #f8fafc !important;
+}
+
+/* Subtext/labels - slightly dimmer */
+html.dark div .card.auth-card p,
+html.dark div .card.auth-card label,
+html.dark div .card.auth-card span {
+  color: #cbd5e1 !important;
+}
+
+/* INPUTS */
+html.dark div .card.auth-card input[type="email"],
+html.dark div .card.auth-card input[type="password"],
+html.dark div .card.auth-card input[type="text"] {
+  background: rgba(51, 65, 85, 0.7) !important;
+  border: 1px solid rgba(71, 85, 105, 1) !important;
+  color: #ffffff !important;
+}
+html.dark div .card.auth-card input::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+/* SIGN IN BUTTON */
+html.dark div .card.auth-card button[type="submit"] {
+  background: #00b4d8 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+html.dark div .card.auth-card button[type="submit"]:hover {
+  background: #0093b8 !important;
+}
+
+/* ========== LIGHT MODE: KEEP IT WHITE NO MATTER WHAT ========== */
+@media (prefers-color-scheme: light) {
+  div .card.auth-card {
+    background-color: rgba(255, 255, 255, 0.96) !important;
+    color: #0f172a !important;
+    border: 1px solid rgba(229, 231, 235, 1) !important;
+  }
+  div .card.auth-card * {
+    color: #0f172a !important;
+  }
+}
