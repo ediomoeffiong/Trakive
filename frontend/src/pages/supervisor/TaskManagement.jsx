@@ -451,7 +451,7 @@ const TaskManagementPage = () => {
           padding: '0.3rem',
           marginBottom: '1.5rem',
           overflowX: 'auto',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+          boxShadow: '0 2px 8px rgba(24, 18, 18, 0.04)',
         }}
       >
         {TABS.map(({ id, label, icon: Icon }) => {

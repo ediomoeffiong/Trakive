@@ -22,7 +22,9 @@ import {
   RiArrowRightLine,
   RiFolderShieldLine,
   RiHistoryLine,
-  RiTaskLine
+  RiTaskLine,
+  RiFolderLine,
+  RiCalendarCheckLine,
 } from 'react-icons/ri';
 import {
   ResponsiveContainer,
@@ -52,6 +54,135 @@ import {
 import { useCurrentUser } from '../store';
 import { useDashboardStore } from '../store/useDashboardStore';
 import { ROUTES } from '../constants';
+import { projectService } from '../services/projectService';
+import { weeklyPlanService } from '../services/weeklyPlanService';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function getMondayOfWeek(date = new Date()) {
+  const d = new Date(date);
+  const day = d.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setUTCDate(d.getUTCDate() + diff);
+  return d.toISOString().split('T')[0];
+}
+
+// ── Projects & Weekly Tasks Dashboard Summary ─────────────────────────────────
+function ProjectWeeklySummary({ navigate }) {
+  const [projectStats, setProjectStats] = useState({ active: 0, pending: 0 });
+  const [weeklyStats, setWeeklyStats] = useState({ total: 0, completed: 0, planStatus: 'open' });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const weekStart = getMondayOfWeek();
+    Promise.all([
+      projectService.listProjects({ limit: 100 }).catch(() => ({ data: [] })),
+      weeklyPlanService.getWeeklyPlan(weekStart).catch(() => ({ data: null })),
+    ]).then(([projectsRes, weekRes]) => {
+      const projects = projectsRes.data || [];
+      setProjectStats({
+        active:  projects.filter((p) => p.status === 'active').length,
+        pending: projects.filter((p) => p.status === 'pending_approval').length,
+      });
+      const weekData = weekRes?.data || {};
+      const tasks = weekData.tasks || [];
+      setWeeklyStats({
+        total:     tasks.length,
+        completed: tasks.filter((t) => t.end_of_week_status === 'completed').length,
+        planStatus: weekData.plan?.status || 'open',
+      });
+      setLoading(false);
+    });
+  }, []);
+
+  const PLAN_LABEL = {
+    open: 'Open', submitted: 'Submitted', reviewed: 'Reviewed', requires_changes: 'Changes Needed',
+  };
+  const PLAN_COLOR = {
+    open: 'var(--color-neutral-500)', submitted: 'var(--color-primary-600)',
+    reviewed: 'var(--color-success-600)', requires_changes: '#d97706',
+  };
+  const PLAN_BG = {
+    open: 'var(--color-neutral-100)', submitted: 'var(--color-primary-50)',
+    reviewed: 'var(--color-success-50)', requires_changes: '#fef3c7',
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <Skeleton height="90px" borderRadius="0.75rem" />
+        <Skeleton height="90px" borderRadius="0.75rem" />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+
+      {/* Projects card */}
+      <Card
+        style={{ padding: '1rem 1.25rem', cursor: 'pointer', transition: 'box-shadow 0.15s ease' }}
+        onClick={() => navigate(ROUTES.PROJECTS)}
+        onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'}
+        onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-primary-50)', color: 'var(--color-primary-600)', fontSize: '1rem', flexShrink: 0 }}>
+              <RiFolderLine />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-neutral-500)', fontWeight: 500 }}>My Projects</p>
+              <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
+                {projectStats.active} active
+              </p>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            {projectStats.pending > 0 && (
+              <span style={{ display: 'inline-flex', padding: '0.2rem 0.55rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 600, color: '#d97706', background: '#fef3c7' }}>
+                {projectStats.pending} pending
+              </span>
+            )}
+            <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.78rem', color: 'var(--color-primary-600)', fontWeight: 600 }}>
+              View <RiArrowRightLine />
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Weekly tasks card */}
+      <Card
+        style={{ padding: '1rem 1.25rem', cursor: 'pointer', transition: 'box-shadow 0.15s ease' }}
+        onClick={() => navigate(ROUTES.WEEKLY_TASKS)}
+        onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'}
+        onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-success-50)', color: 'var(--color-success-600)', fontSize: '1rem', flexShrink: 0 }}>
+              <RiCalendarCheckLine />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-neutral-500)', fontWeight: 500 }}>This Week</p>
+              <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
+                {weeklyStats.completed}/{weeklyStats.total} tasks
+              </p>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ display: 'inline-flex', padding: '0.2rem 0.55rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 600, color: PLAN_COLOR[weeklyStats.planStatus] || 'var(--color-neutral-500)', background: PLAN_BG[weeklyStats.planStatus] || 'var(--color-neutral-100)' }}>
+              {PLAN_LABEL[weeklyStats.planStatus] || 'Open'}
+            </span>
+            <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.78rem', color: 'var(--color-success-600)', fontWeight: 600 }}>
+              View <RiArrowRightLine />
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 
 // ── Skeletons ─────────────────────────────────────────────────────────────────
 const StatsSkeleton = () => (
@@ -299,6 +430,11 @@ const Dashboard = () => {
             })}
           </div>
         )}
+      </section>
+
+      {/* ── 2b. Projects & Weekly Summary ──────────────────────────────────────── */}
+      <section>
+        <ProjectWeeklySummary navigate={navigate} />
       </section>
 
       {/* ── Grid Layout for Main Content ───────────────────────────────────────── */}

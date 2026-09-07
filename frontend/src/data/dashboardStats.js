@@ -1,33 +1,11 @@
 /**
  * @file dashboardStats.js
- * @description Mock statistic data for KPI cards.
+ * @description Dashboard stats data store.
  */
 
 export const mockDashboardStats = {
-  internshipProgress: {
-    value: 68, // in percentage
-    label: "Overall Internship Progress",
-    trend: "+5%",
-    trendUp: true,
-    suffix: "%"
-  },
-  tasksCompleted: {
-    value: 24,
-    label: "Tasks Completed",
-    trend: "+4",
-    trendUp: true,
-    total: 32
-  },
-  pendingTasks: {
-    value: 8,
-    label: "Pending Tasks",
-    trend: "-2",
-    trendUp: true
-  },
-  upcomingDeadlines: {
-    value: 3,
-    label: "Upcoming Deadlines",
-    trend: "2 Overdue",
-    trendUp: false
-  }
+  internshipProgress: { label: 'Overall Internship Progress', value: 0, suffix: '%', trend: '0%', trendUp: true },
+  tasksCompleted: { label: 'Tasks Completed', value: 0, trend: '0', trendUp: true },
+  pendingTasks: { label: 'Pending Tasks', value: 0, trend: '0', trendUp: true },
+  upcomingDeadlines: { label: 'Upcoming Deadlines', value: 0, trend: '0', trendUp: true },
 };

@@ -27,3 +27,19 @@ export const defaultNotificationPreferences = {
   // Push (UI only — future)
   pushNotifications: false,
 };
+
+export const defaultSupervisorPreferences = {
+  taskNotifications: true,
+  reviewNotifications: true,
+  onboardingUpdates: true,
+  announcements: true,
+  reminders: true,
+  systemUpdates: true,
+  emailNotifications: true,
+  inAppNotifications: true,
+  emailDigest: 'instant',
+  quietHoursEnabled: false,
+  quietHoursStart: '22:00',
+  quietHoursEnd: '08:00',
+  pushNotifications: false,
+};

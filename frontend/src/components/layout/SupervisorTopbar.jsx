@@ -55,7 +55,7 @@ const SupervisorTopbar = ({ onMobileMenuOpen }) => {
     : (SUPERVISOR_PAGE_TITLES[pathname] ?? 'Supervisor Portal');
 
   // Fallback supervisor user display
-  const supervisorName = user?.name ?? 'Tochukwu Mgbemena';
+  const supervisorName = user?.name ?? 'Tochukwu Mgbemmena';
   const supervisorDepartment = user?.department ?? 'Engineering Lead';
 
   return (

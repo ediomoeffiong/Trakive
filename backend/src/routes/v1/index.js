@@ -20,6 +20,10 @@ const notificationRoutes = require('./notification.routes');
 const documentRoutes = require('./document.routes');
 const conversationRoutes = require('./conversation.routes');
 
+// Projects & Weekly Plans
+const projectRoutes = require('./project.routes');
+const weeklyPlanRoutes = require('./weeklyPlan.routes');
+
 const { authenticate, requireRole, requirePermission } = require('../../middleware/auth.middleware');
 const { sendSuccess } = require('../../utils/apiResponse');
 
@@ -50,6 +54,8 @@ router.use('/leave', leaveRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/documents', documentRoutes);
 router.use('/conversations', conversationRoutes);
+router.use('/projects', projectRoutes);
+router.use('/weekly-plans', weeklyPlanRoutes);
 
 // Protected Test Endpoints for Role & Permission Authorization Verification
 router.get('/test/intern', authenticate, requireRole('intern'), (req, res) => {

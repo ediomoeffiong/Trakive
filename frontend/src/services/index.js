@@ -15,6 +15,8 @@ export * from './supervisorService';
 export * from './analyticsService';
 export * from './hrService';
 export * from './departmentService';
+export * from './projectService';
+export * from './weeklyPlanService';
 
 
 

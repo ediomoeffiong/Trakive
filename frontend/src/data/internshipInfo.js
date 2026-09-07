@@ -1,21 +1,21 @@
 /**
  * @file internshipInfo.js
- * @description Empty internship information seed for profile screens before backend data exists.
+ * @description Internship information seed for profile screens.
  */
 
 export const mockInternshipInfo = {
   employeeId: 'TRK-2026-0042',
-  department: 'Fifthlab',
+  department: 'FifthLab',
   team: 'Engineering & Product',
-  organization: 'Fifthlab',
+  organization: 'FifthLab',
   office: 'Lagos HQ',
 
-  startDate: '2026-06-01',
-  endDate: '2026-12-01',
+  startDate: '',
+  endDate: '',
   datesVerified: false,
   dateVerificationStatus: 'Pending Supervisor Verification',
-  durationWeeks: 24,
-  durationMonths: 6,
+  durationWeeks: 0,
+  durationMonths: 0,
 
   status: 'Active',
   statusColor: '#10b981',
@@ -30,7 +30,7 @@ export const mockInternshipInfo = {
     title: 'Lead Supervisor & Managing Partner',
     email: 'tochukwu@fifthlab.com',
     phone: '+234 803 123 4567',
-    department: 'Fifthlab Management',
+    department: 'FifthLab Management',
     avatarUrl: null,
   },
 
@@ -50,7 +50,7 @@ export const mockInternshipInfo = {
 
   stipendRange: 'Standard Intern',
 
-  weeksCompleted: 12,
-  weeksRemaining: 12,
-  completionPercentage: 50,
+  weeksCompleted: 0,
+  weeksRemaining: 0,
+  completionPercentage: 0,
 };
