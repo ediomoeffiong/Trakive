@@ -22,6 +22,8 @@ import {
   RiArrowLeftSLine,
   RiArrowRightSLine,
   RiLogoutBoxRLine,
+  RiFolderLine,
+  RiCalendarCheckLine,
 } from 'react-icons/ri';
 import { ROUTES, APP_NAME } from '../../constants';
 import { useSidebarCollapsed, useToggleSidebar, useAppStore } from '../../store';
@@ -31,6 +33,8 @@ const NAV_ITEMS = [
   { label: 'Dashboard',     icon: RiDashboardLine,         to: ROUTES.DASHBOARD },
   { label: 'Analytics',     icon: RiBarChartBoxLine,       to: ROUTES.ANALYTICS },
   { label: 'Tasks',         icon: RiTaskLine,              to: ROUTES.TASKS },
+  { label: 'Projects',      icon: RiFolderLine,            to: ROUTES.PROJECTS },
+  { label: 'Weekly Tasks',  icon: RiCalendarCheckLine,     to: ROUTES.WEEKLY_TASKS },
   { label: 'Onboarding',    icon: RiCheckboxMultipleLine,  to: ROUTES.ONBOARDING },
   { label: 'Reviews',       icon: RiStarLine,              to: ROUTES.REVIEWS },
   { label: 'Notifications', icon: RiBellLine,             to: ROUTES.NOTIFICATIONS },

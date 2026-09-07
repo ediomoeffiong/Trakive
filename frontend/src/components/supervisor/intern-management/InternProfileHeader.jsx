@@ -15,6 +15,7 @@ import {
   RiTimeLine,
   RiUserAddLine,
   RiCalendarCheckLine,
+  RiArrowLeftLine,
 } from 'react-icons/ri';
 import Avatar from '../../ui/Avatar';
 import { ROUTES } from '../../../constants';

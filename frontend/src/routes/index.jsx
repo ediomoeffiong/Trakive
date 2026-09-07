@@ -35,6 +35,9 @@ import ReviewDetails from '../pages/ReviewDetails';
 import NotificationsPage from '../pages/NotificationsPage';
 import ProfilePage from '../pages/ProfilePage';
 import SettingsPage from '../pages/SettingsPage';
+import ProjectsPage from '../pages/ProjectsPage';
+import ProjectDetailsPage from '../pages/ProjectDetailsPage';
+import WeeklyTasksPage from '../pages/WeeklyTasksPage';
 
 // Supervisor Pages
 import SupervisorDashboardPage from '../pages/supervisor/Dashboard';
@@ -45,6 +48,8 @@ import TaskManagementPage from '../pages/supervisor/TaskManagement';
 import ReviewManagementPage from '../pages/supervisor/ReviewManagement';
 import SupervisorNotificationsPage from '../pages/supervisor/SupervisorNotifications';
 import SupervisorProfilePage from '../pages/supervisor/SupervisorProfile';
+import ProjectManagementPage from '../pages/supervisor/ProjectManagement';
+import WeeklyReviewPage from '../pages/supervisor/WeeklyReview';
 
 // Analytics & Reports Pages
 import AnalyticsDashboardPage from '../pages/analytics/AnalyticsDashboardPage';
@@ -119,7 +124,9 @@ const router = createBrowserRouter([
           { path: ROUTES.ANALYTICS, element: <AnalyticsDashboardPage /> },
           { path: ROUTES.ANALYTICS_COMPARE, element: <ComparisonDashboardPage /> },
           { path: ROUTES.ANALYTICS_DRILLDOWN, element: <DrillDownDetailPage /> },
-          { path: ROUTES.PROJECTS, element: <PlaceholderPage title="Projects" /> },
+          { path: ROUTES.PROJECTS, element: <ProjectsPage /> },
+          { path: ROUTES.PROJECT_DETAILS, element: <ProjectDetailsPage /> },
+          { path: ROUTES.WEEKLY_TASKS, element: <WeeklyTasksPage /> },
           { path: ROUTES.TASKS, element: <TaskList /> },
           { path: ROUTES.TASK_DETAILS, element: <TaskDetails /> },
           { path: ROUTES.ONBOARDING, element: <OnboardingDashboard /> },
@@ -151,6 +158,9 @@ const router = createBrowserRouter([
           { path: ROUTES.SUPERVISOR_INTERNS, element: <InternManagementPage /> },
           { path: ROUTES.SUPERVISOR_INTERN_DETAILS, element: <InternProfilePage /> },
           { path: ROUTES.SUPERVISOR_TASKS, element: <TaskManagementPage /> },
+          { path: ROUTES.SUPERVISOR_PROJECTS, element: <ProjectManagementPage /> },
+          { path: ROUTES.SUPERVISOR_PROJECT_DETAILS, element: <ProjectDetailsPage /> },
+          { path: ROUTES.SUPERVISOR_WEEKLY_REVIEW, element: <WeeklyReviewPage /> },
           { path: ROUTES.SUPERVISOR_REVIEWS,   element: <ReviewManagementPage /> },
           { path: ROUTES.SUPERVISOR_ONBOARDING, element: <ReviewManagementPage /> },
           { path: ROUTES.SUPERVISOR_REPORTS, element: <AnalyticsDashboardPage /> },

@@ -22,8 +22,8 @@ import { useAppStore } from '../store/useAppStore';
 const delay = (ms = 500) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // In-memory state
-let _internNotifications = [...mockNotifications];
-let _supervisorNotifications = [...mockSupervisorNotifications];
+let _internNotifications = [];
+let _supervisorNotifications = [];
 let _preferences = { ...defaultNotificationPreferences };
 let _supervisorPreferences = { ...defaultSupervisorPreferences };
 

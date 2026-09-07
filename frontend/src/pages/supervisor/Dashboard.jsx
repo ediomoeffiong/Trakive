@@ -3,7 +3,8 @@
  * @description Supervisor Dashboard page combining KPIs, Quick Actions, Intern Table, Analytics, Activity, Deadlines, and Widgets.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useSupervisorStore, useCurrentUser } from '../../store';
 import {
@@ -23,6 +24,120 @@ import {
   TeamPerformanceSummaryWidget,
   DashboardSkeleton,
 } from '../../components/supervisor';
+import { Card, Skeleton } from '../../components/ui';
+import { ROUTES } from '../../constants';
+import { projectService } from '../../services/projectService';
+import { weeklyPlanService } from '../../services/weeklyPlanService';
+import { RiFolderLine, RiCalendarCheckLine, RiArrowRightLine } from 'react-icons/ri';
+
+function getMondayOfWeek(date = new Date()) {
+  const d = new Date(date);
+  const day = d.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setUTCDate(d.getUTCDate() + diff);
+  return d.toISOString().split('T')[0];
+}
+
+function SupervisorProjectWeeklySummary({ navigate }) {
+  const [projectCounts, setProjectCounts] = useState({ total: 0, pending: 0, active: 0 });
+  const [weeklyCount, setWeeklyCount] = useState({ total: 0, submitted: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      projectService.listProjects({ limit: 100 }).catch(() => ({ data: [] })),
+      weeklyPlanService.supervisorView({ week_start: getMondayOfWeek(), limit: 100 }).catch(() => ({ data: [] })),
+    ]).then(([projectsRes, weeklyRes]) => {
+      const projects = projectsRes.data || [];
+      const plans = weeklyRes.data || [];
+      setProjectCounts({
+        total: projects.length,
+        active: projects.filter((p) => p.status === 'active').length,
+        pending: projects.filter((p) => p.status === 'pending_approval').length,
+      });
+      setWeeklyCount({
+        total: plans.length,
+        submitted: plans.filter((p) => p.status === 'submitted').length,
+      });
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <Skeleton height="88px" borderRadius="0.75rem" />
+        <Skeleton height="88px" borderRadius="0.75rem" />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+      <Card
+        style={{ padding: '1rem 1.25rem', cursor: 'pointer', transition: 'box-shadow 0.15s ease' }}
+        onClick={() => navigate(ROUTES.SUPERVISOR_PROJECTS)}
+        onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'}
+        onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-primary-50)', color: 'var(--color-primary-600)', fontSize: '1rem', flexShrink: 0 }}>
+              <RiFolderLine />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-neutral-500)', fontWeight: 500 }}>Projects</p>
+              <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
+                {projectCounts.active} active
+              </p>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            {projectCounts.pending > 0 && (
+              <span style={{ display: 'inline-flex', padding: '0.2rem 0.55rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 600, color: '#d97706', background: '#fef3c7' }}>
+                {projectCounts.pending} to review
+              </span>
+            )}
+            <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.78rem', color: 'var(--color-primary-600)', fontWeight: 600, justifyContent: 'flex-end' }}>
+              Manage <RiArrowRightLine />
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card
+        style={{ padding: '1rem 1.25rem', cursor: 'pointer', transition: 'box-shadow 0.15s ease' }}
+        onClick={() => navigate(ROUTES.SUPERVISOR_WEEKLY_REVIEW)}
+        onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'}
+        onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-success-50)', color: 'var(--color-success-600)', fontSize: '1rem', flexShrink: 0 }}>
+              <RiCalendarCheckLine />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-neutral-500)', fontWeight: 500 }}>Weekly Reports</p>
+              <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
+                {weeklyCount.total} submitted
+              </p>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            {weeklyCount.submitted > 0 && (
+              <span style={{ display: 'inline-flex', padding: '0.2rem 0.55rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-primary-600)', background: 'var(--color-primary-50)' }}>
+                {weeklyCount.submitted} to review
+              </span>
+            )}
+            <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.78rem', color: 'var(--color-success-600)', fontWeight: 600, justifyContent: 'flex-end' }}>
+              Review <RiArrowRightLine />
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
 
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
@@ -31,6 +146,7 @@ const pageVariants = {
 };
 
 const SupervisorDashboardPage = () => {
+  const navigate = useNavigate();
   const user = useCurrentUser();
   const {
     kpis,
@@ -115,6 +231,11 @@ const SupervisorDashboardPage = () => {
             <KPICard key={card.id} card={card} index={idx} />
           ))}
         </div>
+      </section>
+
+      {/* 1b. Projects & Weekly Review quick links */}
+      <section>
+        <SupervisorProjectWeeklySummary navigate={navigate} />
       </section>
 
       {/* 2. Quick Actions Panel */}

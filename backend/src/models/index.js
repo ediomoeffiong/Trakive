@@ -15,6 +15,9 @@ const Conversation = require('./conversation.model');
 const Document = require('./document.model');
 const Report = require('./report.model');
 const AuditLog = require('./auditLog.model');
+const Project = require('./project.model');
+const Milestone = require('./milestone.model');
+const WeeklyPlan = require('./weeklyPlan.model');
 
 module.exports = {
   Organization,
@@ -34,4 +37,7 @@ module.exports = {
   Document,
   Report,
   AuditLog,
+  Project,
+  Milestone,
+  WeeklyPlan,
 };

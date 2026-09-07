@@ -66,7 +66,7 @@ const COLOR_THEMES = {
 };
 
 const KPICard = ({ card, index = 0 }) => {
-  const Icon = ICON_MAP[card.iconName] || RiUserGroupLine;
+  const Icon = ICON_MAP[card.iconName] || RiTeamLine;
   const theme = COLOR_THEMES[card.color] || COLOR_THEMES.blue;
 
   return (

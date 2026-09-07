@@ -15,7 +15,7 @@ export const mockUsers = [
   },
   {
     id: 'u-2',
-    name: 'Tochukwu Mgbemena',
+    name: 'Tochukwu Mgbemmena',
     email: 'supervisor@trakive.com',
     role: 'Supervisor',
     department: 'FifthLab',
