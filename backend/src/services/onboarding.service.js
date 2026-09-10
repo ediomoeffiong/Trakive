@@ -26,9 +26,7 @@ const VALID_TRANSITIONS = {
 const OnboardingService = {
   async getEffectiveOrgId(requestingUser) {
     if (requestingUser.organization_id) return requestingUser.organization_id;
-    const defaultOrgId = await ProfileModel.getOrCreateDefaultOrganization();
-    await UserModel.update(requestingUser.id, { organization_id: defaultOrgId });
-    return defaultOrgId;
+    throw ApiError.badRequest('User must be assigned to an organization before managing onboarding');
   },
 
   validateStateTransition(currentStatus, newStatus) {

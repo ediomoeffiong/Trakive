@@ -180,7 +180,7 @@ export const projectService = {
           supervisor_id: 'sup-tochukwu',
           supervisor_first_name: 'Tochukwu',
           supervisor_last_name: 'Mgbemmena',
-          department: 'FifthLab',
+          department: user.department || '',
           members: [
             {
               intern_id: user.id,

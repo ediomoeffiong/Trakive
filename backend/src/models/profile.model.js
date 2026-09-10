@@ -1,19 +1,7 @@
 const { query } = require('../config/db');
+const ApiError = require('../utils/apiError');
 
 const ProfileModel = {
-  async getOrCreateDefaultOrganization() {
-    const res = await query('SELECT id FROM organizations LIMIT 1');
-    if (res.rows.length > 0) {
-      return res.rows[0].id;
-    }
-    const newOrg = await query(
-      `INSERT INTO organizations (name, slug)
-       VALUES ('Trakive Organization', 'trakive-org')
-       RETURNING id;`
-    );
-    return newOrg.rows[0].id;
-  },
-
   async findInternProfileByUserId(userId) {
     const res = await query('SELECT * FROM intern_profiles WHERE user_id = $1', [userId]);
     return res.rows[0] || null;
@@ -55,7 +43,7 @@ const ProfileModel = {
       if (userRes.rows[0] && userRes.rows[0].organization_id) {
         targetOrgId = userRes.rows[0].organization_id;
       } else {
-        targetOrgId = await this.getOrCreateDefaultOrganization();
+        throw ApiError.badRequest('User must be assigned to an organization before creating a profile');
         await query('UPDATE users SET organization_id = $1 WHERE id = $2', [targetOrgId, user_id]);
       }
     }
@@ -121,7 +109,7 @@ const ProfileModel = {
       if (userRes.rows[0] && userRes.rows[0].organization_id) {
         targetOrgId = userRes.rows[0].organization_id;
       } else {
-        targetOrgId = await this.getOrCreateDefaultOrganization();
+        throw ApiError.badRequest('User must be assigned to an organization before creating a profile');
         await query('UPDATE users SET organization_id = $1 WHERE id = $2', [targetOrgId, user_id]);
       }
     }
@@ -155,7 +143,7 @@ const ProfileModel = {
       if (userRes.rows[0] && userRes.rows[0].organization_id) {
         targetOrgId = userRes.rows[0].organization_id;
       } else {
-        targetOrgId = await this.getOrCreateDefaultOrganization();
+        throw ApiError.badRequest('User must be assigned to an organization before creating a profile');
         await query('UPDATE users SET organization_id = $1 WHERE id = $2', [targetOrgId, user_id]);
       }
     }

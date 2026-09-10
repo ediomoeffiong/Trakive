@@ -265,11 +265,11 @@ const InternProfileHeader = ({ profile, performance }) => {
               </div>
 
               <p style={{ margin: '0.25rem 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--color-neutral-500)', fontWeight: 500 }}>
-                {profile.role} · {profile.department || 'Fifthlab'}
+                {profile.role} · {profile.department || 'Department unassigned'}
               </p>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-                <InfoChip icon={RiTimeLine} label={`Primary Supervisor: ${profile.supervisor || 'Tochukwu Mgbemmena'}`} />
+                <InfoChip icon={RiTimeLine} label={`Primary Supervisor: ${profile.supervisor || 'None assigned'}`} />
                 <InfoChip icon={RiTimeLine} label={`Secondary: ${secondarySupervisor || 'None assigned'}`} />
                 <InfoChip icon={RiMapPinLine} label={profile.location} />
                 <InfoChip icon={RiCalendarEventLine} label={`${profile.startDate} → ${profile.endDate}`} />
