@@ -11,8 +11,7 @@ const { getPaginationParams, formatPaginatedResponse } = require('../utils/pagin
 const SearchService = {
   async getEffectiveOrgId(requestingUser) {
     if (requestingUser.organization_id) return requestingUser.organization_id;
-    const defaultOrgId = await ProfileModel.getOrCreateDefaultOrganization();
-    return defaultOrgId;
+       throw ApiError.badRequest('User must be assigned to an organization before searching organization data');
   },
 
   async searchUsers(query = {}, requestingUser) {

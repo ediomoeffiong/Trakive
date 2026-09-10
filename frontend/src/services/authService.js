@@ -75,22 +75,21 @@ export const authService = {
 
     const isSupervisor = data.role === 'Supervisor' || data.role === 'supervisor';
     const role = isSupervisor ? 'Supervisor' : 'Intern';
-    const isFifthLab = !data.department || data.department.toLowerCase() === 'fifthlab';
 
     const newUser = {
       id: `custom-${Date.now()}`,
       name: data.name,
       email: data.email,
       role: role,
-      department: data.department || 'Fifthlab',
+      department: data.department || '',
       phone: data.phone || '',
       startDate: isSupervisor ? '' : (data.startDate || ''),
       endDate: isSupervisor ? '' : (data.endDate || ''),
       datesVerified: isSupervisor ? true : false,
       dateVerificationStatus: isSupervisor ? 'N/A' : 'Pending Supervisor Verification',
-      supervisorId: isSupervisor ? null : (isFifthLab ? 'sup-tochukwu' : null),
-      supervisorName: isSupervisor ? null : (isFifthLab ? 'Tochukwu Mgbemmena' : null),
-      supervisorEmail: isSupervisor ? null : (isFifthLab ? 'tochukwu@fifthlab.com' : null),
+      supervisorId: null,
+      supervisorName: null,
+      supervisorEmail: null,
       secondarySupervisorId: null,
       secondarySupervisorName: null,
       avatarUrl: null,
