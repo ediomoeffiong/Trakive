@@ -83,16 +83,16 @@ const BenefitsSection = () => {
             marginBottom: '0.875rem',
             margin: '0 0 0.875rem',
           }}>
-            Designed for everyone involved
+            Designed for CWG PLC & FifthLab Teams
           </h2>
           <p style={{
             fontSize: '1.0625rem',
             color: 'var(--color-neutral-600)',
-            maxWidth: '480px',
+            maxWidth: '520px',
             margin: '0 auto',
             lineHeight: 1.7,
           }}>
-            Whether you're the intern or the organisation, Trakive is built to make the experience better for both.
+            Streamlining the internship experience for interns, supervisors, and department leads.
           </p>
         </motion.div>
 
@@ -144,7 +144,7 @@ const BenefitsSection = () => {
             </motion.div>
           </motion.div>
 
-          {/* For Organisations */}
+          {/* For Supervisors & Leadership */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -168,7 +168,7 @@ const BenefitsSection = () => {
                 <RiIcons.RiBuilding2Line aria-hidden />
               </div>
               <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#ffffff', margin: 0 }}>
-                For Organisations
+                For Supervisors & Leadership
               </h3>
             </div>
             <motion.div

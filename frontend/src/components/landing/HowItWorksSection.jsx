@@ -120,7 +120,7 @@ const HowItWorksSection = () => {
             color: 'var(--color-primary-600)',
             marginBottom: '0.75rem',
           }}>
-            Simple by design
+            Streamlined Process
           </p>
           <h2 style={{
             fontSize: 'clamp(1.625rem, 4vw, 2.375rem)',
@@ -130,16 +130,16 @@ const HowItWorksSection = () => {
             marginBottom: '0.875rem',
             margin: '0 0 0.875rem',
           }}>
-            From day one to final review
+            The Internship Lifecycle
           </h2>
           <p style={{
             fontSize: '1.0625rem',
             color: 'var(--color-neutral-600)',
-            maxWidth: '480px',
+            maxWidth: '520px',
             margin: '0 auto',
             lineHeight: 1.7,
           }}>
-            Four straightforward steps that take you from registration to a verified performance summary.
+            Four clear stages guiding interns and supervisors from onboarding to final evaluation.
           </p>
         </motion.div>
 

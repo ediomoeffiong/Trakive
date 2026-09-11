@@ -36,29 +36,29 @@ export const orgBenefits = [
   {
     id: 1,
     icon: 'RiTeamLine',
-    title: 'Centralised Oversight',
+    title: 'Centralized Oversight',
     description:
-      'Manage all interns from a single dashboard. Monitor progress, assign tasks, and review performance without scattered spreadsheets.',
+      'Manage all interns from a single dashboard. Monitor progress, assign tasks, and track project milestones seamlessly.',
   },
   {
     id: 2,
     icon: 'RiTimeLine',
-    title: 'Save Time',
+    title: 'Streamlined Management',
     description:
-      'Automate onboarding checklists, task assignments, and performance reports — freeing up your team to focus on mentorship.',
+      'Automate onboarding checklists, task distribution, and review cycles — allowing supervisors to focus on guidance.',
   },
   {
     id: 3,
     icon: 'RiLineChartLine',
     title: 'Data-Driven Reviews',
     description:
-      'Base performance reviews on real data — task completion rates, deadlines met, and quality scores — not guesswork.',
+      'Base performance evaluations on objective metrics — task completion rates, milestone deadlines, and supervisor ratings.',
   },
   {
     id: 4,
     icon: 'RiBuilding2Line',
-    title: 'Scalable for Any Size',
+    title: 'Department Coordination',
     description:
-      'Whether you have 2 interns or 200, Trakive scales with your organisation without added complexity.',
+      'Keep supervisors, department heads, and HR aligned across all CWG PLC and FifthLab teams.',
   },
 ];

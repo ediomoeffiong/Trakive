@@ -6,32 +6,32 @@ export const steps = [
     id: 1,
     step: 1,
     icon: 'RiUserAddLine',
-    title: 'Register & Get Verified',
+    title: 'Register & Onboard',
     description:
-      "Create your account and receive access credentials from your organisation's HR team. Your profile is set up and ready in minutes.",
+      'Access your account with credentials from HR and complete a structured onboarding checklist.',
   },
   {
     id: 2,
     step: 2,
-    icon: 'RiClipboardLine',
-    title: 'Complete Your Onboarding',
+    icon: 'RiTaskLine',
+    title: 'Manage Tasks & Projects',
     description:
-      'Work through a structured onboarding checklist covering company policies, team introductions, and tool access — all tracked in one place.',
+      'Execute assigned tasks, work toward project milestones, and submit weekly progress updates.',
   },
   {
     id: 3,
     step: 3,
-    icon: 'RiTaskLine',
-    title: 'Receive & Complete Tasks',
+    icon: 'RiUserStarLine',
+    title: 'Supervisor Oversight',
     description:
-      'Your supervisor assigns tasks with clear descriptions, deadlines, and priorities. Submit your work directly through the platform.',
+      'Supervisors monitor progress, review submitted deliverables, and provide continuous feedback.',
   },
   {
     id: 4,
     step: 4,
     icon: 'RiLineChartLine',
-    title: 'Track Progress & Get Reviewed',
+    title: 'Track Progress & Evaluation',
     description:
-      'Monitor your performance with live analytics. Receive mid-term and final reviews, and walk away with a comprehensive performance summary.',
+      'Track growth with live analytics and complete mid-term and final performance reviews.',
   },
 ];

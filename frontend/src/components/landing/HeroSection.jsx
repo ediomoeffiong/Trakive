@@ -78,7 +78,7 @@ const HeroSection = () => {
         {/* Eyebrow badge */}
         <motion.div variants={staggerItem}>
           <Badge variant="primary" dot id="hero-badge">
-            Internship Management, Simplified
+            CWG PLC & FifthLab Platform
           </Badge>
         </motion.div>
 
@@ -95,9 +95,9 @@ const HeroSection = () => {
             margin: 0,
           }}
         >
-          Track Every Step of Your{' '}
+          Smarter Internship Management for{' '}
           <span style={{ color: '#00b4d8' }}>
-            Internship Journey
+            CWG PLC & FifthLab
           </span>
         </motion.h1>
 
@@ -108,13 +108,13 @@ const HeroSection = () => {
             fontSize: 'clamp(1rem, 2vw, 1.1875rem)',
             color: 'var(--color-neutral-600)',
             lineHeight: 1.75,
-            maxWidth: '580px',
+            maxWidth: '620px',
             margin: 0,
           }}
         >
-          Trakive gives interns a structured way to manage tasks, track progress,
-          and receive performance reviews, while giving organisations complete
-          visibility over their internship programmes.
+          Trakive streamlines intern onboarding, task and project management,
+          progress tracking, supervisor oversight, and performance evaluation
+          in one platform.
         </motion.p>
 
         {/* CTA buttons */}
@@ -184,7 +184,7 @@ const HeroSection = () => {
                   e.currentTarget.style.boxShadow = '0 4px 14px rgba(37,99,235,0.25)';
                 }}
               >
-                Get Started Free
+                Get Started
                 <RiArrowRightLine aria-hidden />
               </Link>
 
@@ -232,7 +232,7 @@ const HeroSection = () => {
           }}
         >
           <RiShieldCheckLine aria-hidden style={{ color: 'var(--color-success-500)' }} />
-          Free to use · Easy Setup
+          CWG PLC & FifthLab Intern Management Platform
         </motion.p>
       </motion.div>
     </section>

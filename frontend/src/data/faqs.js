@@ -3,36 +3,36 @@ export const faqs = [
     id: 1,
     question: 'What is Trakive?',
     answer:
-      'Trakive is an internship onboarding and performance tracking platform that helps organisations manage their interns and helps interns track their progress, tasks, and performance from day one.',
+      'Trakive is an intern management and performance tracking platform developed for CWG PLC and FifthLab to streamline the management of interns throughout their internship lifecycle.',
   },
   {
     id: 2,
     question: 'Who is Trakive for?',
     answer:
-      'Trakive is built for two groups: interns who want a structured way to manage their internship journey, and HR teams or supervisors who need to onboard, assign tasks, and evaluate intern performance efficiently.',
+      'Trakive is built specifically for CWG PLC and FifthLab interns, supervisors, department heads, and HR administrators.',
   },
   {
     id: 3,
     question: 'Do I need to install anything?',
     answer:
-      'No. Trakive is a fully web-based platform. You can access it from any modern browser on desktop, tablet, or mobile — no installation required.',
+      'No. Trakive is a web-based platform accessible from any modern browser on desktop, tablet, or mobile — no installation required.',
   },
   {
     id: 4,
-    question: 'How are tasks assigned?',
+    question: 'How are tasks and projects managed?',
     answer:
-      'Supervisors create and assign tasks directly through the platform. Interns receive instant notifications, can view task details, attach deliverables, and mark tasks as complete when done.',
+      'Supervisors and department leads create tasks and assign project milestones through the platform. Interns receive notifications, submit deliverables, and track completion progress.',
   },
   {
     id: 5,
     question: 'How does performance tracking work?',
     answer:
-      'Trakive tracks task completion rates, timeliness, and supervisor scores over the internship period. Mid-term and final performance reviews are conducted through the platform, with results compiled into a final performance summary.',
+      'Trakive tracks task completion rates, weekly activities, and supervisor ratings. Structured mid-term and final reviews are conducted through the platform, generating verified performance summaries.',
   },
   {
     id: 6,
-    question: 'Is my data secure?',
+    question: 'Is data secure on Trakive?',
     answer:
-      'Yes. Trakive uses industry-standard encryption, secure authentication, and role-based access control to ensure your data is protected at all times.',
+      'Yes. Trakive utilizes secure authentication, role-based access control, and industry-standard security measures to protect CWG PLC and FifthLab internship data.',
   },
 ];

@@ -64,17 +64,17 @@ const CTASection = () => {
           margin: 0,
           lineHeight: 1.2,
         }}>
-          Ready to take control of your internship?
+          Streamline Internship Management Today
         </h2>
 
         <p style={{
           fontSize: '1.0625rem',
           color: 'rgba(255,255,255,0.82)',
           lineHeight: 1.7,
-          maxWidth: '520px',
+          maxWidth: '540px',
           margin: 0,
         }}>
-          Join Trakive today and experience a structured, transparent, and rewarding internship from start to finish.
+          Access your CWG PLC & FifthLab internship workspace to manage tasks, track progress, and complete evaluations.
         </p>
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -134,7 +134,7 @@ const CTASection = () => {
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                Get Started Free
+                Get Started
                 <RiArrowRightLine aria-hidden />
               </Link>
 

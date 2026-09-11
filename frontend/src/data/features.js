@@ -6,58 +6,58 @@
 export const features = [
   {
     id: 1,
-    icon: 'RiDashboardLine',
-    title: 'Internship Dashboard',
+    icon: 'RiCheckboxCircleLine',
+    title: 'Intern Onboarding & Management',
     description:
-      "Get a bird's eye view of your internship progress, tasks, and milestones in one place.",
+      'Structured onboarding checklists and profile setup to get interns aligned and productive from day one.',
   },
   {
     id: 2,
     icon: 'RiTaskLine',
-    title: 'Task Tracking',
+    title: 'Task & Project Management',
     description:
-      'Receive, manage, and complete tasks assigned by your supervisor with clear deadlines and priorities.',
+      'Assign tasks and manage projects with clear deadlines, priorities, and milestone tracking.',
   },
   {
     id: 3,
-    icon: 'RiBarChartLine',
-    title: 'Progress Analytics',
+    icon: 'RiUserStarLine',
+    title: 'Supervisor Oversight',
     description:
-      'Visualise your performance trends with interactive charts and weekly progress summaries.',
+      'Real-time visibility for supervisors and team leads to monitor activities, verify tasks, and guide interns.',
   },
   {
     id: 4,
-    icon: 'RiCheckboxCircleLine',
-    title: 'Onboarding Checklist',
+    icon: 'RiBarChartLine',
+    title: 'Progress & Weekly Activity',
     description:
-      'Complete structured onboarding steps to get set up quickly and never miss an important action.',
+      'Track weekly task submissions, work logs, and performance metrics with clear visual dashboards.',
   },
   {
     id: 5,
     icon: 'RiStarLine',
-    title: 'Performance Reviews',
+    title: 'Feedback & Performance Reviews',
     description:
-      'Receive structured mid-term and final reviews from your supervisor with scores and feedback.',
+      'Conduct structured mid-term and final performance evaluations with actionable feedback and scoring.',
   },
   {
     id: 6,
     icon: 'RiBellLine',
-    title: 'Notifications',
+    title: 'Notifications & Updates',
     description:
-      'Stay informed with real-time alerts for new tasks, review submissions, and deadline reminders.',
+      'Stay updated with instant alerts for task assignments, milestone changes, and organization announcements.',
   },
   {
     id: 7,
-    icon: 'RiUploadCloudLine',
-    title: 'File Uploads',
+    icon: 'RiFlagLine',
+    title: 'Project Milestones',
     description:
-      'Attach deliverables, reports, and documents directly to tasks for easy review and tracking.',
+      'Break projects down into clear milestones with deliverable attachments and review cycles.',
   },
   {
     id: 8,
     icon: 'RiAwardLine',
-    title: 'Final Performance Summary',
+    title: 'Performance Summaries',
     description:
-      'Get a comprehensive performance report at the end of your internship with key metrics and achievements.',
+      'Generate comprehensive performance records highlighting key achievements at the end of each internship.',
   },
 ];

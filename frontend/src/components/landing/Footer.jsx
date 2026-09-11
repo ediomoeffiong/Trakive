@@ -93,9 +93,9 @@ const Footer = () => {
               color: 'var(--color-neutral-500)',
               lineHeight: 1.65,
               margin: 0,
-              maxWidth: '200px',
+              maxWidth: '240px',
             }}>
-              Making internships better, one step at a time.
+              Intern management and performance tracking platform for CWG PLC & FifthLab.
             </p>
           </div>
 
@@ -158,10 +158,10 @@ const Footer = () => {
           gap: '0.75rem',
         }}>
           <p style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-400)', margin: 0 }}>
-            © {year} Trakive. All rights reserved.
+            © {year} CWG PLC & FifthLab. All rights reserved.
           </p>
           <p style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-400)', margin: 0 }}>
-            Built for the next generation of professionals.
+            Trakive Intern Management Platform.
           </p>
         </div>
       </div>

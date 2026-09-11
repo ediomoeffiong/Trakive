@@ -96,7 +96,7 @@ const FeaturesSection = () => {
             color: 'var(--color-primary-600)',
             marginBottom: '0.75rem',
           }}>
-            Everything you need
+            Core Capabilities
           </p>
           <h2 style={{
             fontSize: 'clamp(1.625rem, 4vw, 2.375rem)',
@@ -106,16 +106,16 @@ const FeaturesSection = () => {
             marginBottom: '0.875rem',
             margin: '0 0 0.875rem',
           }}>
-            Built for modern internship programmes
+            Built for CWG PLC & FifthLab Internships
           </h2>
           <p style={{
             fontSize: '1.0625rem',
             color: 'var(--color-neutral-600)',
-            maxWidth: '520px',
+            maxWidth: '560px',
             margin: '0 auto',
             lineHeight: 1.7,
           }}>
-            From onboarding to final review, every tool your team and interns need is right here.
+            From onboarding to final performance evaluations, everything interns, supervisors, and leads need is in one platform.
           </p>
         </motion.div>
 
