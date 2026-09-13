@@ -2011,15 +2011,15 @@ a {
   background-color: rgba(255, 255, 255, 0.15) !important;
 }
 /* Target only the runway banner */
-div[style*="linear-gradient(135deg, rgb(30, 41, 59)"] {
+.task-runway-banner {
   background: #00b4d8 !important;
   background-image: none !important;
   color: #082f49 !important;
 }
 
 /* Also fix the small white text inside */
-div[style*="linear-gradient(135deg, rgb(30, 41, 59)"] p,
-div[style*="linear-gradient(135deg, rgb(30, 41, 59)"] span {
+.task-runway-banner p,
+.task-runway-banner span {
   color: #082f49 !important;
 }
 /* FIX RUNWAY STATS LABELS - MAKE THEM DARK */

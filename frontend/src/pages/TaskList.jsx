@@ -791,6 +791,7 @@ export default function TaskList() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.05 }}
+        className="task-runway-banner"
         style={{
           background: 'linear-gradient(135deg, #1e293b 0%, #1e3a8a 100%)',
           borderRadius: '1.125rem', padding: '1.75rem 2rem',

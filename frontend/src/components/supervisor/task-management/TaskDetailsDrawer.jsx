@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -279,7 +280,7 @@ const TaskDetailsDrawer = ({
   const statusStyle = STATUS_STYLES[task.status] || STATUS_STYLES.draft;
   const priorityColor = PRIORITY_COLORS[task.priority] || '#3b82f6';
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -289,7 +290,7 @@ const TaskDetailsDrawer = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 200, backdropFilter: 'blur(2px)' }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 9999, backdropFilter: 'blur(2px)' }}
           />
 
           {/* Drawer */}
@@ -303,7 +304,7 @@ const TaskDetailsDrawer = ({
               top: 0,
               right: 0,
               bottom: 0,
-              zIndex: 201,
+              zIndex: 10000,
               width: 'min(560px, 95vw)',
               background: '#fff',
               boxShadow: '-8px 0 48px rgba(0,0,0,0.16)',
@@ -320,7 +321,7 @@ const TaskDetailsDrawer = ({
                 padding: '1.25rem 1.5rem',
                 borderBottom: '1px solid var(--color-neutral-200)',
                 flexShrink: 0,
-                background: 'linear-gradient(135deg, #1e293b 0%, #312e81 100%)',
+                background: '#00b4d8',
                 color: '#fff',
               }}
             >
@@ -425,7 +426,8 @@ const TaskDetailsDrawer = ({
           </motion.aside>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

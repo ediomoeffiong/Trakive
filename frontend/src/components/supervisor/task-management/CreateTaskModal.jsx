@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -57,7 +58,7 @@ const inputStyle = {
   transition: 'border-color 0.15s ease',
 };
 
-const focusStyle = { borderColor: '#4f46e5', boxShadow: '0 0 0 3px rgba(79,70,229,0.1)' };
+const focusStyle = { borderColor: '#00b4d8', boxShadow: '0 0 0 3px rgba(0,180,216,0.15)' };
 
 const TagSelector = ({ value = [], onChange }) => {
   const [input, setInput] = useState('');
@@ -79,10 +80,10 @@ const TagSelector = ({ value = [], onChange }) => {
           {value.map((tag) => (
             <span
               key={tag}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.5rem', borderRadius: '9999px', background: '#eef2ff', color: '#4338ca', fontSize: '0.75rem', fontWeight: 600, border: '1px solid #c7d2fe' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.5rem', borderRadius: '9999px', background: '#e0f7fc', color: '#007791', fontSize: '0.75rem', fontWeight: 600, border: '1px solid #90e0ef' }}
             >
               {tag}
-              <button type="button" onClick={() => removeTag(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6366f1', padding: 0, display: 'flex' }}>
+              <button type="button" onClick={() => removeTag(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#00b4d8', padding: 0, display: 'flex' }}>
                 <RiCloseLine style={{ fontSize: '0.75rem' }} />
               </button>
             </span>
@@ -155,13 +156,13 @@ const InternSelector = ({ value = [], onChange, interns = [] }) => {
                 justifyContent: 'space-between',
                 padding: '0.625rem 0.875rem',
                 cursor: 'pointer',
-                background: isSelected ? '#f5f3ff' : 'transparent',
+                background: isSelected ? '#e0f7fc' : 'transparent',
                 borderBottom: i < interns.length - 1 ? '1px solid var(--color-neutral-100)' : 'none',
                 transition: 'background 0.1s ease',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#4f46e5', color: '#fff', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#00b4d8', color: '#fff', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {intern.initials || intern.name?.split(' ').map((n) => n[0]).join('') || '??'}
                 </div>
                 <div>
@@ -169,13 +170,13 @@ const InternSelector = ({ value = [], onChange, interns = [] }) => {
                   <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>{intern.department || intern.role || 'Intern'}</p>
                 </div>
               </div>
-              {isSelected && <RiCheckLine style={{ color: '#4f46e5', fontSize: '1rem' }} />}
+              {isSelected && <RiCheckLine style={{ color: '#00b4d8', fontSize: '1rem' }} />}
             </div>
           );
         })}
       </div>
       {value.length > 0 && (
-        <p style={{ margin: 0, fontSize: '0.75rem', color: '#4f46e5', fontWeight: 600 }}>
+        <p style={{ margin: 0, fontSize: '0.75rem', color: '#00b4d8', fontWeight: 600 }}>
           {value.length} intern(s) selected
         </p>
       )}
@@ -261,36 +262,41 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
     { id: 'rubric', label: 'Rubric' },
   ];
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', zIndex: 200, backdropFilter: 'blur(4px)' }}
-          />
-
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            zIndex: 9999,
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem',
+          }}
+        >
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+            onClick={(e) => e.stopPropagation()}
             style={{
-              position: 'fixed',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              zIndex: 201,
-              width: 'min(700px, 95vw)',
-              maxHeight: '90vh',
+              position: 'relative',
+              zIndex: 10000,
+              width: 'min(720px, 95vw)',
+              maxHeight: '88vh',
               background: '#fff',
               borderRadius: '1.25rem',
-              boxShadow: '0 24px 80px rgba(0,0,0,0.2)',
+              boxShadow: '0 24px 80px rgba(0, 0, 0, 0.25)',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
@@ -308,25 +314,42 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexShrink: 0,
-                background: 'linear-gradient(135deg, #1e293b 0%, #312e81 100%)',
+                background: '#00b4d8',
                 color: '#fff',
               }}
             >
               <div>
-                <h2 id="task-modal-title" style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800 }}>
+                <h2 id="task-modal-title" style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: '#ffffff' }}>
                   {editingTask ? 'Edit Task' : 'Create New Task'}
                 </h2>
-                <p style={{ margin: '0.2rem 0 0', fontSize: '0.8125rem', color: '#c7d2fe' }}>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.8125rem', color: '#e0f7fc' }}>
                   {editingTask ? 'Update task details and assignment' : 'Define a new task and assign it to interns'}
                 </p>
               </div>
-              <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '0.5rem', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: '1.125rem' }} aria-label="Close modal">
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#fff',
+                  fontSize: '1.125rem',
+                }}
+                aria-label="Close modal"
+              >
                 <RiCloseLine />
               </button>
             </div>
 
             {/* Section tabs */}
-            <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--color-neutral-200)', flexShrink: 0, overflowX: 'auto' }}>
+            <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--color-neutral-200)', flexShrink: 0, overflowX: 'auto', background: '#fff' }}>
               {SECTIONS.map((sec) => (
                 <button
                   key={sec.id}
@@ -336,8 +359,8 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
                     padding: '0.75rem 1.25rem',
                     border: 'none',
                     background: 'transparent',
-                    borderBottom: activeSection === sec.id ? '2px solid #4f46e5' : '2px solid transparent',
-                    color: activeSection === sec.id ? '#4f46e5' : 'var(--color-neutral-500)',
+                    borderBottom: activeSection === sec.id ? '2.5px solid #00b4d8' : '2.5px solid transparent',
+                    color: activeSection === sec.id ? '#00b4d8' : 'var(--color-neutral-500)',
                     fontWeight: activeSection === sec.id ? 700 : 500,
                     fontSize: '0.875rem',
                     cursor: 'pointer',
@@ -351,8 +374,8 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
             </div>
 
             {/* Form body */}
-            <form onSubmit={handleSubmit(onFormSubmit)} style={{ flex: 1, overflowY: 'auto' }}>
-              <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form onSubmit={handleSubmit(onFormSubmit)} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
                 {/* ── Basic Info section ─────────────────────────────────── */}
                 {activeSection === 'basic' && (
@@ -473,12 +496,12 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
                           color: 'var(--color-neutral-400)',
                           transition: 'border-color 0.15s ease',
                         }}
-                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#4f46e5'; e.currentTarget.style.background = '#faf5ff'; }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#00b4d8'; e.currentTarget.style.background = '#e0f7fc'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-neutral-200)'; e.currentTarget.style.background = 'transparent'; }}
                       >
-                        <RiFileUploadLine style={{ fontSize: '1.75rem', marginBottom: '0.5rem', color: '#6366f1' }} />
+                        <RiFileUploadLine style={{ fontSize: '1.75rem', marginBottom: '0.5rem', color: '#00b4d8' }} />
                         <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-neutral-600)' }}>
-                          Drop files here or <span style={{ color: '#4f46e5', fontWeight: 700 }}>browse</span>
+                          Drop files here or <span style={{ color: '#00b4d8', fontWeight: 700 }}>browse</span>
                         </p>
                         <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem' }}>PDF, Figma, images, docs up to 25MB</p>
                       </div>
@@ -489,8 +512,8 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
                 {/* ── Assignment section ────────────────────────────────── */}
                 {activeSection === 'assignment' && (
                   <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    <div style={{ padding: '0.875rem 1rem', background: '#eef2ff', borderRadius: '0.875rem', border: '1px solid #c7d2fe' }}>
-                      <p style={{ margin: 0, fontSize: '0.8125rem', color: '#3730a3', fontWeight: 600 }}>
+                    <div style={{ padding: '0.875rem 1rem', background: '#e0f7fc', borderRadius: '0.875rem', border: '1px solid #90e0ef' }}>
+                      <p style={{ margin: 0, fontSize: '0.8125rem', color: '#007791', fontWeight: 600 }}>
                         Select the interns you want to assign this task to. You can assign to one or multiple interns.
                       </p>
                     </div>
@@ -514,7 +537,7 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
                     </p>
                     {objectiveFields.map((field, index) => (
                       <div key={field.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#4f46e5', minWidth: '1.5rem' }}>{index + 1}.</span>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#00b4d8', minWidth: '1.5rem' }}>{index + 1}.</span>
                         <input
                           {...register(`learningObjectives.${index}`)}
                           placeholder={`Learning objective ${index + 1}...`}
@@ -532,7 +555,7 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
                     <button
                       type="button"
                       onClick={() => addObjective('')}
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.875rem', border: '1.5px dashed #c7d2fe', borderRadius: '0.75rem', background: '#fafafa', color: '#4f46e5', fontWeight: 600, fontSize: '0.8125rem', cursor: 'pointer' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.875rem', border: '1.5px dashed #90e0ef', borderRadius: '0.75rem', background: '#f0fbfd', color: '#007791', fontWeight: 600, fontSize: '0.8125rem', cursor: 'pointer' }}
                     >
                       <RiAddLine /> Add Objective
                     </button>
@@ -571,7 +594,7 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
                     <button
                       type="button"
                       onClick={() => addRubric({ criterion: '', maxScore: 10, description: '' })}
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.875rem', border: '1.5px dashed #c7d2fe', borderRadius: '0.75rem', background: '#fafafa', color: '#4f46e5', fontWeight: 600, fontSize: '0.8125rem', cursor: 'pointer' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.875rem', border: '1.5px dashed #90e0ef', borderRadius: '0.75rem', background: '#f0fbfd', color: '#007791', fontWeight: 600, fontSize: '0.8125rem', cursor: 'pointer' }}
                     >
                       <RiAddLine /> Add Criterion
                     </button>
@@ -597,12 +620,12 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
                   <button type="button" onClick={onClose} style={{ padding: '0.625rem 1rem', borderRadius: '0.75rem', border: '1px solid var(--color-neutral-200)', background: '#fff', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-neutral-600)', cursor: 'pointer' }}>
                     Cancel
                   </button>
-                  <button type="button" onClick={handleSaveDraft} disabled={isLoading} style={{ padding: '0.625rem 1rem', borderRadius: '0.75rem', border: '1.5px dashed #c7d2fe', background: '#faf5ff', fontSize: '0.875rem', fontWeight: 600, color: '#7c3aed', cursor: 'pointer' }}>
+                  <button type="button" onClick={handleSaveDraft} disabled={isLoading} style={{ padding: '0.625rem 1rem', borderRadius: '0.75rem', border: '1.5px dashed #90e0ef', background: '#e0f7fc', fontSize: '0.875rem', fontWeight: 600, color: '#007791', cursor: 'pointer' }}>
                     Save Draft
                   </button>
                 </div>
                 <motion.button
-                  whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(79,70,229,0.3)' }}
+                  whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(0,180,216,0.35)' }}
                   whileTap={{ scale: 0.97 }}
                   type="submit"
                   disabled={isLoading}
@@ -610,7 +633,7 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
                     padding: '0.625rem 1.5rem',
                     borderRadius: '0.75rem',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                    background: '#00b4d8',
                     color: '#fff',
                     fontSize: '0.875rem',
                     fontWeight: 700,
@@ -623,9 +646,10 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
               </div>
             </form>
           </motion.div>
-        </>
+        </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

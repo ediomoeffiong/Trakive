@@ -6,6 +6,7 @@
  */
 
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -209,33 +210,40 @@ const TaskAssignmentModal = ({ isOpen, task, onClose, onAssign, isLoading }) => 
     }
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            zIndex: 9999,
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem',
+          }}
+        >
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', zIndex: 200, backdropFilter: 'blur(4px)' }}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+            onClick={(e) => e.stopPropagation()}
             style={{
-              position: 'fixed',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
+              position: 'relative',
               zIndex: 201,
               width: 'min(640px, 95vw)',
               maxHeight: '88vh',
               background: '#fff',
               borderRadius: '1.25rem',
-              boxShadow: '0 24px 80px rgba(0,0,0,0.2)',
+              boxShadow: '0 24px 80px rgba(0, 0, 0, 0.25)',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
@@ -245,16 +253,16 @@ const TaskAssignmentModal = ({ isOpen, task, onClose, onAssign, isLoading }) => 
             aria-labelledby="assign-modal-title"
           >
             {/* Header */}
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-neutral-200)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, background: 'linear-gradient(135deg, #1e293b 0%, #312e81 100%)', color: '#fff' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-neutral-200)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, background: '#00b4d8', color: '#fff' }}>
               <div>
-                <h2 id="assign-modal-title" style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800 }}>Assign Task</h2>
+                <h2 id="assign-modal-title" style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800, color: '#ffffff' }}>Assign Task</h2>
                 {task && (
-                  <p style={{ margin: '0.2rem 0 0', fontSize: '0.8125rem', color: '#c7d2fe', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '380px' }}>
+                  <p style={{ margin: '0.2rem 0 0', fontSize: '0.8125rem', color: '#e0f7fc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '380px' }}>
                     {task.title}
                   </p>
                 )}
               </div>
-              <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '0.5rem', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: '1.125rem' }}>
+              <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '0.5rem', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: '1.125rem' }}>
                 <RiCloseLine />
               </button>
             </div>
@@ -429,7 +437,7 @@ const TaskAssignmentModal = ({ isOpen, task, onClose, onAssign, isLoading }) => 
                   padding: '0.625rem 1.5rem',
                   borderRadius: '0.75rem',
                   border: 'none',
-                  background: canConfirm() ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' : '#e2e8f0',
+                  background: canConfirm() ? '#00b4d8' : '#e2e8f0',
                   color: canConfirm() ? '#fff' : '#94a3b8',
                   fontSize: '0.875rem',
                   fontWeight: 700,
@@ -441,9 +449,10 @@ const TaskAssignmentModal = ({ isOpen, task, onClose, onAssign, isLoading }) => 
               </motion.button>
             </div>
           </motion.div>
-        </>
+        </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -254,33 +255,40 @@ const TaskTemplatesModal = ({
     toast.success(`Duplicated "${template.name}".`);
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', zIndex: 200, backdropFilter: 'blur(4px)' }}
-          />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            zIndex: 9999,
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem',
+          }}
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.97, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: 16 }}
             transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+            onClick={(e) => e.stopPropagation()}
             style={{
-              position: 'fixed',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
+              position: 'relative',
               zIndex: 201,
               width: 'min(900px, 96vw)',
-              maxHeight: '90vh',
+              maxHeight: '88vh',
               background: '#fff',
               borderRadius: '1.25rem',
-              boxShadow: '0 24px 80px rgba(0,0,0,0.2)',
+              boxShadow: '0 24px 80px rgba(0, 0, 0, 0.25)',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
@@ -290,14 +298,14 @@ const TaskTemplatesModal = ({
             aria-labelledby="templates-modal-title"
           >
             {/* Header */}
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-neutral-200)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, background: 'linear-gradient(135deg, #1e293b 0%, #312e81 100%)', color: '#fff' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-neutral-200)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, background: '#00b4d8', color: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '0.625rem', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '0.625rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
                   <RiLayoutGridLine />
                 </div>
                 <div>
-                  <h2 id="templates-modal-title" style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800 }}>Task Templates</h2>
-                  <p style={{ margin: 0, fontSize: '0.8125rem', color: '#c7d2fe' }}>{templates.length} templates available</p>
+                  <h2 id="templates-modal-title" style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800, color: '#ffffff' }}>Task Templates</h2>
+                  <p style={{ margin: 0, fontSize: '0.8125rem', color: '#e0f7fc' }}>{templates.length} templates available</p>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.625rem', alignItems: 'center' }}>
@@ -392,9 +400,10 @@ const TaskTemplatesModal = ({
               </AnimatePresence>
             </div>
           </motion.div>
-        </>
+        </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

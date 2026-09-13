@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiUser, FiMail, FiPhone, FiLock, FiCalendar, FiArrowRight, FiArrowLeft, FiCheck } from 'react-icons/fi';
+import { FiUser, FiMail, FiPhone, FiLock, FiCalendar, FiArrowRight, FiArrowLeft, FiCheck, FiChevronDown } from 'react-icons/fi';
+import { RiBuildingLine } from 'react-icons/ri';
 import toast from 'react-hot-toast';
 
 import { useAppStore } from '../store/useAppStore';
@@ -198,21 +199,56 @@ const Register = () => {
               >
                 Department
               </label>
-              <select
-                id="reg-dept"
-                className={`input-field ${errors.department ? 'error' : ''}`}
-                style={{ appearance: 'none', backgroundImage: 'none' }}
-                {...register('department', { required: 'Please select a department' })}
-              >
-                <option value="">Select your department...</option>
-                <option value="Fifthlab">Fifthlab</option>
-                <option value="HR">HR</option>
-                <option value="IT Support">IT Support</option>
-                <option value="Finacle">Finacle</option>
-                <option value="Product & Design">Product & Design</option>
-                <option value="Marketing & Sales">Marketing & Sales</option>
-                <option value="Finance">Finance</option>
-              </select>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: '0.75rem',
+                    color: 'var(--color-neutral-400)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <RiBuildingLine />
+                </span>
+                <select
+                  id="reg-dept"
+                  className={`input-field ${errors.department ? 'error' : ''}`}
+                  style={{
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none',
+                    paddingLeft: '2.375rem',
+                    paddingRight: '2.5rem',
+                    cursor: 'pointer',
+                    width: '100%',
+                  }}
+                  {...register('department', { required: 'Please select a department' })}
+                >
+                  <option value="">Select your department...</option>
+                  <option value="Fifthlab">Fifthlab</option>
+                  <option value="HR">HR</option>
+                  <option value="IT Support">IT Support</option>
+                  <option value="Finacle">Finacle</option>
+                  <option value="Product & Design">Product & Design</option>
+                  <option value="Marketing & Sales">Marketing & Sales</option>
+                  <option value="Finance">Finance</option>
+                </select>
+                <span
+                  style={{
+                    position: 'absolute',
+                    right: '0.75rem',
+                    color: 'var(--color-neutral-500)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    pointerEvents: 'none',
+                    fontSize: '1.125rem',
+                  }}
+                >
+                  <FiChevronDown />
+                </span>
+              </div>
               {errors.department && (
                 <p style={{ fontSize: '0.8125rem', color: 'var(--color-danger-600)', margin: 0 }}>
                   {errors.department.message}
