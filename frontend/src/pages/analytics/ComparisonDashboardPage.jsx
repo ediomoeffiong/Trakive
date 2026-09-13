@@ -76,7 +76,7 @@ export default function ComparisonDashboardPage() {
 
       {/* Synchronized Comparison Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
-        {mockPerformanceComparison.map((item) => (
+        {(chartData?.performanceComparison?.length > 0 ? chartData.performanceComparison : mockPerformanceComparison).map((item) => (
           <div
             key={item.entity}
             style={{

@@ -1,6 +1,7 @@
 /**
  * @file PersonalInfoForm.jsx
- * @description Editable personal information form.
+ * @description Editable personal information form with location cascading dropdowns,
+ * locked IT administrator fields, gender restrictions, and intern profile change request approval workflow.
  */
 
 import { useState, useEffect } from 'react';
@@ -8,8 +9,16 @@ import { useForm } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useProfileStore } from '../../store/useProfileStore';
-
-const GENDERS = ['', 'Male', 'Female', 'Non-binary', 'Prefer not to say'];
+import ContactITModal from './ContactITModal';
+import {
+  DEFAULT_COUNTRY,
+  DEFAULT_STATE,
+  DEFAULT_CITY,
+  COUNTRIES,
+  GENDERS,
+  getStatesForCountry,
+  getCitiesForState,
+} from '../../data/locationData';
 
 const Field = ({ label, value }) => (
   <div
@@ -29,12 +38,19 @@ const Field = ({ label, value }) => (
   </div>
 );
 
-const FormField = ({ label, id, error, children }) => (
-  <div>
-    <label htmlFor={id} style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-700)', marginBottom: '0.375rem' }}>
-      {label}
+const FormField = ({ label, id, error, children, isLocked, onLockedClick }) => (
+  <div style={{ position: 'relative' }}>
+    <label htmlFor={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-700)', marginBottom: '0.375rem' }}>
+      <span>{label}</span>
+      {isLocked && (
+        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#6366f1', background: '#eef2ff', padding: '0.1rem 0.4rem', borderRadius: '0.25rem' }}>
+          Locked (IT Admin)
+        </span>
+      )}
     </label>
-    {children}
+    <div onClick={isLocked ? () => onLockedClick?.(label) : undefined} style={{ cursor: isLocked ? 'pointer' : 'default' }}>
+      {children}
+    </div>
     {error && (
       <p style={{ fontSize: '0.75rem', color: 'var(--color-danger-600)', marginTop: '0.25rem' }}>
         {error}
@@ -44,46 +60,111 @@ const FormField = ({ label, id, error, children }) => (
 );
 
 const PersonalInfoForm = () => {
-  const { profile, updateProfile, savingProfile } = useProfileStore();
+  const { profile, updateProfile, submitProfileChangeRequest, savingProfile } = useProfileStore();
   const [editing, setEditing] = useState(false);
+  const [itModalOpen, setItModalOpen] = useState(false);
+  const [lockedFieldName, setLockedFieldName] = useState('');
+
+  const isSupervisor = profile?.role === 'Supervisor' || profile?.role === 'Admin' || profile?.role === 'supervisor';
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isDirty },
-  } = useForm();
+  } = useForm({
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      jobTitle: '',
+      department: '',
+      dateOfBirth: '',
+      gender: 'Male',
+      address: '',
+      city: DEFAULT_CITY,
+      state: DEFAULT_STATE,
+      country: DEFAULT_COUNTRY,
+      bio: '',
+    },
+  });
+
+  const selectedCountry = watch('country') || DEFAULT_COUNTRY;
+  const selectedState = watch('state') || DEFAULT_STATE;
+
+  const availableStates = getStatesForCountry(selectedCountry);
+  const availableCities = getCitiesForState(selectedState, selectedCountry);
 
   useEffect(() => {
     if (profile) {
+      const countryVal = profile.country || DEFAULT_COUNTRY;
+      const stateVal = profile.state || DEFAULT_STATE;
+      const cityVal = profile.city || DEFAULT_CITY;
+
       reset({
         firstName: profile.firstName || '',
         lastName: profile.lastName || '',
         email: profile.email || '',
         phone: profile.phone || '',
-        jobTitle: profile.jobTitle || '',
+        jobTitle: profile.jobTitle || profile.role || '',
         department: profile.department || '',
         dateOfBirth: profile.dateOfBirth || '',
-        gender: profile.gender || '',
+        gender: profile.gender === 'Female' ? 'Female' : 'Male',
         address: profile.address || '',
-        city: profile.city || '',
-        state: profile.state || '',
-        country: profile.country || '',
+        city: cityVal,
+        state: stateVal,
+        country: countryVal,
         bio: profile.bio || '',
       });
     }
   }, [profile, reset, editing]);
 
+  const handleCountryChange = (e) => {
+    const newCountry = e.target.value;
+    setValue('country', newCountry, { shouldDirty: true });
+    const states = getStatesForCountry(newCountry);
+    const defaultState = states[0] || '';
+    setValue('state', defaultState, { shouldDirty: true });
+    const cities = getCitiesForState(defaultState, newCountry);
+    setValue('city', cities[0] || '', { shouldDirty: true });
+  };
+
+  const handleStateChange = (e) => {
+    const newState = e.target.value;
+    setValue('state', newState, { shouldDirty: true });
+    const cities = getCitiesForState(newState, selectedCountry);
+    setValue('city', cities[0] || '', { shouldDirty: true });
+  };
+
+  const handleOpenLockedModal = (fieldName) => {
+    setLockedFieldName(fieldName);
+    setItModalOpen(true);
+  };
+
   const onSubmit = async (data) => {
     try {
-      await updateProfile({
-        ...data,
-        fullName: `${data.firstName} ${data.lastName}`.trim(),
-      });
-      toast.success('Profile information updated successfully!');
-      setEditing(false);
-    } catch {
-      toast.error('Failed to save changes. Please try again.');
+      if (isSupervisor) {
+        // Direct update for supervisor
+        await updateProfile({
+          ...data,
+          fullName: `${data.firstName} ${data.lastName}`.trim(),
+        });
+        toast.success('Profile updated successfully!');
+        setEditing(false);
+      } else {
+        // Intern profile change request workflow requiring supervisor approval
+        await submitProfileChangeRequest({
+          ...data,
+          fullName: `${data.firstName} ${data.lastName}`.trim(),
+        });
+        toast.success('Profile change request submitted to supervisor for approval! Track progress in Onboarding Tab.');
+        setEditing(false);
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to submit changes. Please try again.');
     }
   };
 
@@ -105,6 +186,14 @@ const PersonalInfoForm = () => {
     transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
   };
 
+  const lockedInputStyle = {
+    ...inputStyle,
+    background: '#f8fafc',
+    color: '#64748b',
+    cursor: 'pointer',
+    userSelect: 'none',
+  };
+
   const inputErrorStyle = { ...inputStyle, borderColor: 'var(--color-danger-400)' };
 
   return (
@@ -113,7 +202,7 @@ const PersonalInfoForm = () => {
         <div>
           <h2 style={{ fontSize: '0.9375rem', fontWeight: 700, margin: 0 }}>Personal Information</h2>
           <p style={{ fontSize: '0.8rem', color: 'var(--color-neutral-500)', margin: 0 }}>
-            Manage your personal details and professional identity
+            Manage your personal details and identity information
           </p>
         </div>
         {!editing && (
@@ -141,9 +230,9 @@ const PersonalInfoForm = () => {
             <Field label="Date of Birth" value={profile?.dateOfBirth} />
             <Field label="Gender" value={profile?.gender} />
             <Field label="Address" value={profile?.address} />
-            <Field label="City" value={profile?.city} />
-            <Field label="State" value={profile?.state} />
-            <Field label="Country" value={profile?.country} />
+            <Field label="City" value={profile?.city || DEFAULT_CITY} />
+            <Field label="State" value={profile?.state || DEFAULT_STATE} />
+            <Field label="Country" value={profile?.country || DEFAULT_COUNTRY} />
             <div style={{ gridColumn: '1 / -1' }}>
               <Field label="Bio" value={profile?.bio} />
             </div>
@@ -156,25 +245,44 @@ const PersonalInfoForm = () => {
             exit={{ opacity: 0 }}
             onSubmit={handleSubmit(onSubmit)}
           >
+            {!isSupervisor && (
+              <div
+                style={{
+                  background: '#eff6ff',
+                  border: '1.5px solid #bfdbfe',
+                  borderRadius: '0.625rem',
+                  padding: '0.75rem 1rem',
+                  marginBottom: '1.25rem',
+                  fontSize: '0.8125rem',
+                  color: '#1e40af',
+                }}
+              >
+                ℹ️ <strong>Intern Notice:</strong> Submitting changes will create a <strong>Profile Change Request</strong> sent to your supervisor for review and approval before updates take effect. View status in your <strong>Onboarding Tab</strong>.
+              </div>
+            )}
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+              {/* First Name & Last Name */}
               <FormField label="First Name" id="firstName" error={errors.firstName?.message}>
                 <input id="firstName" style={errors.firstName ? inputErrorStyle : inputStyle} placeholder="First name" {...register('firstName', { required: 'First name is required' })} />
               </FormField>
               <FormField label="Last Name" id="lastName" error={errors.lastName?.message}>
                 <input id="lastName" style={errors.lastName ? inputErrorStyle : inputStyle} placeholder="Last name" {...register('lastName', { required: 'Last name is required' })} />
               </FormField>
-              <FormField label="Email Address" id="email" error={errors.email?.message}>
+
+              {/* Locked Field: Email */}
+              <FormField label="Email Address" id="email" isLocked onLockedClick={handleOpenLockedModal}>
                 <input
                   id="email"
                   type="email"
-                  style={errors.email ? inputErrorStyle : inputStyle}
-                  placeholder="you@example.com"
-                  {...register('email', {
-                    required: 'Email is required',
-                    pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Invalid email address' },
-                  })}
+                  readOnly
+                  style={lockedInputStyle}
+                  {...register('email')}
+                  onClick={() => handleOpenLockedModal('Email Address')}
                 />
               </FormField>
+
+              {/* Phone Number */}
               <FormField label="Phone Number" id="phone" error={errors.phone?.message}>
                 <input
                   id="phone"
@@ -186,33 +294,87 @@ const PersonalInfoForm = () => {
                   })}
                 />
               </FormField>
-              <FormField label="Job Title" id="jobTitle" error={errors.jobTitle?.message}>
-                <input id="jobTitle" style={inputStyle} placeholder="Job title" {...register('jobTitle')} />
+
+              {/* Locked Field: Job Title */}
+              <FormField label="Job Title" id="jobTitle" isLocked onLockedClick={handleOpenLockedModal}>
+                <input
+                  id="jobTitle"
+                  readOnly
+                  style={lockedInputStyle}
+                  {...register('jobTitle')}
+                  onClick={() => handleOpenLockedModal('Job Title')}
+                />
               </FormField>
-              <FormField label="Department" id="department" error={errors.department?.message}>
-                <input id="department" style={inputStyle} placeholder="Department" {...register('department')} />
+
+              {/* Locked Field: Department */}
+              <FormField label="Department" id="department" isLocked onLockedClick={handleOpenLockedModal}>
+                <input
+                  id="department"
+                  readOnly
+                  style={lockedInputStyle}
+                  {...register('department')}
+                  onClick={() => handleOpenLockedModal('Department')}
+                />
               </FormField>
+
+              {/* Date of Birth */}
               <FormField label="Date of Birth" id="dateOfBirth" error={errors.dateOfBirth?.message}>
                 <input id="dateOfBirth" type="date" style={inputStyle} {...register('dateOfBirth')} />
               </FormField>
-              <FormField label="Gender (optional)" id="gender">
+
+              {/* Gender Dropdown (Male / Female strictly) */}
+              <FormField label="Gender" id="gender">
                 <select id="gender" style={inputStyle} {...register('gender')}>
                   {GENDERS.map((g) => (
-                    <option key={g} value={g}>{g || 'Prefer not to say'}</option>
+                    <option key={g} value={g}>{g}</option>
                   ))}
                 </select>
               </FormField>
+
+              {/* Address */}
               <FormField label="Address" id="address">
                 <input id="address" style={inputStyle} placeholder="Address line" {...register('address')} />
               </FormField>
-              <FormField label="City" id="city">
-                <input id="city" style={inputStyle} placeholder="City" {...register('city')} />
+
+              {/* Country Dropdown (Nigeria Default) */}
+              <FormField label="Country" id="country">
+                <select
+                  id="country"
+                  style={inputStyle}
+                  value={selectedCountry}
+                  onChange={handleCountryChange}
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </FormField>
+
+              {/* Cascading State Dropdown */}
               <FormField label="State / Province" id="state">
-                <input id="state" style={inputStyle} placeholder="State" {...register('state')} />
+                <select
+                  id="state"
+                  style={inputStyle}
+                  value={selectedState}
+                  onChange={handleStateChange}
+                >
+                  {availableStates.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
               </FormField>
-              <FormField label="Country" id="country" error={errors.country?.message}>
-                <input id="country" style={inputStyle} placeholder="Country" {...register('country')} />
+
+              {/* Cascading City Dropdown */}
+              <FormField label="City" id="city">
+                <select
+                  id="city"
+                  style={inputStyle}
+                  {...register('city')}
+                >
+                  {availableCities.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </FormField>
             </div>
 
@@ -233,7 +395,7 @@ const PersonalInfoForm = () => {
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary btn-sm" disabled={savingProfile || !isDirty} id="save-personal-info-btn">
-                {savingProfile ? 'Saving...' : 'Save Changes'}
+                {savingProfile ? 'Submitting...' : isSupervisor ? 'Save Changes' : 'Submit Request to Supervisor'}
               </button>
             </div>
           </motion.form>
@@ -252,9 +414,16 @@ const PersonalInfoForm = () => {
           System Role & Administrative Permissions Locked
         </p>
         <p style={{ margin: '0.2rem 0 0', fontSize: '0.8125rem', color: '#64748b' }}>
-          Role: <strong>{profile?.role || 'Intern'}</strong> ({profile?.employeeId || 'ID pending'}). Self-service editing of roles and system access permissions is locked for security. Contact HR Administration to request role modification.
+          Role: <strong>{profile?.role || 'Intern'}</strong> ({profile?.employeeId || 'ID pending'}). Job Title, Department, and Email Address can only be modified by system administrators.
         </p>
       </div>
+
+      {/* IT Admin Locked Field Popup Modal */}
+      <ContactITModal
+        isOpen={itModalOpen}
+        onClose={() => setItModalOpen(false)}
+        fieldName={lockedFieldName}
+      />
     </div>
   );
 };

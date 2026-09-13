@@ -4,8 +4,10 @@
  * verification, approve/reject controls, and audit history.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
+import { useProfileStore } from '../../../store/useProfileStore';
 import {
   RiCheckboxCircleLine,
   RiCloseCircleLine,
@@ -376,6 +378,197 @@ const InternChecklistView = ({ intern, isLoading, onApprove, onReject, onBack })
   );
 };
 
+// ── Profile Change Requests Panel ──────────────────────────────────────────────
+function SupervisorProfileChangeRequestsPanel() {
+  const {
+    profileChangeRequests,
+    fetchProfileChangeRequests,
+    approveProfileChangeRequest,
+    rejectProfileChangeRequest,
+  } = useProfileStore();
+
+  const [rejectingId, setRejectingId] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [processingId, setProcessingId] = useState(null);
+
+  useEffect(() => {
+    fetchProfileChangeRequests();
+  }, [fetchProfileChangeRequests]);
+
+  const pendingRequests = profileChangeRequests?.filter((r) => r.status === 'pending') || [];
+
+  if (pendingRequests.length === 0) return null;
+
+  const handleApprove = async (id) => {
+    setProcessingId(id);
+    try {
+      await approveProfileChangeRequest(id);
+      toast.success('Profile change request approved!');
+    } catch (err) {
+      toast.error('Failed to approve request.');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleReject = async (id) => {
+    setProcessingId(id);
+    try {
+      await rejectProfileChangeRequest(id, rejectReason);
+      toast.success('Profile change request rejected.');
+      setRejectingId(null);
+      setRejectReason('');
+    } catch (err) {
+      toast.error('Failed to reject request.');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: '1.5px solid #6366f1',
+        borderRadius: '1.125rem',
+        padding: '1.25rem 1.5rem',
+        marginBottom: '1.5rem',
+        boxShadow: '0 4px 20px rgba(99,102,241,0.08)',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+          <div style={{ background: '#eef2ff', padding: '0.4rem 0.6rem', borderRadius: '0.5rem', fontSize: '1.2rem' }}>🆔</div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
+              Pending Profile & Identity Change Requests
+            </h3>
+            <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', color: 'var(--color-neutral-500)' }}>
+              Review and approve profile modifications submitted by your assigned interns
+            </p>
+          </div>
+        </div>
+        <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.75rem', borderRadius: '9999px', background: '#d97706', color: '#fff' }}>
+          {pendingRequests.length} Pending
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {pendingRequests.map((req) => (
+          <div
+            key={req.id}
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              borderRadius: '0.875rem',
+              padding: '1rem 1.25rem',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <div>
+                <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
+                  {req.internName}
+                </span>
+                <span style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)', marginLeft: '0.5rem' }}>
+                  ({req.internEmail})
+                </span>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
+                {new Date(req.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+
+            {/* Diff comparison table */}
+            <div style={{ background: '#fff', borderRadius: '0.625rem', border: '1px solid var(--color-neutral-200)', overflow: 'hidden', marginBottom: '0.875rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', borderBottom: '1px solid var(--color-neutral-200)' }}>
+                    <th style={{ padding: '0.5rem 0.75rem', color: 'var(--color-neutral-600)', fontWeight: 700 }}>Field</th>
+                    <th style={{ padding: '0.5rem 0.75rem', color: 'var(--color-neutral-600)', fontWeight: 700 }}>Current Value</th>
+                    <th style={{ padding: '0.5rem 0.75rem', color: '#4f46e5', fontWeight: 700 }}>Requested New Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(req.proposedChanges).map(([field, val]) => (
+                    <tr key={field} style={{ borderBottom: '1px solid var(--color-neutral-100)' }}>
+                      <td style={{ padding: '0.5rem 0.75rem', fontWeight: 700, color: 'var(--color-neutral-700)', textTransform: 'capitalize' }}>{field}</td>
+                      <td style={{ padding: '0.5rem 0.75rem', color: '#64748b' }}>{req.currentData?.[field] || '—'}</td>
+                      <td style={{ padding: '0.5rem 0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5' }}>{String(val)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {rejectingId === req.id ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: '#fef2f2', padding: '0.75rem', borderRadius: '0.625rem', border: '1px solid #fecaca' }}>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Reason for rejection (optional)..."
+                  rows={2}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #fca5a5', fontSize: '0.8125rem', fontFamily: 'inherit' }}
+                />
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => { setRejectingId(null); setRejectReason(''); }}
+                    style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.75rem', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleReject(req.id)}
+                    disabled={processingId === req.id}
+                    style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', border: 'none', background: '#dc2626', color: '#fff', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Confirm Rejection
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.625rem' }}>
+                <button
+                  onClick={() => setRejectingId(req.id)}
+                  disabled={processingId === req.id}
+                  style={{
+                    padding: '0.4rem 0.875rem',
+                    borderRadius: '0.5rem',
+                    border: '1.5px solid #fecaca',
+                    background: '#fff',
+                    color: '#dc2626',
+                    fontSize: '0.8125rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Reject Request
+                </button>
+                <button
+                  onClick={() => handleApprove(req.id)}
+                  disabled={processingId === req.id}
+                  style={{
+                    padding: '0.4rem 1rem',
+                    borderRadius: '0.5rem',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    color: '#fff',
+                    fontSize: '0.8125rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(16,185,129,0.25)',
+                  }}
+                >
+                  {processingId === req.id ? 'Approving...' : 'Approve Changes'}
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 const OnboardingApprovalsView = ({ queue = [], isLoading = false, actionLoading = false, onApprove, onReject }) => {
   const [selectedIntern, setSelectedIntern] = useState(null);
@@ -397,10 +590,13 @@ const OnboardingApprovalsView = ({ queue = [], isLoading = false, actionLoading 
 
   if (queue.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-        <RiShieldCheckLine style={{ fontSize: '3rem', color: 'var(--color-neutral-300)', marginBottom: '1rem' }} />
-        <h3 style={{ margin: 0, color: 'var(--color-neutral-500)', fontWeight: 700 }}>All Onboarding Steps Clear</h3>
-        <p style={{ margin: '0.5rem 0 0', color: 'var(--color-neutral-400)', fontSize: '0.875rem' }}>No pending onboarding items to review.</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <SupervisorProfileChangeRequestsPanel />
+        <div style={{ textAlign: 'center', padding: '3rem 2rem' }}>
+          <RiShieldCheckLine style={{ fontSize: '3rem', color: 'var(--color-neutral-300)', marginBottom: '1rem' }} />
+          <h3 style={{ margin: 0, color: 'var(--color-neutral-500)', fontWeight: 700 }}>All Onboarding Steps Clear</h3>
+          <p style={{ margin: '0.5rem 0 0', color: 'var(--color-neutral-400)', fontSize: '0.875rem' }}>No pending onboarding checklist items to review.</p>
+        </div>
       </div>
     );
   }
@@ -409,6 +605,7 @@ const OnboardingApprovalsView = ({ queue = [], isLoading = false, actionLoading 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <SupervisorProfileChangeRequestsPanel />
       {pendingCount > 0 && (
         <div style={{ background: '#fffbeb', borderRadius: '0.875rem', padding: '0.875rem 1.125rem', display: 'flex', alignItems: 'center', gap: '0.625rem', border: '1px solid #fef3c7' }}>
           <RiAlertLine style={{ color: '#d97706', fontSize: '1.1rem', flexShrink: 0 }} />

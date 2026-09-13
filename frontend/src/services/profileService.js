@@ -722,4 +722,104 @@ export const profileService = {
     }
     return { twoFactorEnabled: enabled };
   },
+
+  /**
+   * Profile Change Requests (Supervisor approval workflow)
+   */
+  getProfileChangeRequests: async () => {
+    await delay(200);
+    try {
+      const stored = localStorage.getItem('trakive_profile_change_requests');
+      if (stored) return JSON.parse(stored);
+    } catch {
+      // ignore
+    }
+    return [];
+  },
+
+  submitProfileChangeRequest: async (currentProfile, proposedData) => {
+    await delay(400);
+    const requests = await profileService.getProfileChangeRequests();
+    const newRequest = {
+      id: `pcr-${Date.now()}`,
+      internId: currentProfile?.id || 'intern-1',
+      internName: currentProfile?.fullName || `${currentProfile?.firstName || ''} ${currentProfile?.lastName || ''}`.trim() || 'Intern User',
+      internEmail: currentProfile?.email || 'intern@trakive.com',
+      submittedAt: new Date().toISOString(),
+      status: 'pending',
+      proposedChanges: { ...proposedData, fullName: `${proposedData.firstName || ''} ${proposedData.lastName || ''}`.trim() },
+      previousValues: {
+        firstName: currentProfile?.firstName || '',
+        lastName: currentProfile?.lastName || '',
+        fullName: currentProfile?.fullName || '',
+        phone: currentProfile?.phone || '',
+        dateOfBirth: currentProfile?.dateOfBirth || '',
+        gender: currentProfile?.gender || '',
+        address: currentProfile?.address || '',
+        city: currentProfile?.city || '',
+        state: currentProfile?.state || '',
+        country: currentProfile?.country || 'Nigeria',
+        bio: currentProfile?.bio || '',
+      },
+      rejectionReason: '',
+      reviewedAt: null,
+      reviewedBy: null,
+    };
+
+    const updatedRequests = [newRequest, ...requests];
+    localStorage.setItem('trakive_profile_change_requests', JSON.stringify(updatedRequests));
+    return newRequest;
+  },
+
+  approveProfileChangeRequest: async (requestId) => {
+    await delay(400);
+    const requests = await profileService.getProfileChangeRequests();
+    const index = requests.findIndex((r) => r.id === requestId);
+    if (index === -1) throw new Error('Request not found');
+
+    const targetReq = requests[index];
+    targetReq.status = 'approved';
+    targetReq.reviewedAt = new Date().toISOString();
+    targetReq.reviewedBy = 'Supervisor';
+
+    // Apply updates to the intern profile
+    const internId = targetReq.internId;
+    const userProfileKey = `trakive_user_profile_${internId}`;
+    let internData = {};
+    try {
+      const stored = localStorage.getItem(userProfileKey);
+      if (stored) internData = JSON.parse(stored);
+    } catch {
+      // ignore
+    }
+
+    const updatedProfile = {
+      ..._internProfile,
+      ...internData,
+      ...targetReq.proposedChanges,
+      updatedAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem(userProfileKey, JSON.stringify(updatedProfile));
+    _internProfile = { ..._internProfile, ...updatedProfile };
+
+    localStorage.setItem('trakive_profile_change_requests', JSON.stringify(requests));
+    return targetReq;
+  },
+
+  rejectProfileChangeRequest: async (requestId, reason = '') => {
+    await delay(400);
+    const requests = await profileService.getProfileChangeRequests();
+    const index = requests.findIndex((r) => r.id === requestId);
+    if (index === -1) throw new Error('Request not found');
+
+    const targetReq = requests[index];
+    targetReq.status = 'rejected';
+    targetReq.rejectionReason = reason;
+    targetReq.reviewedAt = new Date().toISOString();
+    targetReq.reviewedBy = 'Supervisor';
+
+    localStorage.setItem('trakive_profile_change_requests', JSON.stringify(requests));
+    return targetReq;
+  },
 };

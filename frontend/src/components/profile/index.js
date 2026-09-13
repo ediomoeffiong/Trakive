@@ -17,4 +17,5 @@ export { default as SecurityOverview }        from './SecurityOverview';
 export { default as AccountActivityTimeline } from './AccountActivityTimeline';
 export { default as AssignedInternsSection }  from './AssignedInternsSection';
 export { default as ProfileEmptyState }       from './ProfileEmptyState';
+export { default as ContactITModal }          from './ContactITModal';
 export * from './ProfileSkeletons';

@@ -75,6 +75,7 @@ export const useProfileStore = create((set, get) => ({
   documents:     [],
   activities:    [],
   completion:    { percentage: 0, completedItems: [], missingItems: [], items: [] },
+  profileChangeRequests: [],
 
   // ── Active Tab ─────────────────────────────────────────────────────────────
   activeTab: 'overview',
@@ -87,6 +88,7 @@ export const useProfileStore = create((set, get) => ({
   loadingActivities:    false,
   loadingInternship:    false,
   loadingAssignedInterns: false,
+  loadingChangeRequests: false,
   savingProfile:        false,
   uploadingAvatar:      false,
   avatarProgress:       0,
@@ -108,12 +110,13 @@ export const useProfileStore = create((set, get) => ({
   fetchAll: async (role) => {
     const {
       fetchProfile, fetchSkills, fetchAchievements,
-      fetchDocuments, fetchActivities, fetchInternship, fetchAssignedInterns,
+      fetchDocuments, fetchActivities, fetchInternship, fetchAssignedInterns, fetchProfileChangeRequests,
     } = get();
     const calls = [
       fetchProfile(role),
       fetchDocuments(role),
       fetchActivities(role),
+      fetchProfileChangeRequests(),
     ];
     if (role === 'Supervisor') {
       calls.push(fetchAssignedInterns());
@@ -121,6 +124,103 @@ export const useProfileStore = create((set, get) => ({
       calls.push(fetchSkills(), fetchAchievements(), fetchInternship());
     }
     await Promise.all(calls);
+  },
+
+  fetchProfileChangeRequests: async () => {
+    set({ loadingChangeRequests: true });
+    try {
+      const requests = await profileService.getProfileChangeRequests();
+      set({ profileChangeRequests: requests, loadingChangeRequests: false });
+    } catch (err) {
+      set({ loadingChangeRequests: false });
+    }
+  },
+
+  submitProfileChangeRequest: async (proposedData) => {
+    set({ savingProfile: true });
+    try {
+      const profile = get().profile;
+      const newRequest = await profileService.submitProfileChangeRequest(profile, proposedData);
+      set((state) => ({
+        profileChangeRequests: [newRequest, ...state.profileChangeRequests],
+        savingProfile: false,
+      }));
+
+      // Notify supervisor
+      useNotificationStore.getState().addNotification({
+        category: 'profile_update',
+        title: 'Profile Change Request Submitted',
+        shortDescription: `Change request from ${newRequest.internName} pending approval.`,
+        message: `${newRequest.internName} submitted requested profile details update. Review and approve in Onboarding Approvals.`,
+        actionLabel: 'Review Request',
+        actionRoute: '/supervisor/reviews?tab=onboarding',
+      }, 'Supervisor');
+
+      return newRequest;
+    } catch (err) {
+      set({ error: err.message, savingProfile: false });
+      throw err;
+    }
+  },
+
+  approveProfileChangeRequest: async (requestId) => {
+    set({ savingProfile: true });
+    try {
+      const updatedReq = await profileService.approveProfileChangeRequest(requestId);
+      set((state) => ({
+        profileChangeRequests: state.profileChangeRequests.map((r) => (r.id === requestId ? updatedReq : r)),
+        savingProfile: false,
+      }));
+
+      // Update current profile if logged in user is the intern
+      const currentProfile = get().profile;
+      if (currentProfile && currentProfile.id === updatedReq.internId) {
+        set((state) => ({
+          profile: { ...state.profile, ...updatedReq.proposedChanges },
+        }));
+      }
+
+      // Notify intern
+      useNotificationStore.getState().addNotification({
+        category: 'profile_update',
+        title: 'Profile Change Request Approved',
+        shortDescription: 'Your supervisor approved your profile update request.',
+        message: 'Your requested profile and identity information changes have been approved and updated on your account profile.',
+        actionLabel: 'View Profile',
+        actionRoute: '/dashboard/profile',
+      }, 'Intern');
+
+      return updatedReq;
+    } catch (err) {
+      set({ error: err.message, savingProfile: false });
+      throw err;
+    }
+  },
+
+  rejectProfileChangeRequest: async (requestId, reason = '') => {
+    set({ savingProfile: true });
+    try {
+      const updatedReq = await profileService.rejectProfileChangeRequest(requestId, reason);
+      set((state) => ({
+        profileChangeRequests: state.profileChangeRequests.map((r) => (r.id === requestId ? updatedReq : r)),
+        savingProfile: false,
+      }));
+
+      // Notify intern
+      useNotificationStore.getState().addNotification({
+        category: 'profile_update',
+        title: 'Profile Change Request Reviewed',
+        shortDescription: 'Your profile change request was rejected.',
+        message: `Your requested profile changes were reviewed by your supervisor. Note: ${reason || 'Contact supervisor for details.'}`,
+        actionLabel: 'View Profile',
+        actionRoute: '/dashboard/profile',
+      }, 'Intern');
+
+      return updatedReq;
+    } catch (err) {
+      set({ error: err.message, savingProfile: false });
+      throw err;
+    }
   },
 
   fetchProfile: async (role) => {

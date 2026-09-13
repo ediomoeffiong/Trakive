@@ -31,7 +31,7 @@ import {
 } from 'react-icons/ri';
 
 import { CircularProgress, Skeleton, Badge, Button } from '../components/ui';
-import { useOnboardingStore } from '../store';
+import { useOnboardingStore, useProfileStore } from '../store';
 import { ROUTES } from '../constants';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -648,6 +648,91 @@ function CelebrationOverlay({ stats, onClose, onGoToDashboard }) {
   );
 }
 
+// ─── Profile Change Requests Component ─────────────────────────────
+
+function ProfileChangeRequestsCard() {
+  const { profileChangeRequests, fetchProfileChangeRequests } = useProfileStore();
+
+  useEffect(() => {
+    fetchProfileChangeRequests();
+  }, [fetchProfileChangeRequests]);
+
+  if (!profileChangeRequests || profileChangeRequests.length === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{
+        background: '#fff',
+        border: '1.5px solid #cbd5e1',
+        borderRadius: '1.125rem',
+        padding: '1.25rem 1.5rem',
+        marginBottom: '1.5rem',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '1.1rem' }}>🆔</span>
+          <h3 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
+            Profile & Identity Change Requests
+          </h3>
+        </div>
+        <span style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: 700, background: '#eef2ff', padding: '0.2rem 0.6rem', borderRadius: '9999px' }}>
+          Supervisor Review Log
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {profileChangeRequests.map((req) => {
+          const isPending = req.status === 'pending';
+          const isApproved = req.status === 'approved';
+          const isRejected = req.status === 'rejected';
+
+          const badgeBg = isPending ? '#fffbeb' : isApproved ? '#ecfdf5' : '#fef2f2';
+          const badgeColor = isPending ? '#d97706' : isApproved ? '#059669' : '#dc2626';
+
+          return (
+            <div
+              key={req.id}
+              style={{
+                background: '#f8fafc',
+                border: '1px solid var(--color-neutral-200)',
+                borderRadius: '0.75rem',
+                padding: '0.875rem 1rem',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>
+                  Submitted on {new Date(req.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '0.2rem 0.65rem', borderRadius: '9999px', background: badgeBg, color: badgeColor }}>
+                  {isPending ? '⏳ Pending Supervisor Approval' : isApproved ? '✅ Approved & Updated' : '❌ Request Rejected'}
+                </span>
+              </div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-600)', lineHeight: 1.6 }}>
+                <strong>Requested Details:</strong>{' '}
+                {Object.entries(req.proposedChanges).map(([k, v]) => (
+                  <span key={k} style={{ marginRight: '0.875rem', display: 'inline-block' }}>
+                    <span style={{ color: 'var(--color-neutral-500)', textTransform: 'capitalize' }}>{k}:</span>{' '}
+                    <span style={{ fontWeight: 600, color: 'var(--color-neutral-800)' }}>{String(v)}</span>
+                  </span>
+                ))}
+              </div>
+              {isRejected && req.rejectionReason && (
+                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#991b1b', background: '#fef2f2', border: '1px solid #fecaca', padding: '0.4rem 0.65rem', borderRadius: '0.375rem' }}>
+                  <strong>Supervisor Feedback:</strong> {req.rejectionReason}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function OnboardingDashboard() {
@@ -801,6 +886,9 @@ export default function OnboardingDashboard() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ── Profile Change Requests ──────────────────────────────────── */}
+        <ProfileChangeRequestsCard />
 
         {/* ── Main Layout: Sidebar + Content ───────────────────────────── */}
         <div style={{ display: 'flex', gap: '1.75rem', alignItems: 'flex-start' }}>

@@ -199,27 +199,27 @@ export default function AnalyticsDashboardPage() {
                 >
                   <KPICardItem
                     title="Overall Performance Score"
-                    value={metrics?.overallPerformanceScore ? `${metrics.overallPerformanceScore} / 5.0` : '4.6 / 5.0'}
+                    value={metrics?.overallPerformanceScore != null && Number(metrics.overallPerformanceScore) > 0 ? `${metrics.overallPerformanceScore} / 5.0` : '0.0 / 5.0'}
                     trend={metrics?.performanceScoreTrend}
                     positive={metrics?.performanceScorePositive}
                   />
                   {effectiveRole !== USER_ROLES.INTERN && (
                     <KPICardItem
                       title="Active Interns"
-                      value={metrics?.activeInterns || 48}
+                      value={metrics?.activeInterns ?? 0}
                       trend={metrics?.activeInternsTrend}
                       positive={metrics?.activeInternsPositive}
                     />
                   )}
                   <KPICardItem
                     title="Completed Tasks"
-                    value={metrics?.completedTasks || 342}
+                    value={metrics?.completedTasks ?? 0}
                     trend={metrics?.completedTasksTrend}
                     positive={metrics?.completedTasksPositive}
                   />
                   <KPICardItem
                     title="Onboarding Completion"
-                    value={metrics?.onboardingCompletionRate || '88%'}
+                    value={metrics?.onboardingCompletionRate ?? '0%'}
                     trend={metrics?.onboardingCompletionTrend}
                     positive={metrics?.onboardingCompletionPositive}
                   />
