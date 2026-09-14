@@ -153,7 +153,7 @@ function ProjectWeeklySummary({ navigate }) {
       {/* Weekly tasks card */}
       <Card
         style={{ padding: '1rem 1.25rem', cursor: 'pointer', transition: 'box-shadow 0.15s ease' }}
-        onClick={() => navigate(ROUTES.WEEKLY_TASKS)}
+        onClick={() => navigate(ROUTES.TASKS)}
         onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'}
         onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
       >

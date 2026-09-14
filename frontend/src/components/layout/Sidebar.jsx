@@ -32,7 +32,6 @@ const NAV_ITEMS = [
   { label: 'Analytics',     icon: RiBarChartBoxLine,       to: ROUTES.ANALYTICS },
   { label: 'Tasks',         icon: RiTaskLine,              to: ROUTES.TASKS },
   { label: 'Projects',      icon: RiFolderLine,            to: ROUTES.PROJECTS },
-  { label: 'Weekly Tasks',  icon: RiCalendarCheckLine,     to: ROUTES.WEEKLY_TASKS },
   { label: 'Onboarding',    icon: RiCheckboxMultipleLine,  to: ROUTES.ONBOARDING },
   { label: 'Reviews',       icon: RiStarLine,              to: ROUTES.REVIEWS },
 ];

@@ -193,7 +193,7 @@ const WeeklyPlanService = {
           title: 'Weekly Report Submitted',
           message: `${requestingUser.first_name} ${requestingUser.last_name} has submitted their weekly report for the week of ${plan.week_start}.`,
           type: 'weekly',
-          linkUrl: `/supervisor/weekly-review`,
+          linkUrl: `/supervisor/tasks`,
         });
       }
     }
@@ -251,7 +251,7 @@ const WeeklyPlanService = {
       title: notifTitle,
       message: notifMsg,
       type: 'weekly',
-      linkUrl: `/dashboard/weekly-tasks`,
+      linkUrl: `/dashboard/tasks`,
     });
 
     return updated;

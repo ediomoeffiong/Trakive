@@ -24,6 +24,7 @@ const Card = ({
   footer,
   padding = 'md',
   children,
+  contentStyle,
   ...props
 }) => {
   const classes = [
@@ -53,7 +54,7 @@ const Card = ({
         </div>
       )}
 
-      <div style={{ padding: paddingValue }}>{children}</div>
+      <div style={{ padding: paddingValue, ...contentStyle }}>{children}</div>
 
       {footer && (
         <div
