@@ -80,11 +80,10 @@ const STATUS_META = {
 
 function DashboardSkeleton() {
   return (
-    <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
-      {/* Sidebar skeleton */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Progress card skeleton */}
       <div style={{
-        width: '280px', flexShrink: 0,
-        background: '#fff', borderRadius: '1.25rem', padding: '2rem',
+        background: '#fff', borderRadius: '1.25rem', padding: '1.75rem',
         border: '1px solid var(--color-neutral-100)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem',
       }}>
@@ -97,29 +96,26 @@ function DashboardSkeleton() {
           {[0,1,2,3].map(i => <Skeleton key={i} height="56px" borderRadius="0.75rem" />)}
         </div>
       </div>
-      {/* Main skeleton */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        <Skeleton height="48px" borderRadius="0.75rem" />
-        {[0,1,2].map(i => (
-          <div key={i} style={{
-            background: '#fff', borderRadius: '1rem', padding: '1.5rem',
-            border: '1px solid var(--color-neutral-100)',
-            display: 'flex', flexDirection: 'column', gap: '1rem',
-          }}>
-            <Skeleton width="40%" height="1.25rem" />
-            {[0,1].map(j => (
-              <div key={j} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <Skeleton width="36px" height="36px" borderRadius="50%" />
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <Skeleton width="65%" height="0.9rem" />
-                  <Skeleton width="40%" height="0.75rem" />
-                </div>
-                <Skeleton width="80px" height="28px" borderRadius="0.5rem" />
+      {/* Steps skeleton */}
+      {[0,1,2].map(i => (
+        <div key={i} style={{
+          background: '#fff', borderRadius: '1rem', padding: '1.5rem',
+          border: '1px solid var(--color-neutral-100)',
+          display: 'flex', flexDirection: 'column', gap: '1rem',
+        }}>
+          <Skeleton width="40%" height="1.25rem" />
+          {[0,1].map(j => (
+            <div key={j} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <Skeleton width="36px" height="36px" borderRadius="50%" />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <Skeleton width="65%" height="0.9rem" />
+                <Skeleton width="40%" height="0.75rem" />
               </div>
-            ))}
-          </div>
-        ))}
-      </div>
+              <Skeleton width="80px" height="28px" borderRadius="0.5rem" />
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
@@ -366,11 +362,7 @@ function CategoryPanel({ name, steps, onOpen, isActive }) {
 
 function ProgressSidebar({ stats, categories, activeCategory, onCategoryChange, onReset }) {
   return (
-    <div style={{
-      width: '264px', flexShrink: 0,
-      display: 'flex', flexDirection: 'column', gap: '1rem',
-      position: 'sticky', top: '88px', alignSelf: 'flex-start',
-    }}>
+    <div className="onboarding-sidebar">
       {/* Progress Ring Card */}
       <div style={{
         background: '#00b4d8',
@@ -446,20 +438,14 @@ function ProgressSidebar({ stats, categories, activeCategory, onCategoryChange, 
       </div>
 
       {/* Category navigation */}
-      <div style={{
-        background: '#fff',
-        border: '1px solid var(--color-neutral-100)',
-        borderRadius: '1.25rem',
-        padding: '1.25rem',
-        boxShadow: 'var(--shadow-card)',
-      }}>
+      <div className="onboarding-cat-nav">
         <h4 style={{
           fontSize: '0.675rem', fontWeight: 700, color: 'var(--color-neutral-400)',
           textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem',
         }}>
           Categories
         </h4>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+        <div className="onboarding-cat-list">
           {categories.map(({ name, steps }) => {
             const meta = CATEGORY_META[name] ?? { icon: '📁', accent: '#6366f1', bg: '#eef2ff', border: '#c7d2fe' };
             const done = steps.filter(s => s.status === 'completed' || s.status === 'verified').length;
@@ -476,6 +462,8 @@ function ProgressSidebar({ stats, categories, activeCategory, onCategoryChange, 
                   background: isActive ? meta.bg : 'transparent',
                   transition: 'background 0.15s ease',
                   outline: isActive ? `1.5px solid ${meta.border}` : 'none',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
                 onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--color-neutral-50)'; }}
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
@@ -891,7 +879,7 @@ export default function OnboardingDashboard() {
         <ProfileChangeRequestsCard />
 
         {/* ── Main Layout: Sidebar + Content ───────────────────────────── */}
-        <div style={{ display: 'flex', gap: '1.75rem', alignItems: 'flex-start' }}>
+        <div className="onboarding-layout">
 
           {/* Sidebar */}
           <ProgressSidebar
