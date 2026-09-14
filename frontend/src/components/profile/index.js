@@ -10,7 +10,9 @@ export { default as ProfileCompletionCard }   from './ProfileCompletionCard';
 export { default as PersonalInfoForm }        from './PersonalInfoForm';
 export { default as AvatarUploadModal }       from './AvatarUploadModal';
 export { default as InternshipInfoCard }      from './InternshipInfoCard';
+export { default as InternshipHistoryCard }   from './InternshipHistoryCard';
 export { default as SkillsSection }           from './SkillsSection';
+
 export { default as AchievementsSection }     from './AchievementsSection';
 export { default as DocumentsSection }        from './DocumentsSection';
 export { default as SecurityOverview }        from './SecurityOverview';

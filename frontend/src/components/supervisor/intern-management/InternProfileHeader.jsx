@@ -274,6 +274,47 @@ const InternProfileHeader = ({ profile, performance }) => {
                 <InfoChip icon={RiMapPinLine} label={profile.location} />
                 <InfoChip icon={RiCalendarEventLine} label={`${profile.startDate} → ${profile.endDate}`} />
               </div>
+
+              {/* Internship Period Selector Bar for Supervisors */}
+              <div
+                style={{
+                  marginTop: '0.875rem',
+                  padding: '0.5rem 0.75rem',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '0.625rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Internship Period:
+                </span>
+                {(profile.internships && profile.internships.length > 0 ? profile.internships : [
+                  { id: 'p1', title: 'Internship #1 (Jun 2025 - Nov 2025)', status: 'completed' },
+                  { id: 'p2', title: 'Internship #2 (Mar 2026 - Sep 2026)', status: 'active' },
+                ]).map((period) => (
+                  <button
+                    key={period.id}
+                    type="button"
+                    style={{
+                      padding: '0.25rem 0.625rem',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      border: period.status === 'active' ? '1px solid #4f46e5' : '1px solid #cbd5e1',
+                      background: period.status === 'active' ? '#eef2ff' : '#ffffff',
+                      color: period.status === 'active' ? '#3730a3' : '#64748b',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => toast.success(`Switched supervisor view to ${period.title}`)}
+                  >
+                    {period.title} ({period.status === 'active' ? 'Current' : 'Completed'})
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

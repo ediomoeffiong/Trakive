@@ -124,7 +124,7 @@ export function ProposeProjectDrawer({ isOpen, onClose, onSuccess }) {
   };
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} title="Propose a Project" width="480px">
+    <Drawer isOpen={isOpen} onClose={onClose} title="Propose a Project" width="min(480px, 100vw)">
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem', padding: '1rem 0' }}>
 
         {/* Title */}
@@ -151,8 +151,8 @@ export function ProposeProjectDrawer({ isOpen, onClose, onSuccess }) {
           <textarea style={{ ...inputStyle, minHeight: '75px', resize: 'vertical' }} placeholder="Describe the expected deliverables..." value={form.expected_outcome} onChange={set('expected_outcome')} />
         </div>
 
-        {/* Priority + Dates */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+        {/* Priority + Dates — responsive 3-col grid */}
+        <div className="drawer-form-grid-3">
           <div style={fieldStyle}>
             <label style={labelStyle}>Priority</label>
             <select style={inputStyle} value={form.priority} onChange={set('priority')}>
@@ -178,9 +178,9 @@ export function ProposeProjectDrawer({ isOpen, onClose, onSuccess }) {
             </button>
           </div>
           {milestones.map((m, i) => (
-            <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
-              <input style={{ ...inputStyle, flex: 1 }} placeholder={`Milestone ${i + 1} title`} value={m.title} onChange={setMilestone(i, 'title')} />
-              <input style={{ ...inputStyle, width: '140px' }} type="date" value={m.due_date} onChange={setMilestone(i, 'due_date')} title="Milestone due date" />
+            <div key={i} className="milestone-row">
+              <input className="milestone-title-input" style={{ ...inputStyle, flex: 1, minWidth: 0 }} placeholder={`Milestone ${i + 1} title`} value={m.title} onChange={setMilestone(i, 'title')} />
+              <input className="milestone-date-input" style={{ ...inputStyle, width: 'auto', minWidth: 0, flex: '0 1 140px' }} type="date" value={m.due_date} onChange={setMilestone(i, 'due_date')} title="Milestone due date" />
               {milestones.length > 1 && (
                 <button type="button" onClick={() => removeMilestone(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-danger-500)', fontSize: '1rem', flexShrink: 0 }}>
                   <RiDeleteBinLine />
@@ -197,7 +197,7 @@ export function ProposeProjectDrawer({ isOpen, onClose, onSuccess }) {
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid var(--color-neutral-100)' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid var(--color-neutral-100)', flexWrap: 'wrap' }}>
           <Button variant="ghost" onClick={onClose} type="button">Cancel</Button>
           <Button type="submit" loading={loading}>Submit Proposal</Button>
         </div>

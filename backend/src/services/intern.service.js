@@ -3,6 +3,8 @@ const UserModel = require('../models/user.model');
 const ProfileModel = require('../models/profile.model');
 const RoleModel = require('../models/role.model');
 const AuditLogModel = require('../models/auditLog.model');
+const InternshipRecordModel = require('../models/internshipRecord.model');
+const { validateInternshipDates } = require('../validators/internshipDate.validator');
 const { hashPassword } = require('../utils/password.utils');
 const { getPaginationParams, formatPaginatedResponse } = require('../utils/pagination');
 
@@ -307,11 +309,62 @@ const InternService = {
     if (profile && profile.intern_profile_id) {
       assignmentHistory = await ProfileModel.getSupervisorAssignmentHistory(profile.intern_profile_id);
     }
+    const internshipRecords = await InternshipRecordModel.findByUserId(internUserId);
     return {
       profile,
       assignment_history: assignmentHistory,
+      internships: internshipRecords,
     };
+  },
+
+  async createInternshipPeriod(internUserId, data, requestingUser, ipAddress = null, userAgent = null) {
+    const profile = await this.getIntern(internUserId, requestingUser);
+    if (!profile) {
+      throw ApiError.notFound('Intern profile not found');
+    }
+
+    const { startDate, endDate, start_date, end_date, department_id, supervisor_id, work_location, work_hours, days_per_week } = data;
+    const finalStart = startDate || start_date;
+    const finalEnd = endDate || end_date;
+
+    validateInternshipDates(finalStart, finalEnd);
+
+    const newRecord = await InternshipRecordModel.create({
+      user_id: internUserId,
+      organization_id: profile.organization_id,
+      department_id: department_id || profile.department_id,
+      supervisor_id: supervisor_id || profile.supervisor_id,
+      start_date: finalStart,
+      end_date: finalEnd,
+      status: 'active',
+      work_location: work_location || profile.work_location,
+      work_hours: work_hours || profile.work_hours,
+      days_per_week: days_per_week || profile.days_per_week || 5,
+    });
+
+    await AuditLogModel.log({
+      organizationId: profile.organization_id,
+      userId: requestingUser.id,
+      action: 'INTERNSHIP_PERIOD_CREATE',
+      entityType: 'internship_records',
+      entityId: newRecord.id,
+      details: { internship_number: newRecord.internship_number, start_date: finalStart, end_date: finalEnd },
+      ipAddress,
+      userAgent,
+    });
+
+    return newRecord;
+  },
+
+  async getFinalPerformanceSummary(internshipRecordId, requestingUser) {
+    const record = await InternshipRecordModel.findById(internshipRecordId);
+    if (!record) {
+      throw ApiError.notFound('Internship record not found');
+    }
+    await this.getIntern(record.user_id, requestingUser);
+    return await InternshipRecordModel.getFinalPerformanceSummary(internshipRecordId);
   },
 };
 
 module.exports = InternService;
+

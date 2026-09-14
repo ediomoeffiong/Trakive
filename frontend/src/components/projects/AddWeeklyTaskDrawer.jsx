@@ -98,7 +98,7 @@ export function AddWeeklyTaskDrawer({ isOpen, onClose, onSuccess, weekStart }) {
   };
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} title="Add Task to Weekly Plan" width="460px">
+    <Drawer isOpen={isOpen} onClose={onClose} title="Add Task to Weekly Plan" width="min(460px, 100vw)">
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem 0' }}>
 
         <div style={fieldStyle}>
@@ -135,7 +135,8 @@ export function AddWeeklyTaskDrawer({ isOpen, onClose, onSuccess, weekStart }) {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+        {/* Priority + Due Date — responsive 2-col grid */}
+        <div className="drawer-form-grid-2">
           <div style={fieldStyle}>
             <label style={labelStyle}>Priority</label>
             <select style={inputStyle} value={form.priority} onChange={set('priority')}>
@@ -153,7 +154,7 @@ export function AddWeeklyTaskDrawer({ isOpen, onClose, onSuccess, weekStart }) {
           <input style={inputStyle} placeholder="Any extra notes..." value={form.notes} onChange={set('notes')} />
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid var(--color-neutral-100)' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid var(--color-neutral-100)', flexWrap: 'wrap' }}>
           <Button variant="ghost" onClick={onClose} type="button">Cancel</Button>
           <Button type="submit" loading={loading}>Add Task</Button>
         </div>

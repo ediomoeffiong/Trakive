@@ -220,6 +220,173 @@ p  { color: var(--color-neutral-600); }
   }
 }
 
+/* ── lg-only / lg-hidden ─────────────────────────────────────────────────────
+   lg-only  : visible on desktop (≥1024px), hidden on mobile
+   lg-hidden: hidden on desktop (≥1024px), visible on mobile
+   These classes are used by Sidebar collapse toggle and Topbar hamburger. */
+.lg-only {
+  display: none !important;
+}
+@media (min-width: 1024px) {
+  .lg-only {
+    display: flex !important;
+  }
+  .lg-hidden {
+    display: none !important;
+  }
+}
+
+/* ── Mobile topbar: tighten padding and hide search bar on xs ────────────────
+   Prevents the topbar from overflowing on 320–414px screens. */
+@media (max-width: 1023px) {
+  .app-topbar {
+    padding: 0 0.875rem !important;
+    gap: 0.625rem !important;
+  }
+}
+
+@media (max-width: 479px) {
+  /* Hide the text search input; only the icon placeholder remains */
+  #topbar-search {
+    display: none !important;
+  }
+}
+
+/* ── Mobile app-content padding ──────────────────────────────────────────────
+   Reduce the content area padding on narrow screens. */
+@media (max-width: 767px) {
+  .app-content {
+    padding: 1.25rem 1rem !important;
+  }
+}
+@media (max-width: 479px) {
+  .app-content {
+    padding: 1rem 0.75rem !important;
+  }
+}
+
+/* ── Drawer: responsive inner grid for 3-column form rows ────────────────────
+   Used by ProposeProjectDrawer priority/dates row inside a drawer. */
+.drawer-form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+@media (max-width: 640px) {
+  .drawer-form-grid-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 400px) {
+  .drawer-form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Drawer: responsive 2-column form rows ───────────────────────────────────
+   Used by AddWeeklyTaskDrawer priority/due date row. */
+.drawer-form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+@media (max-width: 360px) {
+  .drawer-form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Milestone row inside ProposeProjectDrawer ───────────────────────────────
+   Ensures the date input doesn't overflow on small drawers. */
+.milestone-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  align-items: center;
+}
+.milestone-row .milestone-title-input {
+  flex: 1;
+  min-width: 0;
+}
+.milestone-row .milestone-date-input {
+  flex: 0 1 140px;
+  min-width: 0;
+}
+@media (max-width: 400px) {
+  .milestone-row {
+    flex-wrap: wrap;
+  }
+  .milestone-row .milestone-date-input {
+    flex: 1 1 100%;
+  }
+}
+
+/* ── Dashboard mini 2-col grid (Projects & Weekly summary) ───────────────────
+   Collapses to 1-col on very narrow phones. */
+.dashboard-mini-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 420px) {
+  .dashboard-mini-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Dashboard responsive main content grid ──────────────────────────────────
+   The JSX uses className="grid-responsive" with inline gridTemplateColumns:'1fr'.
+   On desktop we override to a 2-column layout. */
+@media (min-width: 1024px) {
+  .grid-responsive {
+    grid-template-columns: 8fr 4fr !important;
+  }
+}
+
+/* ── Dashboard welcome card: prevent inner widget overflow ───────────────────
+   Remove the fixed minWidth on the progress mini-widget. */
+.dashboard-welcome-widget {
+  width: 100%;
+  max-width: 320px;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+/* ── TaskList: hide filter sidebar on mobile, show the mobile filter button ──*/
+@media (max-width: 1023px) {
+  .task-filter-sidebar {
+    display: none !important;
+  }
+  #mobile-filter-btn {
+    display: flex !important;
+  }
+  /* Reduce banner padding */
+  .task-runway-banner {
+    padding: 1.25rem 1rem !important;
+  }
+}
+
+/* ── WeeklyTasksPage: stats row collapses from 5→3 columns on mobile ─────── */
+@media (max-width: 480px) {
+  .weekly-stats-row {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  .weekly-stats-row > div:nth-child(4),
+  .weekly-stats-row > div:nth-child(5) {
+    grid-column: span 1;
+  }
+}
+
+/* ── NotificationsPage: ensure header wraps cleanly ─────────────────────── */
+.notifications-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+
 /* ── Card ───────────────────────────────────────────────────────────────────── */
 .card {
   background: var(--surface-primary);

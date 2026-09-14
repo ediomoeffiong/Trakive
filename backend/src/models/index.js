@@ -18,6 +18,7 @@ const AuditLog = require('./auditLog.model');
 const Project = require('./project.model');
 const Milestone = require('./milestone.model');
 const WeeklyPlan = require('./weeklyPlan.model');
+const InternshipRecord = require('./internshipRecord.model');
 
 module.exports = {
   Organization,
@@ -40,4 +41,6 @@ module.exports = {
   Project,
   Milestone,
   WeeklyPlan,
+  InternshipRecord,
 };
+

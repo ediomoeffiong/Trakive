@@ -7,6 +7,7 @@
 import { motion } from 'framer-motion';
 import { useProfileStore } from '../../store/useProfileStore';
 import { InfoCardsSkeleton } from './ProfileSkeletons';
+import InternshipHistoryCard from './InternshipHistoryCard';
 
 const InfoItem = ({ label, value, valueColor }) => (
   <div
@@ -55,8 +56,6 @@ const InternshipInfoCard = () => {
 
   if (loadingInternship) return <InfoCardsSkeleton />;
 
-  if (!internship) return null;
-
   const formatDate = (str) => {
     if (!str) return '—';
     try {
@@ -72,8 +71,14 @@ const InternshipInfoCard = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
+      {/* ── Internship History & Selector Card ────────────────────── */}
+      <InternshipHistoryCard internships={internship?.records || []} />
+
       {/* ── Internship Details Card ─────────────────────────────── */}
-      <div className="card p-6 mb-4">
+      {internship && (
+        <>
+          <div className="card p-6 mb-4">
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
           <div>
             <h2 style={{ fontSize: '0.9375rem', fontWeight: 700 }}>Internship Details</h2>
@@ -250,8 +255,12 @@ const InternshipInfoCard = () => {
           </a>
         </div>
       </div>
+        </>
+      )}
     </motion.div>
   );
 };
 
+
 export default InternshipInfoCard;
+

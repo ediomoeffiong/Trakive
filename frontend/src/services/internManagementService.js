@@ -108,7 +108,7 @@ export const internManagementService = {
     await delay();
     let result = [...mockInternProfiles];
 
-    const { search, department, status, performanceMin, performanceMax, onboardingStatus, batch } =
+    const { search, department, status, performanceMin, performanceMax, onboardingStatus, batch, period } =
       params;
 
     if (search) {
@@ -130,6 +130,20 @@ export const internManagementService = {
 
     if (status && status !== 'All') {
       result = result.filter((i) => i.status === status);
+    }
+
+    if (period && period !== 'All') {
+      if (period === 'Current / Active') {
+        result = result.filter((i) => i.status === 'Active' || i.status === 'Pending Review');
+      } else if (period === 'Previous Internships') {
+        result = result.filter((i) => i.status === 'Completed' || i.internships?.some((rec) => rec.status === 'completed'));
+      } else {
+        result = result.filter((i) => {
+          const startStr = i.startDate || '';
+          const endStr = i.endDate || '';
+          return startStr.includes(period) || endStr.includes(period) || (i.batch && i.batch.includes(period));
+        });
+      }
     }
 
     if (performanceMin !== undefined && performanceMin !== '') {
@@ -162,15 +176,22 @@ export const internManagementService = {
   },
 
   /**
-   * Fetch a single intern's full profile.
+   * Fetch a single intern's full profile with internship records.
    * @param {string} internId
    * @returns {Promise<{ profile: object | null }>}
    */
   async fetchInternProfile(internId) {
     await delay(400);
     const profile = mockInternProfiles.find((i) => i.id === internId) || null;
+    if (profile && !profile.internships) {
+      profile.internships = [
+        { id: `${internId}-p1`, title: 'Internship #1 (Jun 2025 - Nov 2025)', startDate: '2025-06-01', endDate: '2025-11-30', status: 'completed' },
+        { id: `${internId}-p2`, title: 'Internship #2 (Mar 2026 - Sep 2026)', startDate: '2026-03-01', endDate: '2026-09-01', status: 'active' },
+      ];
+    }
     return { profile };
   },
+
 
   /**
    * Fetch intern progress widgets data.

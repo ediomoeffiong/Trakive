@@ -256,36 +256,64 @@ const Register = () => {
               )}
             </div>
 
-            {role === 'Intern' && (
-              <>
-                <Input
-                  id="reg-start"
-                  label="Internship Start Date"
-                  type="date"
-                  leftAddon={<FiCalendar className="text-neutral-400" />}
-                  error={errors.startDate?.message}
-                  {...register('startDate', { required: role === 'Intern' ? 'Start date is required' : false })}
-                />
+            {role === 'Intern' && (() => {
+              const todayStr = new Date().toISOString().split('T')[0];
+              const oneYearAgo = new Date();
+              oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+              const oneYearAgoStr = oneYearAgo.toISOString().split('T')[0];
+              const startDateVal = watch('startDate');
 
-                <Input
-                  id="reg-end"
-                  label="Internship End Date"
-                  type="date"
-                  leftAddon={<FiCalendar className="text-neutral-400" />}
-                  error={errors.endDate?.message}
-                  {...register('endDate', {
-                    required: role === 'Intern' ? 'End date is required' : false,
-                    validate: (val, formValues) => {
-                      if (role !== 'Intern') return true;
-                      if (!val || new Date(val) <= new Date(formValues.startDate)) {
-                        return 'End date must be after start date';
-                      }
-                      return true;
-                    },
-                  })}
-                />
-              </>
-            )}
+              return (
+                <>
+                  <Input
+                    id="reg-start"
+                    label="Internship Start Date"
+                    type="date"
+                    max={todayStr}
+                    min={oneYearAgoStr}
+                    leftAddon={<FiCalendar className="text-neutral-400" />}
+                    error={errors.startDate?.message}
+                    {...register('startDate', {
+                      required: role === 'Intern' ? 'Start date is required' : false,
+                      validate: (val) => {
+                        if (role !== 'Intern' || !val) return true;
+                        const d = new Date(val);
+                        const today = new Date();
+                        today.setHours(23, 59, 59, 999);
+                        if (d > today) return 'Start date cannot be in the future';
+                        const minDate = new Date(oneYearAgoStr);
+                        if (d < minDate) return 'Start date cannot be more than 1 year before today';
+                        return true;
+                      },
+                    })}
+                  />
+
+                  <Input
+                    id="reg-end"
+                    label="Internship End Date"
+                    type="date"
+                    max={todayStr}
+                    min={startDateVal || oneYearAgoStr}
+                    leftAddon={<FiCalendar className="text-neutral-400" />}
+                    error={errors.endDate?.message}
+                    {...register('endDate', {
+                      required: role === 'Intern' ? 'End date is required' : false,
+                      validate: (val, formValues) => {
+                        if (role !== 'Intern' || !val) return true;
+                        const d = new Date(val);
+                        const today = new Date();
+                        today.setHours(23, 59, 59, 999);
+                        if (d > today) return 'End date cannot be in the future';
+                        if (formValues.startDate && new Date(val) < new Date(formValues.startDate)) {
+                          return 'End date cannot be before start date';
+                        }
+                        return true;
+                      },
+                    })}
+                  />
+                </>
+              );
+            })()}
           </div>
         )}
 

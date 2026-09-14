@@ -11,6 +11,7 @@ const DEPARTMENTS = ['All', 'Frontend Engineering', 'Backend Engineering', 'UI/U
 const STATUSES = ['All', 'Active', 'Pending Review', 'Needs Help', 'On Leave'];
 const ONBOARDING_STATUSES = ['All', 'Complete', 'In Progress', 'Not Started'];
 const BATCHES = ['All', 'Spring 2026', 'Summer 2026'];
+const PERIODS = ['All', 'Current / Active', 'September 2026', 'August 2026', 'July 2026', 'June 2026', 'May 2026', 'Spring 2026', 'Previous Internships'];
 
 const selectStyle = {
   height: '36px',
@@ -41,6 +42,17 @@ const InternManagementFilters = ({ filters, onFilterChange, onClearFilter, onCle
           <RiFilter3Line />
           Filters
         </div>
+
+        <select
+          value={filters.period || 'All'}
+          onChange={(e) => onFilterChange('period', e.target.value)}
+          style={{ ...selectStyle, borderColor: '#4f46e5', fontWeight: 600, color: '#3730a3' }}
+          aria-label="Filter by internship period or month"
+        >
+          {PERIODS.map((p) => (
+            <option key={p} value={p}>{p === 'All' ? 'All Internship Periods' : `Period: ${p}`}</option>
+          ))}
+        </select>
 
         <select
           value={filters.department}
@@ -85,6 +97,7 @@ const InternManagementFilters = ({ filters, onFilterChange, onClearFilter, onCle
             <option key={b} value={b}>{b === 'All' ? 'All Batches' : b}</option>
           ))}
         </select>
+
 
         {/* Performance Range */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8125rem' }}>

@@ -77,6 +77,25 @@ const getInternHistory = asyncHandler(async (req, res) => {
   });
 });
 
+const createInternshipPeriod = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const result = await InternService.createInternshipPeriod(id, req.body, req.user, req.ip, req.headers['user-agent']);
+  return sendSuccess(res, {
+    statusCode: 201,
+    message: 'New internship period created successfully',
+    data: result,
+  });
+});
+
+const getFinalPerformanceSummary = asyncHandler(async (req, res) => {
+  const { internshipId } = req.params;
+  const result = await InternService.getFinalPerformanceSummary(internshipId, req.user);
+  return sendSuccess(res, {
+    message: 'Final performance summary retrieved successfully',
+    data: result,
+  });
+});
+
 module.exports = {
   createIntern,
   getIntern,
@@ -86,4 +105,7 @@ module.exports = {
   assignDepartment,
   assignSupervisor,
   getInternHistory,
+  createInternshipPeriod,
+  getFinalPerformanceSummary,
 };
+

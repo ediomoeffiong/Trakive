@@ -108,7 +108,7 @@ function ProjectWeeklySummary({ navigate }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+      <div className="dashboard-mini-grid">
         <Skeleton height="90px" borderRadius="0.75rem" />
         <Skeleton height="90px" borderRadius="0.75rem" />
       </div>
@@ -116,7 +116,7 @@ function ProjectWeeklySummary({ navigate }) {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+    <div className="dashboard-mini-grid">
 
       {/* Projects card */}
       <Card
@@ -365,7 +365,7 @@ const Dashboard = () => {
             </p>
           </div>
           {progress && (
-            <div style={{ minWidth: '240px', background: '#00b4d8', padding: '1rem', borderRadius: '0.75rem', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.09)' }}>
+            <div className="dashboard-welcome-widget" style={{ background: '#00b4d8', padding: '1rem', borderRadius: '0.75rem', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.09)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.8125rem' }}>
                 <span style={{ opacity: 0.9, fontWeight: 500 }}>Profile Completion</span>
                 <span style={{ fontWeight: 700 }}>{progress.profileCompletion?.value}%</span>

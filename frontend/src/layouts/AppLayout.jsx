@@ -20,8 +20,8 @@ const AppLayout = () => {
   const theme     = useAppStore((s) => s.theme);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const openMobileSidebar  = useCallback(() => setMobileOpen(true),  []);
-  const closeMobileSidebar = useCallback(() => setMobileOpen(false), []);
+  const toggleMobileSidebar = useCallback(() => setMobileOpen((v) => !v), []);
+  const closeMobileSidebar  = useCallback(() => setMobileOpen(false), []);
 
   // ── Theme sync → document root class ──────────────────────────────────────
   useEffect(() => {
@@ -58,7 +58,7 @@ const AppLayout = () => {
           .filter(Boolean)
           .join(' ')}
       >
-        <Topbar onMobileMenuOpen={openMobileSidebar} />
+        <Topbar onMobileMenuToggle={toggleMobileSidebar} mobileOpen={mobileOpen} />
 
         {/* Page transitions */}
         <AnimatePresence mode="wait">

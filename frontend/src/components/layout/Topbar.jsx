@@ -1,7 +1,7 @@
 /**
  * @file Topbar.jsx
  * @description Sticky top navigation bar for Trakive's AppLayout.
- * Displays: hamburger (mobile), page title, search, notifications, user avatar, name & role.
+ * Displays: hamburger/X (mobile), page title, search, notifications, user avatar, name & role.
  */
 
 import { useState } from 'react';
@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   RiMenuLine,
+  RiCloseLine,
   RiSearchLine,
   RiSunLine,
   RiMoonLine,
@@ -46,7 +47,7 @@ const PAGE_TITLES = {
 // ── which uses useNotificationStore for full notification center integration.
 
 
-const Topbar = ({ onMobileMenuOpen }) => {
+const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const user = useCurrentUser();
@@ -56,21 +57,25 @@ const Topbar = ({ onMobileMenuOpen }) => {
   const [searchFocused, setSearchFocused] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Support both new toggle handler and legacy open handler
+  const handleMobileMenu = onMobileMenuToggle ?? onMobileMenuOpen;
+
   // Check if pathname matches task detail route regex
   const isTaskDetail = pathname.startsWith('/dashboard/tasks/');
   const pageTitle = isTaskDetail ? 'Task Details' : (PAGE_TITLES[pathname] ?? 'Trakive');
 
   return (
     <header className="app-topbar" role="banner" id="app-topbar" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0 1.5rem', background: '#fff', borderBottom: '1px solid var(--color-neutral-200)', height: 'var(--topbar-height)', sticky: 'top', zIndex: 40 }}>
-      {/* Mobile menu toggle */}
+      {/* Mobile menu toggle — hamburger when closed, X when open */}
       <button
         className="btn btn-ghost btn-icon lg-hidden"
-        onClick={onMobileMenuOpen}
-        aria-label="Open navigation menu"
+        onClick={handleMobileMenu}
+        aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
+        aria-expanded={mobileOpen}
         id="mobile-menu-btn"
-        style={{ fontSize: '1.25rem', color: 'var(--color-neutral-600)' }}
+        style={{ fontSize: '1.25rem', color: 'var(--color-neutral-600)', flexShrink: 0 }}
       >
-        <RiMenuLine />
+        {mobileOpen ? <RiCloseLine /> : <RiMenuLine />}
       </button>
 
       {/* Page title */}
@@ -86,7 +91,11 @@ const Topbar = ({ onMobileMenuOpen }) => {
             fontWeight: 700,
             color: 'var(--color-neutral-900)',
             margin: 0,
-            flexShrink: 0,
+            flexShrink: 1,
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
           }}
           id="page-title"
         >
@@ -127,7 +136,7 @@ const Topbar = ({ onMobileMenuOpen }) => {
           id="global-search"
           style={{
             paddingLeft: '2.25rem',
-            width: searchFocused ? '280px' : '210px',
+            width: searchFocused ? 'clamp(160px, 28vw, 280px)' : 'clamp(140px, 20vw, 210px)',
             transition: 'width 0.2s ease',
             height: '38px',
           }}

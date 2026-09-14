@@ -19,8 +19,6 @@ import {
   RiBuilding2Line,
   RiTaskLine,
   RiStarLine,
-  RiBellLine,
-  RiUser3Line,
   RiSettings3Line,
 } from 'react-icons/ri';
 import { ROUTES, APP_NAME } from '../../constants';
@@ -38,10 +36,9 @@ const DEPT_HEAD_NAV_ITEMS = [
 ];
 
 const DEPT_HEAD_BOTTOM_ITEMS = [
-  { label: 'Notifications', icon: RiBellLine,     to: ROUTES.DEPARTMENT_HEAD_NOTIFICATIONS },
-  { label: 'Profile',       icon: RiUser3Line,    to: ROUTES.DEPARTMENT_HEAD_PROFILE },
-  { label: 'Settings',      icon: RiSettings3Line, to: ROUTES.DEPARTMENT_HEAD_SETTINGS },
+  { label: 'Settings', icon: RiSettings3Line, to: ROUTES.DEPARTMENT_HEAD_SETTINGS },
 ];
+
 
 function Logo({ collapsed }) {
   return (
@@ -116,7 +113,7 @@ function Logo({ collapsed }) {
   );
 }
 
-function SidebarNavItem({ item, collapsed }) {
+function SidebarNavItem({ item, collapsed, onMobileClose }) {
   const Icon = item.icon;
 
   return (
@@ -128,6 +125,7 @@ function SidebarNavItem({ item, collapsed }) {
       }
       title={collapsed ? item.label : undefined}
       style={{ justifyContent: collapsed ? 'center' : undefined }}
+      onClick={onMobileClose}
     >
       <Icon className="nav-icon" aria-hidden />
       <AnimatePresence>
@@ -234,7 +232,7 @@ const DeptHeadSidebar = ({ mobileOpen = false, onMobileClose }) => {
           <SectionLabel label="Department Oversight" collapsed={collapsed} />
 
           {DEPT_HEAD_NAV_ITEMS.map((item) => (
-            <SidebarNavItem key={item.to} item={item} collapsed={collapsed} />
+            <SidebarNavItem key={item.to} item={item} collapsed={collapsed} onMobileClose={onMobileClose} />
           ))}
         </nav>
 
@@ -243,7 +241,7 @@ const DeptHeadSidebar = ({ mobileOpen = false, onMobileClose }) => {
         <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
           <SectionLabel label="Account" collapsed={collapsed} />
           {DEPT_HEAD_BOTTOM_ITEMS.map((item) => (
-            <SidebarNavItem key={item.to} item={item} collapsed={collapsed} />
+            <SidebarNavItem key={item.to} item={item} collapsed={collapsed} onMobileClose={onMobileClose} />
           ))}
 
           <button

@@ -20,6 +20,7 @@ const AdminLayout = () => {
 
   const openMobileSidebar = useCallback(() => setMobileOpen(true), []);
   const closeMobileSidebar = useCallback(() => setMobileOpen(false), []);
+  const toggleMobileSidebar = useCallback(() => setMobileOpen((v) => !v), []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -47,7 +48,7 @@ const AdminLayout = () => {
         <AdminSidebar mobileOpen={mobileOpen} onMobileClose={closeMobileSidebar} />
       )}
       <div className={['app-main', collapsed ? 'sidebar-collapsed' : ''].filter(Boolean).join(' ')}>
-        <AdminTopbar onMobileMenuOpen={openMobileSidebar} />
+        <AdminTopbar onMobileMenuToggle={toggleMobileSidebar} mobileOpen={mobileOpen} />
         <AnimatePresence mode="wait">
           <MainContent>
             <Outlet />

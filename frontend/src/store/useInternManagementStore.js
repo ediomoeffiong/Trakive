@@ -33,6 +33,7 @@ export const useInternManagementStore = create(
 
       // ── Filters ───────────────────────────────────────────────────────────
       filters: {
+        period: 'All',
         department: 'All',
         status: 'All',
         performanceMin: '',
@@ -43,6 +44,7 @@ export const useInternManagementStore = create(
       },
       search: '',
       activeFilterChips: [],
+
 
       // ── Pagination ────────────────────────────────────────────────────────
       currentPage: 1,
@@ -316,6 +318,7 @@ export const useInternManagementStore = create(
 
       clearFilter: (key) => {
         const defaults = {
+          period: 'All',
           department: 'All',
           status: 'All',
           performanceMin: '',
@@ -335,6 +338,7 @@ export const useInternManagementStore = create(
       clearAllFilters: () => {
         set({
           filters: {
+            period: 'All',
             department: 'All',
             status: 'All',
             performanceMin: '',
@@ -354,6 +358,7 @@ export const useInternManagementStore = create(
         const { filters } = get();
         const chips = [];
         const defaults = {
+          period: 'All',
           department: 'All',
           status: 'All',
           performanceMin: '',
@@ -363,6 +368,7 @@ export const useInternManagementStore = create(
           batch: 'All',
         };
         const labels = {
+          period: 'Period',
           department: 'Dept',
           status: 'Status',
           performanceMin: 'Score ≥',
@@ -372,6 +378,7 @@ export const useInternManagementStore = create(
           batch: 'Batch',
         };
         Object.entries(filters).forEach(([key, value]) => {
+
           if (value !== defaults[key] && value !== '') {
             chips.push({ key, label: `${labels[key]}: ${value}` });
           }

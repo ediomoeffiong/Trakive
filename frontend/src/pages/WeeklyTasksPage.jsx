@@ -225,7 +225,7 @@ export default function WeeklyTasksPage() {
 
       {/* Stats row */}
       {!loading && tasks.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.6rem', marginBottom: '1.25rem' }}>
+        <div className="weekly-stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.6rem', marginBottom: '1.25rem' }}>
           {[
             { label: 'Total', value: stats.total, color: 'var(--color-neutral-600)', bg: 'var(--color-neutral-50)' },
             { label: 'Completed', value: stats.completed, color: 'var(--color-success-600)', bg: 'var(--color-success-50)' },

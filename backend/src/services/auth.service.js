@@ -11,7 +11,10 @@ const {
   generateRandomToken,
 } = require('../utils/token.utils');
 const ProfileModel = require('../models/profile.model');
+const InternshipRecordModel = require('../models/internshipRecord.model');
 const AuditLogModel = require('../models/auditLog.model');
+const { validateInternshipDates } = require('../validators/internshipDate.validator');
+
 /**
  * Role name resolver helper
  */
@@ -41,6 +44,21 @@ const AuthService = {
       throw ApiError.badRequest(`Role '${data.role}' is invalid`);
     }
 
+    const startDate = data.startDate || data.start_date;
+    const endDate = data.endDate || data.end_date;
+
+    if (targetRoleName === 'intern' && (startDate || endDate)) {
+      validateInternshipDates(startDate, endDate);
+    }
+
+    let firstName = data.first_name;
+    let lastName = data.last_name;
+    if ((!firstName || !lastName) && data.name) {
+      const parts = data.name.trim().split(/\s+/);
+      firstName = parts[0] || 'Intern';
+      lastName = parts.slice(1).join(' ') || 'User';
+    }
+
     const password_hash = await hashPassword(data.password);
     const initialStatus = targetRoleName === 'intern' ? 'pending' : 'active';
 
@@ -50,8 +68,8 @@ const AuthService = {
       role_id: roleRecord.id,
       email: data.email,
       password_hash,
-      first_name: data.first_name,
-      last_name: data.last_name,
+      first_name: firstName || 'User',
+      last_name: lastName || 'User',
       phone: data.phone || null,
       status: initialStatus,
       is_email_verified: false,
@@ -65,6 +83,21 @@ const AuthService = {
         department_id: data.department_id || null,
         supervisor_id: null,
         status: 'onboarding',
+      });
+
+      const today = new Date();
+      const sixMonths = new Date();
+      sixMonths.setMonth(today.getMonth() + 6);
+
+      await InternshipRecordModel.create({
+        user_id: newUser.id,
+        organization_id: data.organization_id || null,
+        department_id: data.department_id || null,
+        supervisor_id: null,
+        start_date: startDate || today.toISOString().split('T')[0],
+        end_date: endDate || sixMonths.toISOString().split('T')[0],
+        status: 'onboarding',
+        title: 'Internship #1',
       });
     }
 

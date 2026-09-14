@@ -17,6 +17,7 @@ const SupervisorLayout = () => {
 
   const openMobileSidebar = useCallback(() => setMobileOpen(true), []);
   const closeMobileSidebar = useCallback(() => setMobileOpen(false), []);
+  const toggleMobileSidebar = useCallback(() => setMobileOpen((v) => !v), []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -45,7 +46,7 @@ const SupervisorLayout = () => {
           .filter(Boolean)
           .join(' ')}
       >
-        <SupervisorTopbar onMobileMenuOpen={openMobileSidebar} />
+        <SupervisorTopbar onMobileMenuToggle={toggleMobileSidebar} mobileOpen={mobileOpen} />
 
         <AnimatePresence mode="wait">
           <MainContent>

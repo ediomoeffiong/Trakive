@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   RiMenuLine,
+  RiCloseLine,
   RiSearchLine,
   RiSunLine,
   RiMoonLine,
@@ -39,7 +40,7 @@ const SUPERVISOR_PAGE_TITLES = {
 };
 
 
-const SupervisorTopbar = ({ onMobileMenuOpen }) => {
+const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const user = useCurrentUser();
@@ -48,6 +49,8 @@ const SupervisorTopbar = ({ onMobileMenuOpen }) => {
   const logout = useAppStore((s) => s.logout);
   const [searchFocused, setSearchFocused] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleMobileMenu = onMobileMenuToggle ?? onMobileMenuOpen;
 
   const isInternDetails = pathname.startsWith('/supervisor/interns/');
   const pageTitle = isInternDetails
@@ -78,12 +81,13 @@ const SupervisorTopbar = ({ onMobileMenuOpen }) => {
     >
       <button
         className="btn btn-ghost btn-icon lg-hidden"
-        onClick={onMobileMenuOpen}
-        aria-label="Open navigation menu"
+        onClick={handleMobileMenu}
+        aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
+        aria-expanded={mobileOpen}
         id="supervisor-mobile-menu-btn"
-        style={{ fontSize: '1.25rem', color: 'var(--color-neutral-600)' }}
+        style={{ fontSize: '1.25rem', color: 'var(--color-neutral-600)', flexShrink: 0 }}
       >
-        <RiMenuLine />
+        {mobileOpen ? <RiCloseLine /> : <RiMenuLine />}
       </button>
 
       <AnimatePresence mode="wait">

@@ -16,8 +16,6 @@ import {
   RiCheckboxMultipleLine,
   RiStarLine,
   RiBarChartBoxLine,
-  RiBellLine,
-  RiUser3Line,
   RiSettings3Line,
   RiArrowLeftSLine,
   RiArrowRightSLine,
@@ -37,14 +35,13 @@ const NAV_ITEMS = [
   { label: 'Weekly Tasks',  icon: RiCalendarCheckLine,     to: ROUTES.WEEKLY_TASKS },
   { label: 'Onboarding',    icon: RiCheckboxMultipleLine,  to: ROUTES.ONBOARDING },
   { label: 'Reviews',       icon: RiStarLine,              to: ROUTES.REVIEWS },
-  { label: 'Notifications', icon: RiBellLine,             to: ROUTES.NOTIFICATIONS },
-  { label: 'Profile',       icon: RiUser3Line,             to: ROUTES.PROFILE },
 ];
 
 
 const BOTTOM_NAV = [
   { label: 'Settings', icon: RiSettings3Line, to: ROUTES.SETTINGS },
 ];
+
 
 // ── Logo ──────────────────────────────────────────────────────────────────────
 function Logo({ collapsed }) {
@@ -109,7 +106,7 @@ function Logo({ collapsed }) {
 }
 
 // ── Nav Item ──────────────────────────────────────────────────────────────────
-function SidebarNavItem({ item, collapsed }) {
+function SidebarNavItem({ item, collapsed, onMobileClose }) {
   const Icon = item.icon;
 
   return (
@@ -121,6 +118,7 @@ function SidebarNavItem({ item, collapsed }) {
       }
       title={collapsed ? item.label : undefined}
       style={{ justifyContent: collapsed ? 'center' : undefined }}
+      onClick={onMobileClose}
     >
       <Icon className="nav-icon" aria-hidden />
       <AnimatePresence>
@@ -238,8 +236,9 @@ const Sidebar = ({ mobileOpen = false, onMobileClose }) => {
           <SectionLabel label="Menu" collapsed={collapsed} />
 
           {NAV_ITEMS.map((item) => (
-            <SidebarNavItem key={item.to} item={item} collapsed={collapsed} />
+            <SidebarNavItem key={item.to} item={item} collapsed={collapsed} onMobileClose={onMobileClose} />
           ))}
+
         </nav>
 
         <div className="divider" style={{ margin: '0' }} />
@@ -248,7 +247,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose }) => {
         <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
           <SectionLabel label="Account" collapsed={collapsed} />
           {BOTTOM_NAV.map((item) => (
-            <SidebarNavItem key={item.to} item={item} collapsed={collapsed} />
+            <SidebarNavItem key={item.to} item={item} collapsed={collapsed} onMobileClose={onMobileClose} />
           ))}
 
           {/* Logout Button */}
