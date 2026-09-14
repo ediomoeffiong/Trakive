@@ -17,9 +17,11 @@ import {
   RiDashboardLine,
   RiDownloadLine,
   RiRefreshLine,
+  RiCalendarCheckLine,
 } from 'react-icons/ri';
 
 import { useSupervisorTaskStore } from '../../store/useSupervisorTaskStore';
+import WeeklyReview from './WeeklyReview';
 
 import {
   TaskKPISummary,
@@ -43,11 +45,12 @@ const pageVariants = {
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
 const TABS = [
-  { id: 'dashboard',   label: 'Dashboard',    icon: RiDashboardLine },
-  { id: 'directory',   label: 'Task Board',   icon: RiListCheck },
-  { id: 'submissions', label: 'Submissions',  icon: RiFileUploadLine },
-  { id: 'calendar',    label: 'Calendar',     icon: RiCalendarEventLine },
-  { id: 'templates',   label: 'Templates',    icon: RiLayoutGridLine },
+  { id: 'dashboard',   label: 'Dashboard',      icon: RiDashboardLine },
+  { id: 'directory',   label: 'Task Board',     icon: RiListCheck },
+  { id: 'submissions', label: 'Submissions',    icon: RiFileUploadLine },
+  { id: 'weekly',      label: 'Weekly Reports', icon: RiCalendarCheckLine },
+  { id: 'calendar',    label: 'Calendar',       icon: RiCalendarEventLine },
+  { id: 'templates',   label: 'Templates',      icon: RiLayoutGridLine },
 ];
 
 // ── Recent Activity mini-feed (for dashboard tab) ─────────────────────────────
@@ -600,6 +603,13 @@ const TaskManagementPage = () => {
         {activeTab === 'submissions' && (
           <motion.div key="submissions" variants={pageVariants} initial="initial" animate="animate" exit="exit">
             <SubmissionMonitoringView />
+          </motion.div>
+        )}
+
+        {/* ── WEEKLY REPORTS ────────────────────────────────────────────────── */}
+        {activeTab === 'weekly' && (
+          <motion.div key="weekly" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+            <WeeklyReview />
           </motion.div>
         )}
 

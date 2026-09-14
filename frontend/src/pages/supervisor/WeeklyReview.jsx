@@ -279,14 +279,40 @@ export default function WeeklyReview() {
       )}
 
       {/* Week navigator */}
-      <Card style={{ padding: '0.85rem 1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <button onClick={() => setWeekStart(shiftWeek(weekStart, -1))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: 'var(--color-neutral-600)', display: 'flex', alignItems: 'center', padding: '0.25rem 0.5rem', borderRadius: '0.4rem' }}>
+      <Card padding="none" style={{ marginBottom: '1.25rem' }} contentStyle={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1.25rem' }}>
+        <button
+          onClick={() => setWeekStart(shiftWeek(weekStart, -1))}
+          title="Previous week"
+          style={{
+            width: '36px', height: '36px', borderRadius: '0.5rem',
+            border: '1px solid var(--color-neutral-200)', background: '#fff',
+            cursor: 'pointer', color: 'var(--color-neutral-700)', fontSize: '1.2rem',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-neutral-50)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
+        >
           <RiArrowLeftSLine />
         </button>
-        <p style={{ margin: 0, fontWeight: 700, fontSize: '1rem', color: 'var(--color-neutral-900)' }}>
-          {formatWeekRange(weekStart)}
-        </p>
-        <button onClick={() => setWeekStart(shiftWeek(weekStart, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: 'var(--color-neutral-600)', display: 'flex', alignItems: 'center', padding: '0.25rem 0.5rem', borderRadius: '0.4rem' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ margin: 0, fontWeight: 700, fontSize: '1.05rem', color: 'var(--color-neutral-900)' }}>
+            {formatWeekRange(weekStart)}
+          </p>
+        </div>
+        <button
+          onClick={() => setWeekStart(shiftWeek(weekStart, 1))}
+          title="Next week"
+          style={{
+            width: '36px', height: '36px', borderRadius: '0.5rem',
+            border: '1px solid var(--color-neutral-200)', background: '#fff',
+            cursor: 'pointer', color: 'var(--color-neutral-700)', fontSize: '1.2rem',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-neutral-50)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
+        >
           <RiArrowRightSLine />
         </button>
       </Card>

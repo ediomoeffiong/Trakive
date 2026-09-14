@@ -8,7 +8,7 @@
  *  - HR Admin / Dept Head routes (/admin/*) guarded by RoleGuard for Admin
  */
 
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { InternLayout, SupervisorLayout, AdminLayout, AuthLayout } from '../layouts';
 import { ROUTES, USER_ROLES } from '../constants';
 import { PublicRoute, RoleGuard } from '../components/layout';
@@ -37,7 +37,6 @@ import ProfilePage from '../pages/ProfilePage';
 import SettingsPage from '../pages/SettingsPage';
 import ProjectsPage from '../pages/ProjectsPage';
 import ProjectDetailsPage from '../pages/ProjectDetailsPage';
-import WeeklyTasksPage from '../pages/WeeklyTasksPage';
 
 // Supervisor Pages
 import SupervisorDashboardPage from '../pages/supervisor/Dashboard';
@@ -49,7 +48,6 @@ import ReviewManagementPage from '../pages/supervisor/ReviewManagement';
 import SupervisorNotificationsPage from '../pages/supervisor/SupervisorNotifications';
 import SupervisorProfilePage from '../pages/supervisor/SupervisorProfile';
 import ProjectManagementPage from '../pages/supervisor/ProjectManagement';
-import WeeklyReviewPage from '../pages/supervisor/WeeklyReview';
 
 // Analytics & Reports Pages
 import AnalyticsDashboardPage from '../pages/analytics/AnalyticsDashboardPage';
@@ -126,7 +124,7 @@ const router = createBrowserRouter([
           { path: ROUTES.ANALYTICS_DRILLDOWN, element: <DrillDownDetailPage /> },
           { path: ROUTES.PROJECTS, element: <ProjectsPage /> },
           { path: ROUTES.PROJECT_DETAILS, element: <ProjectDetailsPage /> },
-          { path: ROUTES.WEEKLY_TASKS, element: <WeeklyTasksPage /> },
+          { path: ROUTES.WEEKLY_TASKS, element: <Navigate to={ROUTES.TASKS} replace /> },
           { path: ROUTES.TASKS, element: <TaskList /> },
           { path: ROUTES.TASK_DETAILS, element: <TaskDetails /> },
           { path: ROUTES.ONBOARDING, element: <OnboardingDashboard /> },
@@ -160,7 +158,7 @@ const router = createBrowserRouter([
           { path: ROUTES.SUPERVISOR_TASKS, element: <TaskManagementPage /> },
           { path: ROUTES.SUPERVISOR_PROJECTS, element: <ProjectManagementPage /> },
           { path: ROUTES.SUPERVISOR_PROJECT_DETAILS, element: <ProjectDetailsPage /> },
-          { path: ROUTES.SUPERVISOR_WEEKLY_REVIEW, element: <WeeklyReviewPage /> },
+          { path: ROUTES.SUPERVISOR_WEEKLY_REVIEW, element: <Navigate to={ROUTES.SUPERVISOR_TASKS} replace /> },
           { path: ROUTES.SUPERVISOR_REVIEWS,   element: <ReviewManagementPage /> },
           { path: ROUTES.SUPERVISOR_ONBOARDING, element: <ReviewManagementPage /> },
           { path: ROUTES.SUPERVISOR_REPORTS, element: <AnalyticsDashboardPage /> },
