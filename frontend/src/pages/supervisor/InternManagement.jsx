@@ -43,7 +43,7 @@ const InternManagementPage = () => {
 
   useEffect(() => {
     loadInternList();
-  }, [loadInternList]);
+  }, []);
 
   const supervisorName = user?.name?.split(' ')[0] ?? 'Supervisor';
 

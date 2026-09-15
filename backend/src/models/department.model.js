@@ -165,12 +165,18 @@ const DepartmentModel = {
   async getStaff(departmentId) {
     const sql = `
       SELECT 
-        u.id, u.first_name, u.last_name, u.email, u.phone, u.avatar_url, u.status,
-        r.name AS role_name
+        u.id, u.first_name, u.last_name, u.email, u.phone, u.avatar_url, u.status, u.created_at,
+        r.name AS role_name,
+        COALESCE(sp.title, hp.title, ip.field_of_study, 'Team Member') AS title,
+        COALESCE(hp.office_location, 'CWG PLC Headquarters, Lagos') AS office_location,
+        COALESCE(hp.bio, sp.specialization, 'Active team member in CWG PLC & FifthLab.') AS bio
       FROM users u
       JOIN roles r ON r.id = u.role_id
-      WHERE u.department_id = $1 AND u.deleted_at IS NULL
-      ORDER BY r.name, u.first_name;
+      LEFT JOIN supervisor_profiles sp ON sp.user_id = u.id
+      LEFT JOIN head_profiles hp ON hp.user_id = u.id
+      LEFT JOIN intern_profiles ip ON ip.user_id = u.id
+      WHERE (u.department_id = $1 OR u.department_id IS NULL) AND u.deleted_at IS NULL
+      ORDER BY (r.name = 'supervisor' OR r.name = 'department_head') DESC, u.first_name;
     `;
     const res = await query(sql, [departmentId]);
     return res.rows;

@@ -177,6 +177,7 @@ const InternService = {
       search: query.search || '',
       role: 'intern',
       department_id: departmentFilter,
+      supervisor_id: supervisorFilter,
       status: '',
       limit,
       offset,
@@ -187,6 +188,7 @@ const InternService = {
       search: query.search || '',
       role: 'intern',
       department_id: departmentFilter,
+      supervisor_id: supervisorFilter,
     });
 
     const enrichedItems = await Promise.all(

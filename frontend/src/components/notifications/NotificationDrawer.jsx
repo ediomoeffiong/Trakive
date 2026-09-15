@@ -58,7 +58,11 @@ const NotificationDrawer = () => {
     markAsRead(notification.id, user?.role);
     setSelectedNotification(notification);
     setDrawerOpen(false);
-    navigate(notificationsRoute);
+    if (notification.actionRoute || notification.linkUrl) {
+      navigate(notification.actionRoute || notification.linkUrl);
+    } else {
+      navigate(notificationsRoute);
+    }
   };
 
   return (

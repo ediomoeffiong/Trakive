@@ -206,7 +206,7 @@ const AdminTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false 
         >
           <Avatar
             name={adminName}
-            src={user?.avatarUrl || user?.avatar}
+            src={user?.avatarUrl || user?.avatar_url || user?.avatar}
             size="sm"
             online
           />

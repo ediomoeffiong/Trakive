@@ -6,7 +6,7 @@ DECLARE
     v_role_id UUID;
     v_user_id UUID;
 BEGIN
-    SELECT id INTO v_org_id FROM organizations ORDER BY created_at LIMIT 1;
+    SELECT id INTO v_org_id FROM organizations WHERE slug = 'fifthlab' OR domain = 'thefifthlab.com' LIMIT 1;
     SELECT id INTO v_role_id FROM roles WHERE name = 'supervisor';
 
     INSERT INTO users (
@@ -14,7 +14,7 @@ BEGIN
         first_name, last_name, status, is_email_verified
     )
     VALUES (
-        v_org_id, v_role_id, 'supervisor@trakive.com',
+        v_org_id, v_role_id, 'supervisor@thefifthlab.com',
         '$2b$10$Xf4KCf2GUmWaFWWdXN4yJO74HU1pZ5U2IJVHAiM8nlg33B9Amx2ii',
         'Dev', 'Supervisor', 'active', true
     )
@@ -25,7 +25,7 @@ BEGIN
         status = 'active',
         is_email_verified = true;
 
-    SELECT id INTO v_user_id FROM users WHERE email = 'supervisor@trakive.com';
+    SELECT id INTO v_user_id FROM users WHERE email = 'supervisor@thefifthlab.com';
 
     INSERT INTO supervisor_profiles (user_id, organization_id, title, specialization)
     VALUES (v_user_id, v_org_id, 'Development Supervisor', 'General')

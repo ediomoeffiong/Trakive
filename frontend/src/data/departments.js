@@ -5,6 +5,22 @@
 
 export const mockDepartments = [
   {
+    id: 'dept-fifthlab',
+    name: 'FifthLab',
+    description: 'FifthLab Innovation & Product Venture Lab department under CWG.',
+    leadId: 'sup-001',
+    leadName: 'Tochukwu Mgbemena',
+    leadTitle: 'FifthLab Director / Lead Supervisor',
+    color: '#0284c7',
+    internCount: 25,
+    supervisorCount: 5,
+    capacity: 40,
+    completionRate: 98.0,
+    activeBatch: 'Batch 2026-B3',
+    createdAt: '2023-01-10',
+    status: 'active',
+  },
+  {
     id: 'dept-001',
     name: 'Engineering',
     description: 'Software development, architecture, and infrastructure teams.',

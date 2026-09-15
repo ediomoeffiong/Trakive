@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -116,6 +117,7 @@ const buildTabs = (pendingSubmissions, pendingOnboarding) => [
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const ReviewManagementPage = () => {
+  const location = useLocation();
   const {
     // State
     activeTab,
@@ -195,7 +197,7 @@ const ReviewManagementPage = () => {
   const pendingOnboardingCount = useMemo(
     () =>
       (onboardingQueue || []).reduce(
-        (acc, intern) => acc + intern.steps.filter((s) => s.status === 'pending-review').length,
+        (acc, intern) => acc + (intern.documents || intern.steps || []).filter((s) => s.status === 'pending-review' || s.review_status === 'pending' || s.status === 'pending').length,
         0
       ),
     [onboardingQueue]
@@ -208,7 +210,11 @@ const ReviewManagementPage = () => {
   useEffect(() => {
     loadDashboard();
     fetchReviewHistory();
-  }, []);
+    if (location.pathname.includes('/supervisor/onboarding')) {
+      setActiveTab('onboarding');
+      fetchOnboardingApprovals();
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     if (activeTab === 'submissions') fetchSubmissions();

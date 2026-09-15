@@ -9,7 +9,7 @@ const router = express.Router();
 router.get(
   '/',
   authenticate,
-  requireRole('admin', 'hr'),
+  requireRole('admin', 'hr', 'supervisor', 'department_head', 'head', 'super_admin'),
   validate({ query: listAuditLogsQuerySchema }),
   AuditLogController.listAuditLogs
 );

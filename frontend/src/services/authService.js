@@ -3,6 +3,7 @@
  * @description Mock authentication service to simulate API requests with artificial latency.
  */
 
+import api from './api';
 import { mockUsers, DEFAULT_MOCK_PASSWORD } from '../data/mockUsers';
 
 // Helper to get all users (mock users + registered users from localStorage)
@@ -24,40 +25,69 @@ const delay = (ms = 1000) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const authService = {
   /**
-   * Mock login validating email and password.
+   * Login validating email and password via backend API with fallback.
    */
   login: async ({ email, password }) => {
-    await delay(1200);
-    const users = getRegisteredUsers();
-    const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    try {
+      const res = await api.post('/auth/login', { email, password });
+      const payload = res.data?.data || res.data || {};
+      const user = payload.user || payload;
+      const tokens = payload.tokens || {};
+      const token = tokens.accessToken || payload.token || user.token;
 
-    if (!user) {
-      throw new Error('Invalid email or password. Please try again.');
+      let role = user.role || user.role_name || 'Intern';
+      if (role.toLowerCase() === 'supervisor') role = 'Supervisor';
+      if (role.toLowerCase() === 'intern') role = 'Intern';
+      if (role.toLowerCase() === 'hr' || role.toLowerCase() === 'hr_admin') role = 'HR Administrator';
+      if (role.toLowerCase() === 'head' || role.toLowerCase() === 'department_head') role = 'Department Head';
+
+      const safeUser = {
+        ...user,
+        id: user.id || user.user_id,
+        name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || email.split('@')[0],
+        email: user.email || email,
+        avatarUrl: user.avatarUrl || user.avatar_url || user.avatar || null,
+        role,
+        token,
+        accessToken: token,
+        refreshToken: tokens.refreshToken,
+        isFirstLogin: false,
+        hasCompletedOnboarding: true,
+        profileCompleted: true,
+      };
+
+      return {
+        user: safeUser,
+        token,
+      };
+    } catch (err) {
+      // If backend responded with explicit auth failure message
+      const backendMsg = err.response?.data?.message || err.response?.data?.error;
+      if (backendMsg) {
+        throw new Error(backendMsg);
+      }
+
+      // Fallback for offline/mock development
+      await delay(800);
+      const users = getRegisteredUsers();
+      const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+
+      if (!user) {
+        throw new Error('Invalid email or password. Please try again.');
+      }
+
+      const safeUser = {
+        ...user,
+        role: user.role === 'supervisor' ? 'Supervisor' : user.role,
+        avatarUrl: user.avatarUrl || user.avatar_url || user.avatar || null,
+        token: `mock-jwt-token-for-${user.id}`,
+      };
+
+      return {
+        user: safeUser,
+        token: safeUser.token,
+      };
     }
-
-    // For mock testing, allow DEFAULT_MOCK_PASSWORD or 'password123' or any password for custom registered users.
-    const isMockDefault = password === DEFAULT_MOCK_PASSWORD || password === 'password123';
-    const isCustomMatch = user.id.startsWith('custom-') && password.length >= 8;
-
-    if (!isMockDefault && !isCustomMatch) {
-      throw new Error('Invalid credentials. (Hint: use "Password123!" for mock accounts)');
-    }
-
-    const userMetaKey = `trakive_user_meta_${user.id}`;
-    const storedMetaJson = localStorage.getItem(userMetaKey);
-    const userMeta = storedMetaJson ? JSON.parse(storedMetaJson) : {};
-
-    const safeUser = {
-      ...user,
-      isFirstLogin: userMeta.isFirstLogin !== undefined ? userMeta.isFirstLogin : (user.isFirstLogin ?? user.id.startsWith('custom-')),
-      hasCompletedOnboarding: userMeta.hasCompletedOnboarding ?? user.hasCompletedOnboarding ?? false,
-      profileCompleted: userMeta.profileCompleted ?? user.profileCompleted ?? false,
-    };
-
-    return {
-      user: safeUser,
-      token: `mock-jwt-token-for-${user.id}`,
-    };
   },
 
   /**

@@ -161,7 +161,7 @@ const SupervisorDashboardPage = () => {
 
   useEffect(() => {
     loadSupervisorDashboard();
-  }, [loadSupervisorDashboard]);
+  }, []);
 
   if (isLoading && kpis.length === 0) {
     return (
@@ -228,7 +228,7 @@ const SupervisorDashboardPage = () => {
       <section aria-label="Key Performance Indicators">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
           {kpis.map((card, idx) => (
-            <KPICard key={card.id} card={card} index={idx} />
+            <KPICard key={card.id || card.label || idx} card={card} index={idx} />
           ))}
         </div>
       </section>

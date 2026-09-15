@@ -194,7 +194,7 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
         >
           <Avatar
             name={supervisorName}
-            src={user?.avatarUrl || user?.avatar}
+            src={user?.avatarUrl || user?.avatar_url || user?.avatar}
             size="sm"
             online
           />

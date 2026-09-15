@@ -36,11 +36,13 @@ function validateInternshipDates(startDateInput, endDateInput) {
   }
 
   // endDate validation
-  if (end > todayEnd) {
-    throw ApiError.badRequest('End date cannot be in the future');
-  }
   if (end < start) {
     throw ApiError.badRequest('End date cannot be before start date');
+  }
+
+  const twoWeeksMs = 14 * 24 * 60 * 60 * 1000;
+  if ((end.getTime() - start.getTime()) < twoWeeksMs) {
+    throw ApiError.badRequest('End date must be at least 2 weeks (14 days) after the start date');
   }
 
   return true;

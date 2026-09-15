@@ -1,0 +1,1 @@
+require('dotenv').config(); const { query } = require('./src/config/db'); async function test() { const res = await query('SELECT u.id, u.first_name, u.email, ip.supervisor_id FROM users u LEFT JOIN intern_profiles ip ON u.id = ip.user_id WHERE u.role = \'intern\''); console.log(res.rows); process.exit(0); } test();

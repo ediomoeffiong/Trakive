@@ -71,7 +71,7 @@ export const departmentSummary = {
   name: 'FifthLab',
   headName: 'Dr. Arinola Coker',
   headTitle: 'VP of Engineering & Head of Department',
-  email: 'ediomo.effiong@trakive.com',
+  email: 'ediomo.effiong@thefifthlab.com',
   code: 'ENG-TECH',
   description: 'Drives product development, infrastructure scalability, cloud architecture, and technical intern mentoring across 5 specialized engineering sub-teams.',
   location: 'Tech Hub Floor 4, Victoria Island HQ',

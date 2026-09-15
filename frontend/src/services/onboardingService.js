@@ -13,7 +13,7 @@ const isDemoUser = () => {
     const user = useAppStore.getState()?.user;
     if (!user) return false;
     const demoIds = ['u-1', 'u-2', 'u-3', 'u-4'];
-    const demoEmails = ['intern@trakive.com', 'supervisor@trakive.com', 'hr@trakive.com', 'head@trakive.com'];
+    const demoEmails = ['intern@thefifthlab.com', 'supervisor@thefifthlab.com', 'hr@thefifthlab.com', 'head@thefifthlab.com'];
     return demoIds.includes(user.id) || demoEmails.includes(user.email?.toLowerCase());
   } catch {
     return false;
@@ -87,14 +87,14 @@ export const onboardingService = {
    */
   uploadDocument: async (stepId, file, onProgress) => {
     // 1. Validation
-    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png'];
-    const maxSizeBytes = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png'];
+    const maxSizeBytes = 10 * 1024 * 1024; // 10MB
 
     if (!allowedTypes.includes(file.type)) {
-      throw new Error("Invalid file type. Supported types: PDF, DOCX, JPG, PNG.");
+      throw new Error("Invalid file type. Allowed types: PDF, DOC, DOCX, JPG, JPEG, PNG.");
     }
     if (file.size > maxSizeBytes) {
-      throw new Error("File exceeds the maximum size limit of 5MB.");
+      throw new Error("File exceeds the maximum size limit of 10 MB.");
     }
 
     // 2. Simulate progress bar

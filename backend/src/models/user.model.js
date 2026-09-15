@@ -179,7 +179,7 @@ const UserModel = {
     );
   },
 
-  async findPaginated({ organization_id = null, search = '', role = '', department_id = null, status = '', limit = 10, offset = 0 }) {
+  async findPaginated({ organization_id = null, search = '', role = '', department_id = null, supervisor_id = null, status = '', limit = 10, offset = 0 }) {
     let whereClauses = ['u.deleted_at IS NULL'];
     let values = [];
     let idx = 1;
@@ -205,6 +205,12 @@ const UserModel = {
     if (department_id) {
       whereClauses.push(`u.department_id = $${idx}`);
       values.push(department_id);
+      idx++;
+    }
+
+    if (supervisor_id) {
+      whereClauses.push(`(ip.supervisor_id = $${idx} OR (ip.supervisor_id IS NULL AND u.department_id = (SELECT department_id FROM supervisor_profiles WHERE id = $${idx})))`);
+      values.push(supervisor_id);
       idx++;
     }
 
@@ -226,6 +232,7 @@ const UserModel = {
       FROM users u
       JOIN roles r ON r.id = u.role_id
       LEFT JOIN departments d ON d.id = u.department_id
+      LEFT JOIN intern_profiles ip ON ip.user_id = u.id
       WHERE ${whereClauses.join(' AND ')}
       ORDER BY u.created_at DESC
       LIMIT $${idx} OFFSET $${idx + 1};
@@ -236,7 +243,7 @@ const UserModel = {
     return res.rows;
   },
 
-  async count({ organization_id = null, search = '', role = '', department_id = null, status = '' }) {
+  async count({ organization_id = null, search = '', role = '', department_id = null, supervisor_id = null, status = '' }) {
     let whereClauses = ['u.deleted_at IS NULL'];
     let values = [];
     let idx = 1;
@@ -265,6 +272,12 @@ const UserModel = {
       idx++;
     }
 
+    if (supervisor_id) {
+      whereClauses.push(`(ip.supervisor_id = $${idx} OR (ip.supervisor_id IS NULL AND u.department_id = (SELECT department_id FROM supervisor_profiles WHERE id = $${idx})))`);
+      values.push(supervisor_id);
+      idx++;
+    }
+
     if (status) {
       whereClauses.push(`u.status = $${idx}`);
       values.push(status);
@@ -272,9 +285,10 @@ const UserModel = {
     }
 
     const sql = `
-      SELECT COUNT(u.id) as count
+      SELECT COUNT(DISTINCT u.id) as count
       FROM users u
       JOIN roles r ON r.id = u.role_id
+      LEFT JOIN intern_profiles ip ON ip.user_id = u.id
       WHERE ${whereClauses.join(' AND ')};
     `;
 

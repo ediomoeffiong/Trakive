@@ -19,11 +19,17 @@ async function resolveScope(user, filters = {}) {
   if (roleName === 'intern') {
     effectiveInternId = user.id;
   } else if (roleName === 'supervisor') {
-    const supRes = await query('SELECT id FROM supervisor_profiles WHERE user_id = $1', [user.id]);
-    if (supRes.rows.length > 0) {
-      effectiveSupervisorProfileId = supRes.rows[0].id;
-    } else {
-      effectiveSupervisorProfileId = '00000000-0000-0000-0000-000000000000';
+    const ProfileModel = require('../models/profile.model');
+    let supProfile = await ProfileModel.findSupervisorProfileByUserId(user.id);
+    if (!supProfile && user.organization_id) {
+      supProfile = await ProfileModel.upsertSupervisorProfile({
+        user_id: user.id,
+        organization_id: user.organization_id,
+        department_id: user.department_id,
+      });
+    }
+    if (supProfile) {
+      effectiveSupervisorProfileId = supProfile.id;
     }
   } else if (roleName === 'head' || roleName === 'department_head') {
     effectiveDepartmentId = user.department_id || filters.departmentId || null;
