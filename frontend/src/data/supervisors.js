@@ -7,7 +7,7 @@ export const mockSupervisors = [
   {
     id: 'sup-001',
     name: 'Tochukwu Mgbemmena',
-    email: 'tochukwu.mgbemmena@trakive.com',
+    email: 'tochukwu.mgbemmena@thefifthlab.com',
     title: 'Senior Project Manager & Lead Supervisor',
     department: 'FifthLab',
     departmentId: 'dept-fifthlab',

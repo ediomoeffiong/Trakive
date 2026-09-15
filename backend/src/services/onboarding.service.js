@@ -1,3 +1,4 @@
+const { query } = require('../config/db');
 const ApiError = require('../utils/apiError');
 const ApplicationModel = require('../models/application.model');
 const OnboardingModel = require('../models/onboarding.model');
@@ -6,6 +7,7 @@ const ProfileModel = require('../models/profile.model');
 const RoleModel = require('../models/role.model');
 const InternshipModel = require('../models/internship.model');
 const AuditLogModel = require('../models/auditLog.model');
+const NotificationModel = require('../models/notification.model');
 const { hashPassword } = require('../utils/password.utils');
 const { getPaginationParams, formatPaginatedResponse } = require('../utils/pagination');
 
@@ -225,9 +227,27 @@ const OnboardingService = {
 
     const orgId = await this.getEffectiveOrgId(requestingUser);
 
+    let assignedSupervisorProfile = null;
+    let targetDeptId = data.department_id || requestingUser.department_id || null;
+
+    if (targetDeptId) {
+      await UserModel.update(requestingUser.id, { department_id: targetDeptId });
+      // Supervisor auto-assignment mechanism: find active supervisor in selected department
+      const supRes = await query(
+        `SELECT sp.* FROM supervisor_profiles sp
+         JOIN users u ON u.id = sp.user_id
+         WHERE (sp.department_id = $1 OR sp.department_id IS NULL) AND u.organization_id = $2 AND u.status = 'active' AND u.deleted_at IS NULL
+         ORDER BY (sp.department_id IS NOT NULL) DESC, sp.created_at ASC LIMIT 1`,
+        [targetDeptId, orgId]
+      );
+      assignedSupervisorProfile = supRes.rows[0] || null;
+    }
+
     const internProfile = await ProfileModel.upsertInternProfile({
       user_id: requestingUser.id,
       organization_id: orgId,
+      department_id: targetDeptId,
+      supervisor_id: assignedSupervisorProfile ? assignedSupervisorProfile.id : null,
       institution: data.institution,
       field_of_study: data.field_of_study,
       academic_year: data.academic_year,
@@ -235,6 +255,16 @@ const OnboardingService = {
       skills: data.skills,
       status: 'onboarding',
     });
+
+    if (assignedSupervisorProfile && internProfile && internProfile.id) {
+      await ProfileModel.recordSupervisorAssignment(
+        internProfile.id,
+        assignedSupervisorProfile.id,
+        requestingUser.id,
+        'active',
+        'Auto-assigned supervisor upon department selection'
+      );
+    }
 
     let updatedApp = null;
     if (application) {
@@ -252,27 +282,56 @@ const OnboardingService = {
       });
     }
 
+    const completeProfile = await ProfileModel.getCompleteInternProfile(requestingUser.id);
+
     return {
       application: updatedApp,
-      intern_profile: internProfile,
+      intern_profile: completeProfile,
     };
   },
 
   async submitOnboardingDocument(data, requestingUser, ipAddress = null, userAgent = null) {
     const orgId = await this.getEffectiveOrgId(requestingUser);
 
-    const doc = await OnboardingModel.createDocument({
-      organization_id: orgId,
-      uploader_id: requestingUser.id,
-      owner_id: requestingUser.id,
-      title: data.title,
-      file_name: data.file_name,
-      file_path: data.file_path,
-      file_size: data.file_size,
-      mime_type: data.mime_type,
-      category: data.category || 'general',
-      is_private: true,
-    });
+    const category = data.category || 'general';
+    const existingDoc = await OnboardingModel.findDocumentByOwnerAndCategory(requestingUser.id, category);
+
+    let doc;
+    if (existingDoc) {
+      // Preserve previous review history if doc was reviewed or replaced
+      await OnboardingModel.addDocumentHistory({
+        document_id: existingDoc.id,
+        file_name: existingDoc.file_name,
+        file_path: existingDoc.file_path,
+        file_size: existingDoc.file_size,
+        mime_type: existingDoc.mime_type,
+        review_status: existingDoc.review_status || 'pending',
+        reviewed_by: existingDoc.reviewer_id || null,
+        reviewed_at: existingDoc.reviewed_at || null,
+        review_notes: existingDoc.review_notes || null,
+      });
+
+      doc = await OnboardingModel.replaceDocumentFile(existingDoc.id, {
+        file_name: data.file_name,
+        file_path: data.file_path,
+        file_size: data.file_size,
+        mime_type: data.mime_type,
+        title: data.title,
+      });
+    } else {
+      doc = await OnboardingModel.createDocument({
+        organization_id: orgId,
+        uploader_id: requestingUser.id,
+        owner_id: requestingUser.id,
+        title: data.title,
+        file_name: data.file_name,
+        file_path: data.file_path,
+        file_size: data.file_size,
+        mime_type: data.mime_type,
+        category,
+        is_private: true,
+      });
+    }
 
     if (data.application_id) {
       const app = await ApplicationModel.findById(data.application_id);
@@ -294,30 +353,195 @@ const OnboardingService = {
       action: 'ONBOARDING_DOCUMENT_SUBMIT',
       entityType: 'documents',
       entityId: doc.id,
-      details: { category: doc.category, title: doc.title },
+      details: { category: doc.category, title: doc.title, is_resubmission: !!existingDoc },
       ipAddress,
       userAgent,
     });
+
+    // Notify assigned supervisor about intern onboarding document submission
+    try {
+      const internProfile = await ProfileModel.findInternProfileByUserId(requestingUser.id);
+      if (internProfile && internProfile.supervisor_id) {
+        const supProfile = await ProfileModel.findSupervisorById(internProfile.supervisor_id);
+        if (supProfile && supProfile.user_id) {
+          await NotificationModel.create({
+            userId: supProfile.user_id,
+            title: 'New Onboarding Document Submitted',
+            message: `${requestingUser.first_name} ${requestingUser.last_name} uploaded '${doc.title}' for onboarding review.`,
+            type: 'onboarding_submission',
+            linkUrl: '/supervisor/onboarding',
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.warn('Failed to send onboarding document submission notification:', notifErr);
+    }
 
     return doc;
   },
 
   async trackDocuments(ownerId, requestingUser) {
     const docs = await OnboardingModel.findDocumentsByOwner(ownerId);
-    const requiredCategories = ['id_proof', 'agreement'];
-    const submittedCategories = docs.map((d) => d.category);
 
-    const checklist = requiredCategories.map((cat) => ({
-      category: cat,
-      submitted: submittedCategories.includes(cat),
-      document: docs.find((d) => d.category === cat) || null,
-    }));
+    const REQUIRED_DOCS = [
+      { category: 'resume', title: 'Resume / CV' },
+      { category: 'placement_letter', title: 'Internship / Placement Letter' },
+      { category: 'acceptance_letter', title: 'Acceptance Letter' },
+    ];
+
+    const checklist = await Promise.all(
+      REQUIRED_DOCS.map(async (item) => {
+        const doc = docs.find((d) => d.category === item.category) || null;
+        let history = [];
+        if (doc) {
+          history = await OnboardingModel.getDocumentHistory(doc.id);
+        }
+        return {
+          category: item.category,
+          title: item.title,
+          submitted: !!doc,
+          review_status: doc ? doc.review_status || 'pending' : 'not_submitted',
+          document: doc,
+          history,
+        };
+      })
+    );
+
+    const approvedCount = checklist.filter((item) => item.review_status === 'approved').length;
+    const totalRequired = REQUIRED_DOCS.length;
 
     return {
       documents: docs,
       checklist,
+      approved_count: approvedCount,
+      total_required: totalRequired,
+      progress_label: `${approvedCount}/${totalRequired} Approved`,
+      onboarding_ready: approvedCount === totalRequired,
       all_required_submitted: checklist.every((item) => item.submitted),
     };
+  },
+
+  async reviewDocument(documentId, { status, notes }, reviewerUser, ipAddress = null, userAgent = null) {
+    const docRes = await query(`SELECT * FROM documents WHERE id = $1 AND deleted_at IS NULL`, [documentId]);
+    const doc = docRes.rows[0];
+    if (!doc) {
+      throw ApiError.notFound('Document not found');
+    }
+
+    const reqRole = reviewerUser.role_name ? reviewerUser.role_name.toLowerCase() : '';
+    const isSystemAdmin = ['super_admin', 'org_admin', 'admin', 'hr'].includes(reqRole);
+
+    if (!isSystemAdmin) {
+      if (reqRole !== 'supervisor') {
+        throw ApiError.forbidden('Only supervisors or system administrators can review onboarding documents');
+      }
+      const supProfile = await ProfileModel.findSupervisorProfileByUserId(reviewerUser.id);
+      const internProfile = await ProfileModel.findInternProfileByUserId(doc.owner_id);
+      if (!supProfile || !internProfile || internProfile.supervisor_id !== supProfile.id) {
+        throw ApiError.forbidden('Supervisors can only review onboarding documents for their assigned interns');
+      }
+    }
+
+    if (['rejected', 'resubmission_required'].includes(status) && (!notes || !notes.trim())) {
+      throw ApiError.badRequest('A comment or reason is required when rejecting or requesting resubmission.');
+    }
+
+    const updatedDoc = await OnboardingModel.reviewDocument(documentId, {
+      review_status: status,
+      reviewer_id: reviewerUser.id,
+      review_notes: notes ? notes.trim() : '',
+    });
+
+    await AuditLogModel.log({
+      organizationId: doc.organization_id,
+      userId: reviewerUser.id,
+      action: `ONBOARDING_DOCUMENT_REVIEW_${status.toUpperCase()}`,
+      entityType: 'documents',
+      entityId: documentId,
+      details: { review_status: status, notes },
+      ipAddress,
+      userAgent,
+    });
+
+    // Notify intern about document review update
+    try {
+      if (doc.owner_id) {
+        const formattedStatus = status.replace('_', ' ');
+        await NotificationModel.create({
+          userId: doc.owner_id,
+          title: `Onboarding Document ${formattedStatus.toUpperCase()}`,
+          message: `Your document '${doc.title}' has been marked as ${formattedStatus} by supervisor.${notes ? ` Feedback: "${notes}"` : ''}`,
+          type: 'onboarding_review',
+          linkUrl: '/dashboard/onboarding',
+        });
+      }
+    } catch (notifErr) {
+      console.warn('Failed to send onboarding document review notification to intern:', notifErr);
+    }
+
+    return updatedDoc;
+  },
+
+  async getSupervisorOnboardingQueue(requestingUser) {
+    const reqRole = requestingUser.role_name ? requestingUser.role_name.toLowerCase() : '';
+    const orgId = reqRole === 'super_admin' ? null : requestingUser.organization_id;
+
+    let supProfile = null;
+    if (reqRole === 'supervisor') {
+      supProfile = await ProfileModel.findSupervisorProfileByUserId(requestingUser.id);
+      if (!supProfile && requestingUser.organization_id) {
+        supProfile = await ProfileModel.upsertSupervisorProfile({
+          user_id: requestingUser.id,
+          organization_id: requestingUser.organization_id,
+          department_id: requestingUser.department_id,
+        });
+      }
+    }
+
+    const interns = await UserModel.findPaginated({
+      organization_id: orgId,
+      role: 'intern',
+      limit: 100,
+      offset: 0,
+    });
+
+    const queue = await Promise.all(
+      interns.map(async (user) => {
+        const fullProfile = await ProfileModel.getCompleteInternProfile(user.id);
+        if (!fullProfile) return null;
+
+        if (supProfile) {
+          const isAssigned = fullProfile.supervisor_id === supProfile.id;
+          const isSameDepartmentUnassigned = !fullProfile.supervisor_id && fullProfile.department_id && fullProfile.department_id === supProfile.department_id;
+          if (!isAssigned && !isSameDepartmentUnassigned) {
+            return null;
+          }
+        }
+
+        const docTracking = await this.trackDocuments(user.id, requestingUser);
+
+        return {
+          intern_id: user.id,
+          internId: user.id,
+          user_id: user.id,
+          internName: `${user.first_name} ${user.last_name}`.trim(),
+          email: user.email,
+          department: fullProfile.department_name || 'Unassigned',
+          supervisor_id: fullProfile.supervisor_id || (supProfile ? supProfile.id : null),
+          supervisor_name: fullProfile.supervisor_first_name
+            ? `${fullProfile.supervisor_first_name} ${fullProfile.supervisor_last_name}`
+            : (supProfile ? `${requestingUser.first_name} ${requestingUser.last_name}` : 'Unassigned'),
+          approved_count: docTracking.approved_count,
+          total_required: docTracking.total_required,
+          progress_label: docTracking.progress_label,
+          onboarding_ready: docTracking.onboarding_ready,
+          documents: docTracking.checklist,
+          steps: docTracking.checklist,
+        };
+      })
+    );
+
+    return queue.filter(Boolean);
   },
 
   async assignSupervisorAndDepartment(data, requestingUser, ipAddress = null, userAgent = null) {

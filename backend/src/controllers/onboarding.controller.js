@@ -44,10 +44,29 @@ const completeOnboarding = asyncHandler(async (req, res) => {
   });
 });
 
+const reviewOnboardingDocument = asyncHandler(async (req, res) => {
+  const { documentId } = req.params;
+  const result = await OnboardingService.reviewDocument(documentId, req.body, req.user, req.ip, req.headers['user-agent']);
+  return sendSuccess(res, {
+    message: 'Document review status updated successfully',
+    data: result,
+  });
+});
+
+const getSupervisorQueue = asyncHandler(async (req, res) => {
+  const result = await OnboardingService.getSupervisorOnboardingQueue(req.user);
+  return sendSuccess(res, {
+    message: 'Supervisor onboarding review queue retrieved',
+    data: result,
+  });
+});
+
 module.exports = {
   submitOnboardingInfo,
   submitOnboardingDocument,
   getRequiredDocuments,
+  reviewOnboardingDocument,
+  getSupervisorQueue,
   assignSupervisorOnboarding,
   completeOnboarding,
 };

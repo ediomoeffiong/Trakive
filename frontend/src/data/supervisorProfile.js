@@ -8,7 +8,7 @@ export const mockSupervisorProfile = {
   firstName: 'Tochukwu',
   lastName: 'Mgbemmena',
   fullName: 'Tochukwu Mgbemmena',
-  email: 'tochukwu.mgbemmena@trakive.com',
+  email: 'tochukwu.mgbemmena@thefifthlab.com',
   phone: '+234 803 123 4567',
   jobTitle: 'Senior Project Manager & Lead',
   department: 'FifthLab',

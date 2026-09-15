@@ -67,7 +67,7 @@ export const defaultSettings = {
   account: {
     displayName:  'Ediomo Effiong',
     username:     'covenant.effiong',
-    email:        'ediomo.effiong@trakive.com',
+    email:        'ediomo.effiong@thefifthlab.com',
     phone:        '+234 800 000 0001',
     emailVerified: true,
   },

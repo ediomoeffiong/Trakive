@@ -46,12 +46,12 @@ async function cleanupMockData() {
          OR name LIKE 'Analytics Dept%'
     `);
 
-    // 9. Delete test users created by verification scripts (pattern: %@example.com)
-    // Preserves superadmin@trakive.com and any real organization users.
+    // 9. Delete test users created by verification scripts (pattern: test.%, %@example.com, supervisor@trakive.local)
+    // Preserves authentic system users (intern@thefifthlab.com, supervisor@thefifthlab.com, hr@cwg-plc.com, head@cwg-plc.com, admin@cwg-plc.com, superadmin@thefifthlab.com).
     await client.query(`
       DELETE FROM users 
-      WHERE email LIKE '%@example.com' 
-        AND email != 'superadmin@trakive.com'
+      WHERE (email LIKE 'test.%' OR email LIKE '%@example.com' OR email = 'supervisor@trakive.local')
+        AND email NOT IN ('intern@thefifthlab.com', 'supervisor@thefifthlab.com', 'hr@cwg-plc.com', 'head@cwg-plc.com', 'admin@cwg-plc.com', 'superadmin@thefifthlab.com')
     `);
 
     await client.query('COMMIT');

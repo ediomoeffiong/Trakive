@@ -1,13 +1,12 @@
 /**
  * @file OnboardingApprovalsView.jsx
- * @description Supervisor onboarding approval checklist view with document
- * verification, approve/reject controls, and audit history.
+ * @description Supervisor onboarding approval checklist view for CWG PLC & FifthLab intern onboarding documents.
+ * Enables viewing, downloading, approving, rejecting, or requesting resubmission with required comments.
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { useProfileStore } from '../../../store/useProfileStore';
 import {
   RiCheckboxCircleLine,
   RiCloseCircleLine,
@@ -22,605 +21,346 @@ import {
   RiShieldCheckLine,
   RiAlertLine,
   RiLoader4Line,
+  RiRefreshLine,
 } from 'react-icons/ri';
 import { OnboardingCardSkeleton } from './ReviewSkeletonLoaders';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-const fmt = (iso) =>
-  iso
-    ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-    : '—';
-
-const STEP_STATUS_CONFIG = {
-  approved: { label: 'Approved', bg: '#ecfdf5', color: '#059669', icon: RiCheckboxCircleLine },
-  rejected: { label: 'Rejected', bg: '#fef2f2', color: '#dc2626', icon: RiCloseCircleLine },
-  'pending-review': { label: 'Pending', bg: '#fffbeb', color: '#d97706', icon: RiTimeLine },
-  'not-submitted': { label: 'Not Submitted', bg: '#f1f5f9', color: '#64748b', icon: RiTimeLine },
+// ── Status Configurations ────────────────────────────────────────────────────
+const STATUS_CONFIG = {
+  approved: { label: 'Approved', bg: '#ecfdf5', color: '#059669', border: '#a7f3d0', icon: RiCheckboxCircleLine },
+  rejected: { label: 'Rejected', bg: '#fef2f2', color: '#dc2626', border: '#fecaca', icon: RiCloseCircleLine },
+  resubmission_required: { label: 'Resubmission Required', bg: '#fff7ed', color: '#ea580c', border: '#ffedd5', icon: RiAlertLine },
+  pending: { label: 'Pending Review', bg: '#fffbeb', color: '#d97706', border: '#fde68a', icon: RiTimeLine },
+  'pending-review': { label: 'Pending Review', bg: '#fffbeb', color: '#d97706', border: '#fde68a', icon: RiTimeLine },
+  not_submitted: { label: 'Not Submitted', bg: '#f8fafc', color: '#64748b', border: '#e2e8f0', icon: RiTimeLine },
 };
 
-const FILE_ICONS = {
-  pdf: { icon: RiFilePdfLine, color: '#ef4444' },
-  image: { icon: RiFileImageLine, color: '#10b981' },
-  default: { icon: RiFileTextLine, color: '#64748b' },
+const REQUIRED_DOC_TITLES = {
+  resume: 'Resume / CV',
+  placement_letter: 'Internship / Placement Letter',
+  acceptance_letter: 'Acceptance Letter',
 };
 
-const getInitialsBg = (initials = 'XX') => {
+const getInitialsBg = (initials = 'IN') => {
   const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#7c3aed', '#059669'];
-  return colors[initials.charCodeAt(0) % colors.length];
+  return colors[(initials.charCodeAt(0) || 0) % colors.length];
 };
 
-const ProgressCircle = ({ percent = 0 }) => {
-  const r = 20;
-  const c = 2 * Math.PI * r;
-  const offset = c - (percent / 100) * c;
-  const color = percent === 100 ? '#10b981' : percent >= 60 ? '#4f46e5' : '#f59e0b';
-  return (
-    <svg width="52" height="52" viewBox="0 0 52 52">
-      <circle cx="26" cy="26" r={r} fill="none" stroke="#f1f5f9" strokeWidth="4" />
-      <circle cx="26" cy="26" r={r} fill="none" stroke={color} strokeWidth="4"
-        strokeDasharray={c} strokeDashoffset={offset}
-        strokeLinecap="round" style={{ transform: 'rotate(-90deg)', transformOrigin: 'center', transition: 'stroke-dashoffset 0.5s ease' }} />
-      <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central" fontSize="10" fontWeight="700" fill={color}>
-        {percent}%
-      </text>
-    </svg>
-  );
-};
-
-// ── Step Review Panel (shown when a step is selected) ─────────────────────────
-const StepReviewPanel = ({ intern, step, isLoading, onApprove, onReject, onBack }) => {
+// ── Document Review Panel ─────────────────────────────────────────────────────
+const DocumentReviewPanel = ({ intern, docItem, actionLoading, onReviewComplete, onBack }) => {
+  const [decision, setDecision] = useState(null); // 'approved' | 'rejected' | 'resubmission_required'
   const [notes, setNotes] = useState('');
-  const [rejectReason, setRejectReason] = useState('');
-  const [confirming, setConfirming] = useState(null); // 'approve' | 'reject'
 
-  const cfg = STEP_STATUS_CONFIG[step.status] || STEP_STATUS_CONFIG['not-submitted'];
+  const doc = docItem.document || docItem;
+  const status = docItem.review_status || doc?.review_status || docItem.status || 'pending';
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
+  const docTitle = REQUIRED_DOC_TITLES[docItem.category] || docItem.title || 'Onboarding Document';
+
+  const handleConfirmAction = () => {
+    if (!decision) return;
+    if ((decision === 'rejected' || decision === 'resubmission_required') && !notes.trim()) {
+      toast.error('A review comment/reason is REQUIRED when rejecting or requesting resubmission.');
+      return;
+    }
+
+    onReviewComplete?.(intern.internId || intern.intern_id, doc.id || docItem.category, decision, notes);
+  };
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 32 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 32 }}
+      initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }}
       style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
     >
-      {/* Back */}
       <button
         onClick={onBack}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', background: 'none', border: 'none', cursor: 'pointer', color: '#4f46e5', fontSize: '0.875rem', fontWeight: 700, padding: 0 }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', background: 'none', border: 'none', cursor: 'pointer', color: '#00b4d8', fontSize: '0.875rem', fontWeight: 700, padding: 0 }}
       >
         <RiArrowLeftLine /> Back to {intern.internName}
       </button>
 
-      {/* Step header */}
-      <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', padding: '1.25rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
+      {/* Document Info Card */}
+      <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', padding: '1.25rem', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>{step.title}</h3>
-            <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>{step.category}</p>
+            <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>{docTitle}</h3>
+            <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
+              Submitted by <strong>{intern.internName}</strong> ({intern.department || 'FifthLab'})
+            </p>
           </div>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.75rem', borderRadius: '9999px', background: cfg.bg, color: cfg.color, fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
-            <cfg.icon style={{ fontSize: '0.875rem' }} />
-            {cfg.label}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.75rem', borderRadius: '9999px', background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, fontSize: '0.75rem', fontWeight: 800 }}>
+            <cfg.icon /> {cfg.label}
           </span>
         </div>
-        <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-600)', lineHeight: 1.6 }}>{step.description}</p>
-        <div style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-400)', marginTop: '0.5rem' }}>
-          Submitted: {fmt(step.submittedAt)}
-          {step.required && <span style={{ marginLeft: '0.75rem', color: '#ef4444', fontWeight: 600 }}>Required</span>}
-        </div>
-      </div>
 
-      {/* Documents */}
-      {step.documents?.length > 0 && (
-        <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', padding: '1.25rem' }}>
-          <h4 style={{ margin: '0 0 0.875rem', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-neutral-500)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Attached Documents</h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {step.documents.map((doc) => {
-              const { icon: FileIcon, color } = FILE_ICONS[doc.type] || FILE_ICONS.default;
-              return (
-                <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '0.75rem', border: '1px solid var(--color-neutral-100)' }}>
-                  <FileIcon style={{ fontSize: '1.375rem', color, flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.name}</div>
-                    <div style={{ fontSize: '0.6875rem', color: 'var(--color-neutral-400)' }}>{doc.size} · {fmt(doc.uploadedAt)}</div>
-                  </div>
-                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} title="Download" style={{ background: 'none', border: 'none', color: 'var(--color-neutral-400)', fontSize: '1.1rem', cursor: 'pointer' }}>
-                    <RiDownloadLine />
-                  </motion.button>
+        {/* File Details & Download */}
+        {doc ? (
+          <div style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '0.875rem', border: '1px solid var(--color-neutral-200)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <RiFilePdfLine style={{ fontSize: '1.75rem', color: '#ef4444' }} />
+              <div>
+                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>{doc.file_name || `${docTitle}.pdf`}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--color-neutral-400)' }}>
+                  Size: {doc.file_size ? `${(doc.file_size / (1024 * 1024)).toFixed(2)} MB` : '1.2 MB'} · Uploaded: {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('en-GB') : 'Recently'}
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Previous review notes */}
-      {step.notes && (
-        <div style={{ background: '#fffbeb', borderRadius: '0.875rem', padding: '1rem', border: '1px solid #fef3c7' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#92400e', marginBottom: '0.375rem' }}>Reviewer Note</div>
-          <div style={{ fontSize: '0.875rem', color: '#78350f', lineHeight: 1.6 }}>{step.notes}</div>
-        </div>
-      )}
-
-      {/* Action panel — only for pending-review steps */}
-      {step.status === 'pending-review' && (
-        <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', padding: '1.25rem' }}>
-          <h4 style={{ margin: '0 0 1rem', fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-neutral-800)' }}>Your Decision</h4>
-
-          {!confirming ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Optional notes for the intern…"
-                rows={3}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-neutral-200)', fontSize: '0.875rem', lineHeight: 1.6, outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                onFocus={(e) => (e.target.style.borderColor = '#4f46e5')}
-                onBlur={(e) => (e.target.style.borderColor = 'var(--color-neutral-200)')}
-              />
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <motion.button
-                  whileHover={{ scale: 1.03, boxShadow: '0 6px 20px rgba(16,185,129,0.3)' }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setConfirming('approve')}
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem', borderRadius: '0.875rem', border: 'none', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer' }}
-                >
-                  <RiCheckboxCircleLine /> Approve Step
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.03, boxShadow: '0 6px 20px rgba(239,68,68,0.25)' }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setConfirming('reject')}
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem', borderRadius: '0.875rem', border: 'none', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer' }}
-                >
-                  <RiCloseCircleLine /> Reject Step
-                </motion.button>
               </div>
             </div>
-          ) : (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ padding: '0.875rem', borderRadius: '0.875rem', background: confirming === 'approve' ? '#ecfdf5' : '#fef2f2', border: `1px solid ${confirming === 'approve' ? '#a7f3d0' : '#fecaca'}` }}>
-                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: confirming === 'approve' ? '#059669' : '#dc2626', marginBottom: '0.25rem' }}>
-                  {confirming === 'approve' ? 'Confirm Approval' : 'Confirm Rejection'}
-                </div>
-                <div style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-600)' }}>
-                  This action will update the step status and notify the intern.
-                </div>
-              </div>
-              {confirming === 'reject' && (
-                <textarea
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="Reason for rejection (required)…"
-                  rows={3}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid #fecaca', fontSize: '0.875rem', lineHeight: 1.6, outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                />
-              )}
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button onClick={() => setConfirming(null)} style={{ flex: 1, padding: '0.625rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-neutral-200)', background: '#fff', color: 'var(--color-neutral-600)', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}>
-                  Cancel
-                </button>
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => {
-                    if (confirming === 'reject' && !rejectReason.trim()) { alert('Please provide a rejection reason.'); return; }
-                    if (confirming === 'approve') onApprove?.(intern.internId, step.id, notes);
-                    else onReject?.(intern.internId, step.id, rejectReason || notes);
-                  }}
-                  disabled={isLoading}
-                  style={{ flex: 1, padding: '0.625rem', borderRadius: '0.75rem', border: 'none', background: confirming === 'approve' ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: isLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                >
-                  {isLoading ? <RiLoader4Line style={{ animation: 'spin 0.8s linear infinite' }} /> : null}
-                  Confirm {confirming === 'approve' ? 'Approval' : 'Rejection'}
-                </motion.button>
-              </div>
-            </motion.div>
-          )}
+
+            <a
+              href={doc.file_path || '#'}
+              download={doc.file_name || docTitle}
+              target="_blank" rel="noreferrer"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                padding: '0.5rem 0.875rem', borderRadius: '0.625rem', border: '1px solid var(--color-neutral-300)',
+                background: '#fff', color: 'var(--color-neutral-700)', fontSize: '0.8125rem', fontWeight: 700, textDecoration: 'none',
+              }}
+            >
+              <RiDownloadLine /> Download File
+            </a>
+          </div>
+        ) : (
+          <div style={{ padding: '1rem', background: '#fef2f2', borderRadius: '0.75rem', color: '#dc2626', fontSize: '0.875rem' }}>
+            No file uploaded for this document item yet.
+          </div>
+        )}
+      </div>
+
+      {/* Review Decision Form */}
+      <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', padding: '1.25rem' }}>
+        <h4 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-800)' }}>Supervisor Review Action</h4>
+
+        <div style={{ display: 'flex', gap: '0.625rem', marginBottom: '1.25rem' }}>
+          {[
+            { id: 'approved', label: 'Approve', bg: '#ecfdf5', color: '#059669', activeBorder: '#10b981' },
+            { id: 'resubmission_required', label: 'Request Resubmission', bg: '#fff7ed', color: '#ea580c', activeBorder: '#f97316' },
+            { id: 'rejected', label: 'Reject', bg: '#fef2f2', color: '#dc2626', activeBorder: '#ef4444' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setDecision(item.id)}
+              style={{
+                flex: 1, padding: '0.75rem 0.5rem', borderRadius: '0.75rem',
+                border: decision === item.id ? `2px solid ${item.activeBorder}` : '1px solid var(--color-neutral-200)',
+                background: decision === item.id ? item.bg : '#fff',
+                color: decision === item.id ? item.color : 'var(--color-neutral-700)',
+                fontWeight: 800, fontSize: '0.8125rem', cursor: 'pointer', transition: 'all 0.15s ease',
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
-      )}
+
+        {/* Notes / Reason Textarea */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-700)', marginBottom: '0.4rem' }}>
+            Supervisor Comment / Reason {(decision === 'rejected' || decision === 'resubmission_required') && <span style={{ color: '#ef4444' }}>* (Required)</span>}
+          </label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder={
+              decision === 'rejected' || decision === 'resubmission_required'
+                ? 'Specify the exact reason or instructions for resubmission…'
+                : 'Optional reviewer feedback or notes…'
+            }
+            rows={3}
+            style={{
+              width: '100%', padding: '0.75rem', borderRadius: '0.75rem',
+              border: `1.5px solid ${(decision === 'rejected' || decision === 'resubmission_required') && !notes.trim() ? '#fca5a5' : 'var(--color-neutral-300)'}`,
+              fontSize: '0.875rem', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box',
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+          <button
+            onClick={onBack}
+            style={{ padding: '0.625rem 1rem', borderRadius: '0.625rem', border: '1px solid var(--color-neutral-300)', background: '#fff', color: 'var(--color-neutral-600)', fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirmAction}
+            disabled={!decision || actionLoading}
+            style={{
+              padding: '0.625rem 1.25rem', borderRadius: '0.625rem', border: 'none',
+              background: !decision ? 'var(--color-neutral-300)' : decision === 'approved' ? '#059669' : decision === 'resubmission_required' ? '#ea580c' : '#dc2626',
+              color: '#fff', fontSize: '0.8125rem', fontWeight: 800, cursor: !decision || actionLoading ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+            }}
+          >
+            {actionLoading ? <RiLoader4Line style={{ animation: 'spin 0.8s linear infinite' }} /> : null}
+            Submit Decision
+          </button>
+        </div>
+      </div>
     </motion.div>
   );
 };
 
 // ── Intern Card ───────────────────────────────────────────────────────────────
 const InternOnboardingCard = ({ intern, onSelectIntern }) => {
-  const pendingCount = intern.steps.filter((s) => s.status === 'pending-review').length;
-  const statusColor = intern.overallProgress === 100 ? '#10b981' : intern.overallProgress >= 60 ? '#4f46e5' : '#f59e0b';
+  const steps = intern.steps || intern.documents || [];
+  const approvedCount = steps.filter((s) => s.status === 'approved' || s.review_status === 'approved').length;
+  const totalCount = 3;
 
   return (
     <motion.div
-      whileHover={{ y: -3, boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}
-      style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)', cursor: 'pointer' }}
+      whileHover={{ y: -3, boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}
+      style={{
+        background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)',
+        padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.03)', cursor: 'pointer',
+      }}
       onClick={() => onSelectIntern(intern)}
     >
-      {/* Header */}
-      <div style={{ display: 'flex', gap: '0.875rem', alignItems: 'center' }}>
-        <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: getInitialsBg(intern.internInitials), color: '#fff', fontSize: '0.9375rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          {intern.internInitials}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: getInitialsBg(intern.internName || 'IN'), color: '#fff', fontSize: '0.9375rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {(intern.internName || 'IN').split(' ').map((n) => n[0]).join('').slice(0, 2)}
+          </div>
+          <div>
+            <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>{intern.internName || 'Intern'}</div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--color-neutral-500)' }}>{intern.department || 'FifthLab'}</div>
+          </div>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{intern.internName}</div>
-          <div style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>{intern.department}</div>
-        </div>
-        <ProgressCircle percent={intern.overallProgress} />
+
+        <span style={{ fontSize: '0.8125rem', fontWeight: 800, padding: '0.2rem 0.65rem', borderRadius: '9999px', background: approvedCount === 3 ? '#ecfdf5' : '#eef2ff', color: approvedCount === 3 ? '#059669' : '#4f46e5' }}>
+          {approvedCount}/3 Approved
+        </span>
       </div>
 
-      {/* Steps summary */}
+      {/* 3 Required Documents Checklist Statuses */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        {intern.steps.slice(0, 4).map((step) => {
-          const cfg = STEP_STATUS_CONFIG[step.status] || STEP_STATUS_CONFIG['not-submitted'];
+        {[
+          { key: 'resume', title: 'Resume / CV' },
+          { key: 'placement_letter', title: 'Placement Letter' },
+          { key: 'acceptance_letter', title: 'Acceptance Letter' },
+        ].map((item) => {
+          const doc = steps.find((s) => s.category === item.key) || steps.find((s) => s.title?.toLowerCase().includes(item.key));
+          const status = doc ? doc.review_status || doc.status || 'pending' : 'not_submitted';
+          const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.not_submitted;
+
           return (
-            <div key={step.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: '#f8fafc', borderRadius: '0.625rem', borderLeft: `3px solid ${cfg.color}` }}>
-              <span style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-600)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, marginRight: '0.5rem' }}>{step.title}</span>
-              <span style={{ padding: '0.1rem 0.5rem', borderRadius: '9999px', fontSize: '0.625rem', fontWeight: 700, background: cfg.bg, color: cfg.color, flexShrink: 0 }}>{cfg.label}</span>
+            <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: '#f8fafc', borderRadius: '0.5rem', borderLeft: `3px solid ${cfg.color}` }}>
+              <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>{item.title}</span>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: cfg.color, background: cfg.bg, padding: '0.15rem 0.5rem', borderRadius: '9999px' }}>
+                {cfg.label}
+              </span>
             </div>
           );
         })}
-        {intern.steps.length > 4 && (
-          <div style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)', textAlign: 'center' }}>+{intern.steps.length - 4} more steps</div>
-        )}
       </div>
 
-      {/* CTA */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {pendingCount > 0 ? (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#d97706' }}>
-            <RiAlertLine /> {pendingCount} awaiting review
-          </span>
-        ) : (
-          <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>Start Date: {fmt(intern.startDate)}</span>
-        )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#4f46e5', fontSize: '0.8125rem', fontWeight: 700 }}>
-          Review <RiArrowRightSLine />
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', color: '#00b4d8', fontSize: '0.8125rem', fontWeight: 800 }}>
+        Review Documents <RiArrowRightSLine />
       </div>
     </motion.div>
   );
 };
 
-// ── Intern Checklist View ─────────────────────────────────────────────────────
-const InternChecklistView = ({ intern, isLoading, onApprove, onReject, onBack }) => {
-  const [selectedStep, setSelectedStep] = useState(null);
-  const [activeTab, setActiveTab] = useState('checklist');
+// ── Main Component ─────────────────────────────────────────────────────────────
+export default function OnboardingApprovalsView({ queue = [], isLoading = false, actionLoading = false, onApprove, onReject }) {
+  const [selectedIntern, setSelectedIntern] = useState(null);
+  const [selectedDocItem, setSelectedDocItem] = useState(null);
 
-  if (selectedStep) {
+  const displayQueue = queue;
+
+  if (isLoading) return <OnboardingCardSkeleton count={3} />;
+
+  if (displayQueue.length === 0) {
     return (
-      <StepReviewPanel
-        intern={intern}
-        step={selectedStep}
-        isLoading={isLoading}
-        onApprove={(internId, stepId, notes) => { onApprove(internId, stepId, notes); setSelectedStep(null); }}
-        onReject={(internId, stepId, notes) => { onReject(internId, stepId, notes); setSelectedStep(null); }}
-        onBack={() => setSelectedStep(null)}
+      <div style={{ background: '#fff', borderRadius: '1rem', padding: '2.5rem', textAlign: 'center', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+        <RiShieldCheckLine style={{ fontSize: '3rem', color: '#10b981', marginBottom: '0.75rem' }} />
+        <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: '#0f172a' }}>No Pending Onboarding Document Reviews</h3>
+        <p style={{ margin: '0.375rem 0 0', fontSize: '0.875rem', color: '#64748b' }}>
+          All onboarding documents for assigned interns have been reviewed or no submissions are pending.
+        </p>
+      </div>
+    );
+  }
+
+  if (selectedIntern && selectedDocItem) {
+    return (
+      <DocumentReviewPanel
+        intern={selectedIntern}
+        docItem={selectedDocItem}
+        actionLoading={actionLoading}
+        onReviewComplete={(internId, categoryOrDocId, decision, notes) => {
+          if (decision === 'approved') onApprove?.(internId, categoryOrDocId, notes);
+          else onReject?.(internId, categoryOrDocId, notes);
+          setSelectedDocItem(null);
+        }}
+        onBack={() => setSelectedDocItem(null)}
       />
     );
   }
 
-  return (
-    <motion.div initial={{ opacity: 0, x: 32 }} animate={{ opacity: 1, x: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* Back */}
-      <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', background: 'none', border: 'none', cursor: 'pointer', color: '#4f46e5', fontSize: '0.875rem', fontWeight: 700, padding: 0 }}>
-        <RiArrowLeftLine /> All Interns
-      </button>
+  if (selectedIntern) {
+    const steps = selectedIntern.steps || selectedIntern.documents || [];
+    return (
+      <motion.div initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <button
+          onClick={() => setSelectedIntern(null)}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', background: 'none', border: 'none', cursor: 'pointer', color: '#00b4d8', fontSize: '0.875rem', fontWeight: 700, padding: 0 }}
+        >
+          <RiArrowLeftLine /> Back to All Interns
+        </button>
 
-      {/* Header */}
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: 'linear-gradient(135deg, #f8faff, #eef2ff)', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #e0e7ff' }}>
-        <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: getInitialsBg(intern.internInitials), color: '#fff', fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          {intern.internInitials}
+        <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', padding: '1.25rem', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
+          <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>{selectedIntern.internName} — Onboarding Documents</h3>
+          <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--color-neutral-500)' }}>Select any required document below to review, approve, or request resubmission.</p>
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>{intern.internName}</div>
-          <div style={{ fontSize: '0.875rem', color: '#4f46e5', fontWeight: 600 }}>{intern.department}</div>
-        </div>
-        <ProgressCircle percent={intern.overallProgress} />
-      </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0', background: '#f8fafc', borderRadius: '0.75rem', padding: '0.25rem', border: '1px solid var(--color-neutral-200)' }}>
-        {[{ id: 'checklist', label: 'Checklist', icon: RiShieldCheckLine }, { id: 'history', label: 'Audit History', icon: RiHistoryLine }].map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setActiveTab(id)}
-            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', padding: '0.5rem', borderRadius: '0.625rem', border: 'none', background: activeTab === id ? '#fff' : 'transparent', color: activeTab === id ? '#4f46e5' : 'var(--color-neutral-500)', fontWeight: activeTab === id ? 700 : 500, fontSize: '0.875rem', cursor: 'pointer', boxShadow: activeTab === id ? '0 2px 8px rgba(0,0,0,0.06)' : 'none', transition: 'all 0.15s' }}
-          >
-            <Icon style={{ fontSize: '0.9rem' }} /> {label}
-          </button>
-        ))}
-      </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {[
+            { category: 'resume', title: 'Resume / CV' },
+            { category: 'placement_letter', title: 'Placement Letter' },
+            { category: 'acceptance_letter', title: 'Acceptance Letter' },
+          ].map((item) => {
+            const doc = steps.find((s) => s.category === item.category) || steps.find((s) => s.title?.toLowerCase().includes(item.category));
+            const status = doc ? doc.review_status || doc.status || 'pending' : 'not_submitted';
+            const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.not_submitted;
 
-      {activeTab === 'checklist' ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-          {intern.steps.map((step) => {
-            const cfg = STEP_STATUS_CONFIG[step.status] || STEP_STATUS_CONFIG['not-submitted'];
-            const canReview = step.status === 'pending-review';
             return (
-              <motion.div
-                key={step.id}
-                whileHover={canReview ? { x: 4 } : {}}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.875rem 1rem', background: '#fff', borderRadius: '0.875rem', border: `1px solid ${canReview ? '#fef3c7' : 'var(--color-neutral-200)'}`, cursor: canReview ? 'pointer' : 'default', transition: 'border-color 0.15s' }}
-                onClick={() => canReview && setSelectedStep(step)}
+              <div
+                key={item.category}
+                onClick={() => setSelectedDocItem(doc || { category: item.category, title: item.title, status: 'pending' })}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '1rem 1.25rem', background: '#fff', borderRadius: '0.875rem',
+                  border: `1.5px solid ${cfg.border}`, cursor: 'pointer', transition: 'all 0.15s ease',
+                }}
               >
-                <cfg.icon style={{ fontSize: '1.25rem', color: cfg.color, flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>{step.title}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>{step.category} · {fmt(step.submittedAt)}</div>
+                <div>
+                  <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>{item.title}</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-neutral-500)', marginTop: '0.15rem' }}>
+                    {doc ? `File: ${doc.file_name || `${item.title}.pdf`}` : 'Awaiting intern upload'}
+                  </div>
                 </div>
-                <span style={{ padding: '0.2rem 0.625rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: cfg.bg, color: cfg.color, flexShrink: 0 }}>{cfg.label}</span>
-                {canReview && <RiArrowRightSLine style={{ color: '#f59e0b', fontSize: '1.1rem', flexShrink: 0 }} />}
-              </motion.div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: cfg.color, background: cfg.bg, padding: '0.25rem 0.65rem', borderRadius: '9999px', border: `1px solid ${cfg.border}` }}>
+                    {cfg.label}
+                  </span>
+                  <RiArrowRightSLine style={{ color: 'var(--color-neutral-400)', fontSize: '1.2rem' }} />
+                </div>
+              </div>
             );
           })}
         </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-          {intern.auditLog.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-neutral-400)', fontSize: '0.875rem' }}>No audit history yet</div>
-          ) : (
-            intern.auditLog.map((log) => (
-              <div key={log.id} style={{ padding: '0.875rem', background: '#f8fafc', borderRadius: '0.875rem', border: '1px solid var(--color-neutral-100)', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                {log.action === 'approved'
-                  ? <RiCheckboxCircleLine style={{ color: '#059669', fontSize: '1.1rem', flexShrink: 0, marginTop: '1px' }} />
-                  : <RiCloseCircleLine style={{ color: '#dc2626', fontSize: '1.1rem', flexShrink: 0, marginTop: '1px' }} />}
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>
-                    <span style={{ textTransform: 'capitalize' }}>{log.action}</span>: {log.stepTitle}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
-                    by {log.performedBy} · {fmt(log.timestamp)}
-                  </div>
-                  {log.reason && <div style={{ fontSize: '0.75rem', color: '#78350f', marginTop: '0.25rem', fontStyle: 'italic' }}>"{log.reason}"</div>}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-    </motion.div>
-  );
-};
-
-// ── Profile Change Requests Panel ──────────────────────────────────────────────
-function SupervisorProfileChangeRequestsPanel() {
-  const {
-    profileChangeRequests,
-    fetchProfileChangeRequests,
-    approveProfileChangeRequest,
-    rejectProfileChangeRequest,
-  } = useProfileStore();
-
-  const [rejectingId, setRejectingId] = useState(null);
-  const [rejectReason, setRejectReason] = useState('');
-  const [processingId, setProcessingId] = useState(null);
-
-  useEffect(() => {
-    fetchProfileChangeRequests();
-  }, [fetchProfileChangeRequests]);
-
-  const pendingRequests = profileChangeRequests?.filter((r) => r.status === 'pending') || [];
-
-  if (pendingRequests.length === 0) return null;
-
-  const handleApprove = async (id) => {
-    setProcessingId(id);
-    try {
-      await approveProfileChangeRequest(id);
-      toast.success('Profile change request approved!');
-    } catch (err) {
-      toast.error('Failed to approve request.');
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleReject = async (id) => {
-    setProcessingId(id);
-    try {
-      await rejectProfileChangeRequest(id, rejectReason);
-      toast.success('Profile change request rejected.');
-      setRejectingId(null);
-      setRejectReason('');
-    } catch (err) {
-      toast.error('Failed to reject request.');
-    } finally {
-      setProcessingId(null);
-    }
-  };
+      </motion.div>
+    );
+  }
 
   return (
-    <div
-      style={{
-        background: '#fff',
-        border: '1.5px solid #6366f1',
-        borderRadius: '1.125rem',
-        padding: '1.25rem 1.5rem',
-        marginBottom: '1.5rem',
-        boxShadow: '0 4px 20px rgba(99,102,241,0.08)',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-          <div style={{ background: '#eef2ff', padding: '0.4rem 0.6rem', borderRadius: '0.5rem', fontSize: '1.2rem' }}>🆔</div>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
-              Pending Profile & Identity Change Requests
-            </h3>
-            <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', color: 'var(--color-neutral-500)' }}>
-              Review and approve profile modifications submitted by your assigned interns
-            </p>
-          </div>
-        </div>
-        <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.75rem', borderRadius: '9999px', background: '#d97706', color: '#fff' }}>
-          {pendingRequests.length} Pending
-        </span>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {pendingRequests.map((req) => (
-          <div
-            key={req.id}
-            style={{
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
-              borderRadius: '0.875rem',
-              padding: '1rem 1.25rem',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <div>
-                <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
-                  {req.internName}
-                </span>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)', marginLeft: '0.5rem' }}>
-                  ({req.internEmail})
-                </span>
-              </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
-                {new Date(req.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </span>
-            </div>
-
-            {/* Diff comparison table */}
-            <div style={{ background: '#fff', borderRadius: '0.625rem', border: '1px solid var(--color-neutral-200)', overflow: 'hidden', marginBottom: '0.875rem' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ background: '#f1f5f9', borderBottom: '1px solid var(--color-neutral-200)' }}>
-                    <th style={{ padding: '0.5rem 0.75rem', color: 'var(--color-neutral-600)', fontWeight: 700 }}>Field</th>
-                    <th style={{ padding: '0.5rem 0.75rem', color: 'var(--color-neutral-600)', fontWeight: 700 }}>Current Value</th>
-                    <th style={{ padding: '0.5rem 0.75rem', color: '#4f46e5', fontWeight: 700 }}>Requested New Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(req.proposedChanges).map(([field, val]) => (
-                    <tr key={field} style={{ borderBottom: '1px solid var(--color-neutral-100)' }}>
-                      <td style={{ padding: '0.5rem 0.75rem', fontWeight: 700, color: 'var(--color-neutral-700)', textTransform: 'capitalize' }}>{field}</td>
-                      <td style={{ padding: '0.5rem 0.75rem', color: '#64748b' }}>{req.currentData?.[field] || '—'}</td>
-                      <td style={{ padding: '0.5rem 0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5' }}>{String(val)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {rejectingId === req.id ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: '#fef2f2', padding: '0.75rem', borderRadius: '0.625rem', border: '1px solid #fecaca' }}>
-                <textarea
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="Reason for rejection (optional)..."
-                  rows={2}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #fca5a5', fontSize: '0.8125rem', fontFamily: 'inherit' }}
-                />
-                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => { setRejectingId(null); setRejectReason(''); }}
-                    style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.75rem', cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => handleReject(req.id)}
-                    disabled={processingId === req.id}
-                    style={{ padding: '0.375rem 0.75rem', borderRadius: '0.5rem', border: 'none', background: '#dc2626', color: '#fff', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    Confirm Rejection
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.625rem' }}>
-                <button
-                  onClick={() => setRejectingId(req.id)}
-                  disabled={processingId === req.id}
-                  style={{
-                    padding: '0.4rem 0.875rem',
-                    borderRadius: '0.5rem',
-                    border: '1.5px solid #fecaca',
-                    background: '#fff',
-                    color: '#dc2626',
-                    fontSize: '0.8125rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Reject Request
-                </button>
-                <button
-                  onClick={() => handleApprove(req.id)}
-                  disabled={processingId === req.id}
-                  style={{
-                    padding: '0.4rem 1rem',
-                    borderRadius: '0.5rem',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                    color: '#fff',
-                    fontSize: '0.8125rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(16,185,129,0.25)',
-                  }}
-                >
-                  {processingId === req.id ? 'Approving...' : 'Approve Changes'}
-                </button>
-              </div>
-            )}
-          </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+        {displayQueue.map((intern) => (
+          <InternOnboardingCard key={intern.internId || intern.intern_id} intern={intern} onSelectIntern={setSelectedIntern} />
         ))}
       </div>
     </div>
   );
 }
-
-// ── Main Component ─────────────────────────────────────────────────────────────
-const OnboardingApprovalsView = ({ queue = [], isLoading = false, actionLoading = false, onApprove, onReject }) => {
-  const [selectedIntern, setSelectedIntern] = useState(null);
-
-  if (isLoading) return <OnboardingCardSkeleton count={4} />;
-
-  if (selectedIntern) {
-    const intern = queue.find((i) => i.internId === selectedIntern.internId) || selectedIntern;
-    return (
-      <InternChecklistView
-        intern={intern}
-        isLoading={actionLoading}
-        onApprove={(internId, stepId, notes) => onApprove?.(internId, stepId, notes)}
-        onReject={(internId, stepId, notes) => onReject?.(internId, stepId, notes)}
-        onBack={() => setSelectedIntern(null)}
-      />
-    );
-  }
-
-  if (queue.length === 0) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        <SupervisorProfileChangeRequestsPanel />
-        <div style={{ textAlign: 'center', padding: '3rem 2rem' }}>
-          <RiShieldCheckLine style={{ fontSize: '3rem', color: 'var(--color-neutral-300)', marginBottom: '1rem' }} />
-          <h3 style={{ margin: 0, color: 'var(--color-neutral-500)', fontWeight: 700 }}>All Onboarding Steps Clear</h3>
-          <p style={{ margin: '0.5rem 0 0', color: 'var(--color-neutral-400)', fontSize: '0.875rem' }}>No pending onboarding checklist items to review.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const pendingCount = queue.reduce((acc, i) => acc + i.steps.filter((s) => s.status === 'pending-review').length, 0);
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <SupervisorProfileChangeRequestsPanel />
-      {pendingCount > 0 && (
-        <div style={{ background: '#fffbeb', borderRadius: '0.875rem', padding: '0.875rem 1.125rem', display: 'flex', alignItems: 'center', gap: '0.625rem', border: '1px solid #fef3c7' }}>
-          <RiAlertLine style={{ color: '#d97706', fontSize: '1.1rem', flexShrink: 0 }} />
-          <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#92400e' }}>
-            {pendingCount} step{pendingCount !== 1 ? 's' : ''} awaiting your review across {queue.filter((i) => i.steps.some((s) => s.status === 'pending-review')).length} intern{queue.filter((i) => i.steps.some((s) => s.status === 'pending-review')).length !== 1 ? 's' : ''}
-          </span>
-        </div>
-      )}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
-        {queue.map((intern) => (
-          <InternOnboardingCard key={intern.internId} intern={intern} onSelectIntern={setSelectedIntern} />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-export default OnboardingApprovalsView;

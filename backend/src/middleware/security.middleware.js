@@ -21,7 +21,7 @@ const apiLimiter = rateLimit({
 // Configure Strict Auth Rate Limiter for brute-force protection
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 attempts per IP per 15 minutes window
+  max: config.env === 'production' ? 10 : 1000, // 10 attempts in prod, 1000 in dev
   standardHeaders: true,
   legacyHeaders: false,
   message: {

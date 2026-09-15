@@ -23,6 +23,9 @@ const createInternAccountFromAppSchema = Joi.object({
 
 const submitOnboardingInfoSchema = Joi.object({
   application_id: Joi.string().uuid().optional(),
+  department_id: Joi.string().uuid().optional(),
+  start_date: Joi.string().isoDate().optional(),
+  end_date: Joi.string().isoDate().optional(),
   emergency_contact: Joi.object({
     name: Joi.string().required(),
     relationship: Joi.string().required(),
@@ -34,14 +37,43 @@ const submitOnboardingInfoSchema = Joi.object({
   academic_year: Joi.string().trim().optional(),
 });
 
+const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+];
+
 const submitDocumentSchema = Joi.object({
   application_id: Joi.string().uuid().optional(),
   title: Joi.string().trim().required(),
   file_name: Joi.string().trim().required(),
   file_path: Joi.string().trim().required(),
-  file_size: Joi.number().integer().min(0).required(),
-  mime_type: Joi.string().trim().required(),
-  category: Joi.string().valid('id_proof', 'agreement', 'report', 'submission', 'general').default('general'),
+  file_size: Joi.number().integer().min(1).max(10 * 1024 * 1024).required().messages({
+    'number.max': 'File size must not exceed 10 MB',
+  }),
+  mime_type: Joi.string().trim().valid(...ALLOWED_MIME_TYPES).required().messages({
+    'any.only': 'Only PDF documents (.pdf) are allowed as input.',
+  }),
+  category: Joi.string().valid(
+    'resume',
+    'placement_letter',
+    'acceptance_letter',
+    'id_proof',
+    'agreement',
+    'report',
+    'submission',
+    'general'
+  ).required(),
+});
+
+const reviewDocumentSchema = Joi.object({
+  status: Joi.string().valid('approved', 'rejected', 'resubmission_required').required(),
+  notes: Joi.string().trim().when('status', {
+    is: Joi.valid('rejected', 'resubmission_required'),
+    then: Joi.string().trim().min(1).required().messages({
+      'string.empty': 'A comment or reason is required when rejecting or requesting resubmission.',
+      'any.required': 'A comment or reason is required when rejecting or requesting resubmission.',
+    }),
+    otherwise: Joi.string().trim().allow('', null).optional(),
+  }),
 });
 
 const assignSupervisorOnboardingSchema = Joi.object({
@@ -62,6 +94,7 @@ module.exports = {
   createInternAccountFromAppSchema,
   submitOnboardingInfoSchema,
   submitDocumentSchema,
+  reviewDocumentSchema,
   assignSupervisorOnboardingSchema,
   completeOnboardingSchema,
 };

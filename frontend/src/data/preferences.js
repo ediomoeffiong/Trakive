@@ -68,7 +68,7 @@ export const departmentHeadPreferences = {
   },
 
   // Escalation
-  escalationContactEmail: 'ediomo.effiong@trakive.com',
+  escalationContactEmail: 'ediomo.effiong@thefifthlab.com',
   autoEscalateAfterDays:  5,
 
   // Templates

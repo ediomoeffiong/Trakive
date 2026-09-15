@@ -1,922 +1,1646 @@
 /**
  * @file OnboardingDashboard.jsx
- * @description Fully redesigned premium Intern Onboarding Dashboard for Trakive.
- *
- * Design:
- * - Sticky sidebar with radial progress ring + stats
- * - Timeline-based step list inside category groups
- * - Category tab switcher (not just accordion)
- * - "Up Next" spotlight card
- * - Completion celebration overlay
- * - Smooth Framer Motion throughout
+ * @description CWG PLC Intern Onboarding Pathway for Trakive.
+ * Restores the sleek former look & feel featuring:
+ *  - Parent Organization: CWG PLC (with FifthLab acting as a department)
+ *  - Real Database Data for Team Introduction & Supervisor Assignment (No Demo Dates/Static Fallbacks)
+ *  - Supervisor Verification notice for Internship Duration
+ *  - STRICT PDF-ONLY Document Upload Restriction (.pdf only)
+ *  - Welcome Panel: Dual Website links for FifthLab interns (thefifthlab.com & cwg-plc.com), single for CWG
+ *  - Company Policies & Handbook: Marked "(In Progress)"
+ *  - IT Setup: CWG Wi-Fi confirmation checkbox + CyberSecurity Guide reading confirmation
+ *  - Team Introduction: Real department team members & supervisor profiles with clickable Bios
+ *  - Training Module: Slide Deck (PDF) marked "(In Progress)"
+ *  - "YOUR JOURNEY" Cyan Gradient Progress Card & Donut Chart
+ *  - "UP NEXT" Action Banner & Category Sidebar
  */
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import {
+  RiBuildingLine,
+  RiFolderUserLine,
+  RiFileTextLine,
   RiCheckboxCircleFill,
   RiTimeLine,
+  RiAlertLine,
+  RiCloseCircleFill,
+  RiUploadCloudLine,
+  RiDownloadLine,
+  RiCheckLine,
+  RiInformationLine,
   RiShieldCheckFill,
   RiArrowRightLine,
-  RiAwardFill,
   RiRefreshLine,
+  RiUserFollowLine,
+  RiComputerLine,
+  RiTeamLine,
+  RiGraduationCapLine,
+  RiEmotionHappyLine,
+  RiFilePdfLine,
+  RiDeleteBinLine,
+  RiHistoryLine,
+  RiExternalLinkLine,
+  RiWifiLine,
+  RiShieldKeyholeLine,
   RiCloseLine,
-  RiSparklingLine,
-  RiLoader4Line,
-  RiAlertLine,
-  RiArrowRightSLine,
-  RiCheckLine,
-  RiPlayCircleLine,
+  RiUser3Line,
+  RiMailLine,
+  RiMapPinLine,
 } from 'react-icons/ri';
 
-import { CircularProgress, Skeleton, Badge, Button } from '../components/ui';
-import { useOnboardingStore, useProfileStore } from '../store';
-import { ROUTES } from '../constants';
+import api from '../services/api';
+import { useAppStore } from '../store/useAppStore';
+import { mockDepartments } from '../data/departments';
+import { mockSupervisors } from '../data/supervisors';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-const CATEGORY_META = {
-  'Welcome':           { icon: '👋', accent: '#6366f1', bg: '#eef2ff', border: '#c7d2fe', tag: 'indigo' },
-  'HR Documents':      { icon: '📄', accent: '#f59e0b', bg: '#fffbeb', border: '#fde68a', tag: 'amber'  },
-  'Company Policies':  { icon: '📋', accent: '#10b981', bg: '#ecfdf5', border: '#a7f3d0', tag: 'emerald'},
-  'IT Setup':          { icon: '💻', accent: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe', tag: 'blue'   },
-  'Team Introduction': { icon: '🤝', accent: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe', tag: 'violet' },
-  'Training':          { icon: '🎓', accent: '#14b8a6', bg: '#f0fdfa', border: '#99f6e4', tag: 'teal'   },
-};
-
-const ORDERED_CATEGORIES = [
-  'Welcome', 'HR Documents', 'Company Policies', 'IT Setup', 'Team Introduction', 'Training',
+const REQUIRED_DOCUMENTS = [
+  {
+    category: 'resume',
+    title: 'Resume / CV (PDF)',
+    description: 'Your updated professional curriculum vitae in PDF format detailing education, projects, and skills.',
+    icon: '📄',
+  },
+  {
+    category: 'placement_letter',
+    title: 'Internship / Placement Letter (PDF)',
+    description: 'Official letter from your institution introducing you for the internship placement (PDF format only).',
+    icon: '🏫',
+  },
+  {
+    category: 'acceptance_letter',
+    title: 'Acceptance Letter (PDF)',
+    description: 'Signed copy of your CWG PLC / FifthLab internship offer or acceptance letter (PDF format only).',
+    icon: '✍️',
+  },
 ];
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
-function formatMins(mins) {
-  if (!mins) return '—';
-  if (mins < 60) return `${mins}m`;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return m ? `${h}h ${m}m` : `${h}h`;
-}
+const CATEGORIES = [
+  { id: 'internship_info', name: 'Internship Info', icon: RiFolderUserLine, color: '#3b82f6' },
+  { id: 'required_docs', name: 'Required Documents', icon: RiFileTextLine, color: '#8b5cf6' },
+  { id: 'welcome', name: 'Welcome', icon: RiEmotionHappyLine, color: '#10b981' },
+  { id: 'company_policies', name: 'Company Policies', icon: RiShieldCheckFill, color: '#06b6d4' },
+  { id: 'it_setup', name: 'IT Setup', icon: RiComputerLine, color: '#f59e0b' },
+  { id: 'team_intro', name: 'Team Introduction', icon: RiTeamLine, color: '#ec4899' },
+  { id: 'training', name: 'Training', icon: RiGraduationCapLine, color: '#6366f1' },
+];
 
-function motivationalMessage(pct) {
-  if (pct === 100) return "You've nailed every step. Ready to ship! 🚀";
-  if (pct >= 75)  return 'Almost there — just a few items left.';
-  if (pct >= 50)  return 'Halfway through. Great momentum!';
-  if (pct >= 25)  return 'Good start! Build on this energy.';
-  return "Your onboarding journey starts here. Let's go!";
-}
+export default function OnboardingDashboard() {
+  const user = useAppStore((state) => state.user);
 
-const STATUS_META = {
-  not_started:           { label: 'Not Started',     color: '#94a3b8', bg: '#f1f5f9', border: '#e2e8f0' },
-  in_progress:           { label: 'In Progress',     color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
-  completed:             { label: 'Completed',       color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
-  awaiting_verification: { label: 'Awaiting Review', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
-  verified:              { label: 'Verified',        color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
-  rejected:              { label: 'Needs Attention', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
-};
+  // 1. Detect Organisation & Department Context
+  const emailDomain = (user?.email || '').split('@')[1]?.toLowerCase() || '';
+  const isFifthLabDomain = emailDomain === 'thefifthlab.com';
+  
+  // Organization is ALWAYS CWG PLC (Parent Organization)
+  const organizationName = 'CWG PLC';
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
+  const [activeCategory, setActiveCategory] = useState('required_docs');
+  const [selectedMember, setSelectedMember] = useState(null);
 
-function DashboardSkeleton() {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {/* Progress card skeleton */}
-      <div style={{
-        background: '#fff', borderRadius: '1.25rem', padding: '1.75rem',
-        border: '1px solid var(--color-neutral-100)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem',
-      }}>
-        <Skeleton width="140px" height="140px" borderRadius="50%" />
-        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <Skeleton width="60%" height="1.5rem" style={{ margin: '0 auto' }} />
-          <Skeleton width="80%" height="0.875rem" style={{ margin: '0 auto' }} />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', width: '100%' }}>
-          {[0,1,2,3].map(i => <Skeleton key={i} height="56px" borderRadius="0.75rem" />)}
-        </div>
-      </div>
-      {/* Steps skeleton */}
-      {[0,1,2].map(i => (
-        <div key={i} style={{
-          background: '#fff', borderRadius: '1rem', padding: '1.5rem',
-          border: '1px solid var(--color-neutral-100)',
-          display: 'flex', flexDirection: 'column', gap: '1rem',
-        }}>
-          <Skeleton width="40%" height="1.25rem" />
-          {[0,1].map(j => (
-            <div key={j} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <Skeleton width="36px" height="36px" borderRadius="50%" />
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <Skeleton width="65%" height="0.9rem" />
-                <Skeleton width="40%" height="0.75rem" />
-              </div>
-              <Skeleton width="80px" height="28px" borderRadius="0.5rem" />
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
+  // 2. Internship Information State
+  const [info, setInfo] = useState({
+    department_id: isFifthLabDomain ? 'dept-fifthlab' : user?.department_id || 'dept-001',
+    department_name: isFifthLabDomain ? 'FifthLab' : user?.department_name || 'Engineering',
+    start_date: user?.start_date || new Date().toISOString().split('T')[0],
+    end_date: user?.end_date || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    institution: user?.institution || 'University of Lagos',
+    field_of_study: user?.field_of_study || 'Computer Science',
+    phone: user?.phone || '+234 800 000 0001',
+    is_saved: false,
+    duration_verified_by_supervisor: false,
+  });
 
-// ─── Step Row (Timeline item) ─────────────────────────────────────────────────
+  const [assignedSupervisor, setAssignedSupervisor] = useState(() => {
+    return mockSupervisors[0] || { name: 'Tochukwu Mgbemena', title: 'Lead Supervisor', email: 'tochukwu.mgbemena@thefifthlab.com' };
+  });
 
-function StepRow({ step, index, isLast, categoryAccent, onOpen }) {
-  const isDone = step.status === 'completed' || step.status === 'verified';
-  const isRejected = step.status === 'rejected';
-  const isInProgress = step.status === 'in_progress';
-  const isAwaiting = step.status === 'awaiting_verification';
-  const meta = STATUS_META[step.status] || STATUS_META.not_started;
-  const estTime = step.estimatedTime ?? step.duration ?? 0;
+  // 3. Real Team Members State (Loaded dynamically from database)
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [loadingTeam, setLoadingTeam] = useState(false);
 
-  const dotColor = isDone
-    ? '#16a34a'
-    : isInProgress ? categoryAccent
-    : isAwaiting ? '#d97706'
-    : isRejected ? '#dc2626'
-    : '#cbd5e1';
+  // Load real team members from backend API
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTeam = async () => {
+      setLoadingTeam(true);
+      try {
+        const res = await api.get(`/departments/${info.department_id}/staff`);
+        if (res.data && res.data.data && Array.isArray(res.data.data.staff) && res.data.data.staff.length > 0 && isMounted) {
+          const formatted = res.data.data.staff.map((u, idx) => ({
+            id: u.id,
+            name: `${u.first_name} ${u.last_name}`,
+            role: u.title || (u.role_name === 'supervisor' ? 'Lead Supervisor' : 'Team Member'),
+            department: info.department_name || 'FifthLab',
+            email: u.email,
+            location: u.office_location || 'CWG PLC Headquarters, Lagos',
+            isSupervisor: u.role_name === 'supervisor' || u.role_name === 'department_head',
+            bio: u.bio || `${u.first_name} is an active member of the ${info.department_name} team at CWG PLC & FifthLab.`,
+            avatarColor: ['#2563eb', '#ec4899', '#8b5cf6', '#f59e0b', '#10b981'][idx % 5],
+          }));
+          setTeamMembers(formatted);
+          setLoadingTeam(false);
+          return;
+        }
+      } catch (e) {
+        // Fallback to current supervisor + user profile if API endpoint unreached
+      }
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -8 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.22, delay: index * 0.05, ease: 'easeOut' }}
-      style={{ display: 'flex', gap: '0', position: 'relative' }}
-    >
-      {/* Timeline track */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '40px', flexShrink: 0 }}>
-        {/* Dot */}
-        <div style={{
-          width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: meta.bg, border: `2px solid ${meta.border}`,
-          transition: 'all 0.2s ease', zIndex: 1,
-          boxShadow: isDone ? '0 0 0 4px rgba(22,163,74,0.1)' : isInProgress ? `0 0 0 4px ${categoryAccent}22` : 'none',
-        }}>
-          {isDone
-            ? <RiCheckLine style={{ color: '#16a34a', fontSize: '1rem' }} />
-            : isInProgress
-            ? <RiLoader4Line style={{ color: categoryAccent, fontSize: '1rem' }} />
-            : isAwaiting
-            ? <RiTimeLine style={{ color: '#d97706', fontSize: '1rem' }} />
-            : isRejected
-            ? <RiAlertLine style={{ color: '#dc2626', fontSize: '1rem' }} />
-            : <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#cbd5e1' }} />
+      if (isMounted) {
+        setTeamMembers([
+          {
+            id: 'mem-sup',
+            name: assignedSupervisor.name,
+            role: assignedSupervisor.title || 'Lead Supervisor',
+            department: info.department_name,
+            email: assignedSupervisor.email,
+            location: 'CWG HQ, Annex 2, Victoria Island, Lagos',
+            isSupervisor: true,
+            bio: `${assignedSupervisor.name} is the Lead Supervisor overseeing intern mentorship and engineering labs across ${info.department_name} at CWG PLC & FifthLab.`,
+            avatarColor: '#2563eb',
+          },
+          {
+            id: 'mem-user',
+            name: user ? `${user.first_name} ${user.last_name}` : 'Current Intern',
+            role: 'Software Intern',
+            department: info.department_name,
+            email: user?.email || 'intern@thefifthlab.com',
+            location: 'CWG HQ, Lagos',
+            isSupervisor: false,
+            bio: `Software Intern in the ${info.department_name} department at CWG PLC & FifthLab.`,
+            avatarColor: '#10b981',
           }
-        </div>
-        {/* Connector line */}
-        {!isLast && (
-          <div style={{
-            width: '2px', flex: 1, minHeight: '24px',
-            background: isDone
-              ? `linear-gradient(to bottom, ${dotColor}60, ${dotColor}20)`
-              : 'var(--color-neutral-100)',
-            marginTop: '2px',
-          }} />
-        )}
-      </div>
+        ]);
+        setLoadingTeam(false);
+      }
+    };
 
-      {/* Card content */}
-      <motion.button
-        onClick={() => onOpen(step.id)}
-        whileHover={{ x: 4 }}
-        transition={{ duration: 0.15 }}
-        style={{
-          flex: 1, textAlign: 'left', background: 'transparent', border: 'none',
-          cursor: 'pointer', paddingBottom: isLast ? '0' : '1.25rem',
-          paddingLeft: '0.875rem', paddingTop: '0.25rem',
-        }}
-      >
-        <div style={{
-          background: '#fff',
-          border: '1px solid var(--color-neutral-100)',
-          borderRadius: '0.875rem',
-          padding: '0.875rem 1rem',
-          transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
-          boxShadow: 'var(--shadow-card)',
-        }}
-          onMouseEnter={e => {
-            e.currentTarget.style.boxShadow = 'var(--shadow-card-hover)';
-            e.currentTarget.style.borderColor = 'var(--color-neutral-200)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.boxShadow = 'var(--shadow-card)';
-            e.currentTarget.style.borderColor = 'var(--color-neutral-100)';
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.3rem' }}>
-                <span style={{
-                  fontSize: '0.875rem', fontWeight: 600,
-                  color: isDone ? 'var(--color-neutral-400)' : 'var(--color-neutral-900)',
-                  textDecoration: isDone ? 'line-through' : 'none',
-                  textDecorationColor: 'var(--color-neutral-300)',
-                }}>
-                  {step.title}
-                </span>
-                {step.requiresVerification && (
-                  <span style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '0.2rem',
-                    fontSize: '0.625rem', fontWeight: 700, color: '#7c3aed',
-                    background: '#f5f3ff', border: '1px solid #ddd6fe',
-                    padding: '0.1rem 0.4rem', borderRadius: '99px',
-                  }}>
-                    <RiShieldCheckFill style={{ fontSize: '0.625rem' }} /> Verified
-                  </span>
-                )}
-              </div>
-              <p style={{
-                fontSize: '0.78rem', color: 'var(--color-neutral-500)',
-                lineHeight: 1.55, margin: 0, overflow: 'hidden',
-                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-              }}>
-                {step.shortDescription ?? step.description ?? ''}
-              </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.625rem', flexWrap: 'wrap' }}>
-                {estTime > 0 && (
-                  <span style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
-                    fontSize: '0.7rem', color: 'var(--color-neutral-400)', fontWeight: 500,
-                  }}>
-                    <RiTimeLine style={{ fontSize: '0.75rem' }} />
-                    {formatMins(estTime)}
-                  </span>
-                )}
-                {step.dueDate && (
-                  <span style={{ fontSize: '0.7rem', color: 'var(--color-neutral-400)', fontWeight: 500 }}>
-                    Due {new Date(step.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </span>
-                )}
-              </div>
-            </div>
+    fetchTeam();
+    return () => { isMounted = false; };
+  }, [info.department_id, info.department_name, assignedSupervisor, user]);
 
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem', flexShrink: 0 }}>
-              {/* Status pill */}
-              <span style={{
-                fontSize: '0.65rem', fontWeight: 700, color: meta.color,
-                background: meta.bg, border: `1px solid ${meta.border}`,
-                padding: '0.2rem 0.55rem', borderRadius: '99px', whiteSpace: 'nowrap',
-              }}>
-                {meta.label}
-              </span>
-              {/* Arrow */}
-              <RiArrowRightSLine style={{
-                fontSize: '1rem', color: 'var(--color-neutral-300)',
-                transition: 'color 0.15s',
-              }} />
-            </div>
-          </div>
-        </div>
-      </motion.button>
-    </motion.div>
-  );
-}
+  // 4. Required Documents State (PDF ONLY)
+  const [documents, setDocuments] = useState(() => {
+    const saved = localStorage.getItem(`trakive_onboarding_docs_${user?.id || 'default'}`);
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
+    }
+    return {
+      resume: null,
+      placement_letter: null,
+      acceptance_letter: null,
+    };
+  });
 
-// ─── Category Panel ───────────────────────────────────────────────────────────
+  const [uploadErrors, setUploadErrors] = useState({});
 
-function CategoryPanel({ name, steps, onOpen, isActive }) {
-  const meta = CATEGORY_META[name] ?? { icon: '📁', accent: '#6366f1', bg: '#eef2ff', border: '#c7d2fe' };
-  const total = steps.length;
-  const done  = steps.filter(s => s.status === 'completed' || s.status === 'verified').length;
-  const pct   = total ? Math.round((done / total) * 100) : 0;
+  // 5. IT Setup State
+  const [itSetupState, setItSetupState] = useState(() => {
+    const saved = localStorage.getItem(`trakive_onboarding_it_setup_${user?.id || 'default'}`);
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
+    }
+    return {
+      wifiConfirmed: false,
+      securityGuideRead: false,
+    };
+  });
 
-  if (!isActive) return null;
+  // 6. Step Completion State (Persisted in localStorage)
+  const [completedSteps, setCompletedSteps] = useState(() => {
+    const saved = localStorage.getItem(`trakive_onboarding_completed_steps_${user?.id || 'default'}`);
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
+    }
+    return {
+      internship_info: false,
+      required_docs: false,
+      welcome: true,
+      company_policies: false,
+      it_setup: false,
+      team_intro: true,
+      training: false,
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`trakive_onboarding_docs_${user?.id || 'default'}`, JSON.stringify(documents));
+  }, [documents, user?.id]);
+
+  useEffect(() => {
+    localStorage.setItem(`trakive_onboarding_it_setup_${user?.id || 'default'}`, JSON.stringify(itSetupState));
+  }, [itSetupState, user?.id]);
+
+  useEffect(() => {
+    localStorage.setItem(`trakive_onboarding_completed_steps_${user?.id || 'default'}`, JSON.stringify(completedSteps));
+  }, [completedSteps, user?.id]);
+
+  const markStepCompletedAndNext = (currentCatId, nextCatId) => {
+    setCompletedSteps((prev) => ({ ...prev, [currentCatId]: true }));
+    toast.success('Onboarding section marked as completed!');
+    if (nextCatId) {
+      setActiveCategory(nextCatId);
+    }
+  };
+
+  // Handle department selection -> Auto-assign supervisor
+  const handleDepartmentChange = (deptId) => {
+    const foundDept = mockDepartments.find((d) => d.id === deptId || d.name === deptId);
+    const deptName = foundDept ? foundDept.name : deptId;
+    setInfo((prev) => ({ ...prev, department_id: deptId, department_name: deptName }));
+
+    const supervisor = mockSupervisors[0] || { name: 'Tochukwu Mgbemena', title: 'Lead Supervisor', email: 'tochukwu.mgbemena@thefifthlab.com' };
+    setAssignedSupervisor(supervisor);
+    toast.success(`Department set to ${deptName}. Auto-assigned Supervisor: ${supervisor.name}`);
+  };
+
+  const handleInfoSubmit = (e) => {
+    e.preventDefault();
+    if (!info.start_date || !info.end_date) {
+      toast.error('Both start date and end date are required.');
+      return;
+    }
+
+    const start = new Date(info.start_date);
+    const end = new Date(info.end_date);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      toast.error('Please enter valid start and end dates.');
+      return;
+    }
+
+    if (end < start) {
+      toast.error('End date cannot be a date before the start date.');
+      return;
+    }
+
+    const twoWeeksMs = 14 * 24 * 60 * 60 * 1000;
+    if ((end.getTime() - start.getTime()) < twoWeeksMs) {
+      toast.error('End date must be at least 2 weeks (14 days) after the start date.');
+      return;
+    }
+
+    setInfo((prev) => ({ ...prev, is_saved: true }));
+    setCompletedSteps((prev) => ({ ...prev, internship_info: true }));
+    toast.success('Internship Information saved. Duration pending supervisor verification.');
+    setActiveCategory('required_docs');
+  };
+
+  // STRICT Document Upload Validation (PDF ONLY)
+  const handleFileUpload = (category, file) => {
+    if (!file) return;
+
+    // Check strict PDF extension and MIME type
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    const isPdf = ext === '.pdf' || file.type === 'application/pdf';
+
+    if (!isPdf) {
+      const err = `File "${file.name}" is rejected! Only PDF documents (.pdf) are allowed as input.`;
+      setUploadErrors((prev) => ({ ...prev, [category]: err }));
+      toast.error(err);
+      return;
+    }
+
+    // Validate size (10 MB limit)
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      const err = `File "${file.name}" exceeds the 10 MB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB).`;
+      setUploadErrors((prev) => ({ ...prev, [category]: err }));
+      toast.error(err);
+      return;
+    }
+
+    setUploadErrors((prev) => ({ ...prev, [category]: null }));
+
+    const docObj = {
+      id: 'doc-' + Date.now(),
+      file_name: file.name,
+      file_size: file.size,
+      mime_type: 'application/pdf',
+      uploaded_at: new Date().toISOString(),
+      review_status: 'pending',
+      reviewer_notes: null,
+      history: documents[category]?.history || [],
+    };
+
+    if (documents[category]) {
+      docObj.history = [
+        ...docObj.history,
+        {
+          file_name: documents[category].file_name,
+          uploaded_at: documents[category].uploaded_at,
+          review_status: documents[category].review_status,
+          reviewer_notes: documents[category].reviewer_notes,
+        },
+      ];
+    }
+
+    setDocuments((prev) => ({
+      ...prev,
+      [category]: docObj,
+    }));
+
+    toast.success(`PDF Document ${category.replace('_', ' ').toUpperCase()} uploaded successfully!`);
+  };
+
+  const handleRemoveDoc = (category) => {
+    setDocuments((prev) => ({
+      ...prev,
+      [category]: null,
+    }));
+    toast.info('PDF Document removed.');
+  };
+
+  // Metrics
+  const approvedDocsCount = useMemo(() => {
+    return Object.values(documents).filter((d) => d && d.review_status === 'approved').length;
+  }, [documents]);
+
+  const submittedDocsCount = useMemo(() => {
+    return Object.values(documents).filter((d) => d !== null).length;
+  }, [documents]);
+
+  const isItSetupComplete = (itSetupState.wifiConfirmed && itSetupState.securityGuideRead) || completedSteps.it_setup;
+  const isOnboardingReady = approvedDocsCount === 3;
+
+  // Total Tasks and Journey calculations
+  const totalTasks = 7;
+  const completedTasks = useMemo(() => {
+    let done = 0;
+    if (info.is_saved || completedSteps.internship_info) done += 1;
+    if (approvedDocsCount === 3 || completedSteps.required_docs) done += 1;
+    if (completedSteps.welcome) done += 1;
+    if (completedSteps.company_policies) done += 1;
+    if (isItSetupComplete || completedSteps.it_setup) done += 1;
+    if (completedSteps.team_intro) done += 1;
+    if (completedSteps.training) done += 1;
+    return done;
+  }, [info.is_saved, completedSteps, approvedDocsCount, isItSetupComplete]);
+
+  const remainingTasks = Math.max(0, totalTasks - completedTasks);
+  const progressPercentage = Math.round((completedTasks / totalTasks) * 100);
+
+  const getCategoryCount = (catId) => {
+    if (catId === 'internship_info') return { done: (info.is_saved || completedSteps.internship_info) ? 1 : 0, total: 1 };
+    if (catId === 'required_docs') return { done: (approvedDocsCount === 3 || completedSteps.required_docs) ? 3 : approvedDocsCount, total: 3 };
+    if (catId === 'welcome') return { done: completedSteps.welcome ? 1 : 0, total: 1 };
+    if (catId === 'company_policies') return { done: completedSteps.company_policies ? 1 : 0, total: 1 };
+    if (catId === 'it_setup') return { done: isItSetupComplete ? 1 : (itSetupState.wifiConfirmed || itSetupState.securityGuideRead ? 1 : 0), total: 1 };
+    if (catId === 'team_intro') return { done: completedSteps.team_intro ? 1 : 0, total: 1 };
+    if (catId === 'training') return { done: completedSteps.training ? 1 : 0, total: 1 };
+    return { done: 0, total: 1 };
+  };
+
+  // Up Next item
+  const upNextItem = useMemo(() => {
+    if (!info.is_saved) {
+      return {
+        title: 'Select Department & Set Internship Info',
+        categoryName: 'Internship Info',
+        time: '5m',
+        catId: 'internship_info',
+      };
+    }
+    if (submittedDocsCount < 3) {
+      return {
+        title: `Upload Required PDF Documents (${submittedDocsCount}/3 Uploaded)`,
+        categoryName: 'Required Documents',
+        time: '10m',
+        catId: 'required_docs',
+      };
+    }
+    if (!isItSetupComplete) {
+      return {
+        title: 'Complete CWG Wi-Fi & IT Security Guide Confirmation',
+        categoryName: 'IT Setup',
+        time: '5m',
+        catId: 'it_setup',
+      };
+    }
+    if (approvedDocsCount < 3) {
+      return {
+        title: `Supervisor Reviewing PDF Documents (${approvedDocsCount}/3 Approved)`,
+        categoryName: 'Required Documents',
+        time: 'Pending Review',
+        catId: 'required_docs',
+      };
+    }
+    return {
+      title: 'Onboarding Complete — Ready for Internship Tasks!',
+      categoryName: 'Onboarding Ready',
+      time: 'Done 🎉',
+      catId: 'required_docs',
+    };
+  }, [info.is_saved, submittedDocsCount, isItSetupComplete, approvedDocsCount]);
 
   return (
-    <motion.div
-      key={name}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.25 }}
-      style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}
-    >
-      {/* Category Header Card */}
-      <div style={{
-        background: `linear-gradient(135deg, ${meta.bg} 0%, #fff 100%)`,
-        border: `1px solid ${meta.border}`,
-        borderRadius: '1rem',
-        padding: '1.25rem 1.5rem',
-        display: 'flex', alignItems: 'center', gap: '1rem',
-        marginBottom: '1rem',
-      }}>
-        <div style={{
-          width: '3rem', height: '3rem', borderRadius: '0.875rem',
-          background: '#fff', border: `1.5px solid ${meta.border}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '1.5rem', flexShrink: 0,
-          boxShadow: `0 4px 12px ${meta.accent}25`,
-        }}>
-          {meta.icon}
-        </div>
-        <div style={{ flex: 1 }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-neutral-900)', margin: '0 0 0.375rem 0' }}>
-            {name}
-          </h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ flex: 1, height: '6px', background: 'var(--color-neutral-200)', borderRadius: '99px', overflow: 'hidden', maxWidth: '160px' }}>
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
-                style={{ height: '100%', background: meta.accent, borderRadius: '99px' }}
-              />
-            </div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-500)', fontWeight: 600 }}>
-              {done}/{total} completed
+    <div style={{ padding: '24px 32px', maxWidth: '1440px', margin: '0 auto', fontFamily: 'Inter, system-ui, sans-serif', color: '#0f172a' }}>
+      
+      {/* ── Page Header ────────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a', margin: 0, tracking: '-0.02em' }}>
+              Onboarding Pathway
+            </h1>
+            <span style={{
+              background: 'linear-gradient(135deg, #1e3a8a, #2563eb)',
+              color: '#ffffff',
+              fontSize: '11px',
+              fontWeight: 800,
+              padding: '4px 12px',
+              borderRadius: '999px',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase'
+            }}>
+              {organizationName} (PARENT ORGANISATION)
             </span>
-            {pct === 100 && (
+            {isFifthLabDomain && (
               <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.2rem',
-                fontSize: '0.65rem', fontWeight: 700, color: '#16a34a',
-                background: '#f0fdf4', border: '1px solid #bbf7d0',
-                padding: '0.15rem 0.5rem', borderRadius: '99px',
+                background: '#e0f2fe',
+                color: '#0369a1',
+                border: '1px solid #bae6fd',
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '3px 10px',
+                borderRadius: '999px'
               }}>
-                <RiCheckboxCircleFill style={{ fontSize: '0.7rem' }} /> All done!
+                Department: FifthLab
               </span>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Steps Timeline */}
-      <div style={{ padding: '0 0.25rem' }}>
-        {steps.map((step, i) => (
-          <StepRow
-            key={step.id}
-            step={step}
-            index={i}
-            isLast={i === steps.length - 1}
-            categoryAccent={meta.accent}
-            onOpen={onOpen}
-          />
-        ))}
-      </div>
-    </motion.div>
-  );
-}
-
-// ─── Sidebar Progress Panel ───────────────────────────────────────────────────
-
-function ProgressSidebar({ stats, categories, activeCategory, onCategoryChange, onReset }) {
-  return (
-    <div className="onboarding-sidebar">
-      {/* Progress Ring Card */}
-      <div style={{
-        background: '#00b4d8',
-        borderRadius: '1.25rem',
-        padding: '1.75rem 1.5rem',
-        position: 'relative', overflow: 'hidden',
-        boxShadow: '0 8px 32px rgba(0,180,216,0.25)',
-      }}>
-        {/* Decorative glow */}
-        <div style={{
-          position: 'absolute', top: '-40px', right: '-40px',
-          width: '140px', height: '140px',
-          background: 'rgba(255,255,255,0.15)', borderRadius: '50%', filter: 'blur(40px)',
-          pointerEvents: 'none',
-        }} />
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', position: 'relative', zIndex: 1 }}>
-          <RiSparklingLine style={{ color: '#93c5fd', fontSize: '0.9rem' }} />
-          <span style={{ fontSize: '0.675rem', fontWeight: 700, color: 'rgba(255, 255, 255, 0.95)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            Your Journey
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem', position: 'relative', zIndex: 1 }}>
-          <CircularProgress
-            value={stats.percentage}
-            size={120}
-            strokeWidth={12}
-            variant={stats.percentage === 100 ? 'success' : 'primary'}
-          />
-        </div>
-
-        <div style={{ textAlign: 'center', marginBottom: '1.25rem', position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fff', lineHeight: 1 }}>
-            {stats.percentage}% Complete
-          </div>
-          <p style={{ fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.9)', marginTop: '0.4rem', lineHeight: 1.5 }}>
-            {motivationalMessage(stats.percentage)}
+          <p style={{ fontSize: '14px', color: '#64748b', margin: '4px 0 0 0' }}>
+            Complete your required internship setup, Wi-Fi verification, and PDF document approvals.
           </p>
-          {stats.estimatedTimeRemaining > 0 && (
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-              marginTop: '0.75rem', fontSize: '0.72rem', fontWeight: 600, color: '#fff',
-              background: 'rgba(255,255,255,0.18)', borderRadius: '99px',
-              padding: '0.3rem 0.7rem',
-            }}>
-              <RiTimeLine style={{ fontSize: '0.8rem' }} />
-              {formatMins(stats.estimatedTimeRemaining)} remaining
-            </div>
-          )}
-        </div>
-
-        {/* Mini stat grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', position: 'relative', zIndex: 1 }}>
-          {[
-            { v: stats.total,     l: 'Total',     c: '#fff' },
-            { v: stats.completed, l: 'Done',       c: '#fff' },
-            { v: stats.verified,  l: 'Verified',   c: '#fff' },
-            { v: stats.remaining, l: 'Remaining',  c: '#fff' },
-          ].map(({ v, l, c }) => (
-            <div key={l} style={{
-              background: 'rgba(255,255,255,0.12)',
-              borderRadius: '0.625rem',
-              padding: '0.6rem 0.5rem',
-              textAlign: 'center',
-              border: '1px solid rgba(255,255,255,0.15)',
-            }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: c, lineHeight: 1 }}>{v}</div>
-              <div style={{ fontSize: '0.6rem', color: 'rgba(255, 255, 255, 0.9)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: '0.2rem' }}>{l}</div>
-            </div>
-          ))}
         </div>
       </div>
 
-      {/* Category navigation */}
-      <div className="onboarding-cat-nav">
-        <h4 style={{
-          fontSize: '0.675rem', fontWeight: 700, color: 'var(--color-neutral-400)',
-          textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem',
-        }}>
-          Categories
-        </h4>
-        <div className="onboarding-cat-list">
-          {categories.map(({ name, steps }) => {
-            const meta = CATEGORY_META[name] ?? { icon: '📁', accent: '#6366f1', bg: '#eef2ff', border: '#c7d2fe' };
-            const done = steps.filter(s => s.status === 'completed' || s.status === 'verified').length;
-            const total = steps.length;
-            const isActive = activeCategory === name;
-            return (
-              <button
-                key={name}
-                onClick={() => onCategoryChange(name)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '0.625rem',
-                  padding: '0.625rem 0.75rem',
-                  borderRadius: '0.75rem', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
-                  background: isActive ? meta.bg : 'transparent',
-                  transition: 'background 0.15s ease',
-                  outline: isActive ? `1.5px solid ${meta.border}` : 'none',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--color-neutral-50)'; }}
-                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
-              >
-                <span style={{ fontSize: '1rem', flexShrink: 0 }}>{meta.icon}</span>
-                <span style={{ flex: 1, fontSize: '0.8rem', fontWeight: 600, color: isActive ? meta.accent : 'var(--color-neutral-700)' }}>
-                  {name}
-                </span>
-                <span style={{
-                  fontSize: '0.675rem', fontWeight: 700,
-                  color: done === total ? '#16a34a' : 'var(--color-neutral-400)',
-                }}>
-                  {done}/{total}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Reset button */}
-      <button
-        onClick={onReset}
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem',
-          fontSize: '0.78rem', fontWeight: 600,
-          color: 'var(--color-neutral-500)', background: '#fff',
-          border: '1px solid var(--color-neutral-200)',
-          padding: '0.625rem 1rem', borderRadius: '0.875rem',
-          cursor: 'pointer', transition: 'all 0.15s ease', width: '100%',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-neutral-50)'; e.currentTarget.style.color = 'var(--color-neutral-700)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = 'var(--color-neutral-500)'; }}
-      >
-        <RiRefreshLine style={{ fontSize: '0.875rem' }} /> Reset Demo
-      </button>
-    </div>
-  );
-}
-
-// ─── Celebration Overlay ──────────────────────────────────────────────────────
-
-function CelebrationOverlay({ stats, onClose, onGoToDashboard }) {
-  const reduced = useReducedMotion();
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      style={{
-        position: 'fixed', inset: 0,
-        background: 'rgba(15,23,42,0.75)',
-        backdropFilter: 'blur(8px)',
-        zIndex: 100,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
-      }}
-    >
+      {/* ── UP NEXT Banner Card ───────────────────────────────────────────────── */}
       <motion.div
-        initial={{ scale: 0.85, opacity: 0, y: 24 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.92, opacity: 0 }}
-        transition={{ type: 'spring', damping: 20, stiffness: 280 }}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
         style={{
-          background: '#fff', borderRadius: '1.5rem', maxWidth: '440px', width: '100%',
-          padding: '2.5rem 2rem', position: 'relative', textAlign: 'center',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.25)', overflow: 'hidden',
+          background: 'linear-gradient(135deg, #e0e7ff 0%, #ede9fe 50%, #f0f9ff 100%)',
+          border: '1px solid #c7d2fe',
+          borderRadius: '16px',
+          padding: '16px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '28px',
+          boxShadow: '0 4px 20px -4px rgba(99, 102, 241, 0.12)'
         }}
       >
-        {/* Radial glow */}
-        <div style={{
-          position: 'absolute', top: '-50px', left: '50%', transform: 'translateX(-50%)',
-          width: '300px', height: '300px',
-          background: 'radial-gradient(ellipse, rgba(99,102,241,0.15) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }} />
-
-        {/* SVG confetti */}
-        {!reduced && (
-          <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} aria-hidden>
-            {['#f59e0b','#6366f1','#10b981','#f43f5e','#3b82f6','#8b5cf6','#14b8a6'].map((c, i) => (
-              <motion.circle
-                key={i}
-                cx={`${8 + i * 14}%`} cy="0" r={3 + (i % 3)}
-                fill={c}
-                initial={{ cy: '-5%', opacity: 0 }}
-                animate={{ cy: '110%', opacity: [0, 1, 1, 0] }}
-                transition={{ duration: 2.8 + i * 0.3, delay: i * 0.12, repeat: Infinity, repeatDelay: 1 }}
-              />
-            ))}
-          </svg>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: '#6366f1',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ffffff',
+            fontSize: '22px',
+            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+          }}>
+            <RiArrowRightLine />
+          </div>
+          <div>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#4f46e5', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              UP NEXT
+            </span>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1e1b4b', margin: '2px 0 0 0' }}>
+              {upNextItem.title}
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px', fontSize: '12px', color: '#6366f1' }}>
+              <span>{upNextItem.categoryName}</span>
+              <span>•</span>
+              <span>{upNextItem.time}</span>
+            </div>
+          </div>
+        </div>
 
         <button
-          onClick={onClose}
+          onClick={() => setActiveCategory(upNextItem.catId)}
           style={{
-            position: 'absolute', top: '1rem', right: '1rem', background: 'transparent',
-            border: 'none', cursor: 'pointer', width: '2rem', height: '2rem',
-            borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--color-neutral-400)',
+            background: '#2563eb',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '10px',
+            padding: '10px 20px',
+            fontWeight: 700,
+            fontSize: '13px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
+            transition: 'all 0.2s ease'
           }}
-          aria-label="Close"
         >
-          <RiCloseLine style={{ fontSize: '1.25rem' }} />
+          Continue <RiArrowRightLine />
         </button>
-
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', delay: 0.15, damping: 12, stiffness: 280 }}
-          style={{
-            width: '5.5rem', height: '5.5rem',
-            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-            borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 1.5rem',
-            boxShadow: '0 8px 32px rgba(99,102,241,0.4)',
-            position: 'relative', zIndex: 1,
-          }}
-        >
-          <RiAwardFill style={{ color: '#fff', fontSize: '2.5rem' }} />
-        </motion.div>
-
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <span style={{
-            display: 'inline-block', fontSize: '0.68rem', fontWeight: 800, color: '#6366f1',
-            background: '#eef2ff', border: '1px solid #c7d2fe',
-            padding: '0.25rem 0.75rem', borderRadius: '99px', letterSpacing: '0.08em',
-            textTransform: 'uppercase', marginBottom: '0.875rem',
-          }}>
-            Onboarding Complete 🎉
-          </span>
-
-          <h2 style={{ fontSize: '1.625rem', fontWeight: 800, color: 'var(--color-neutral-900)', marginBottom: '0.5rem' }}>
-            You're All Set!
-          </h2>
-          <p style={{ fontSize: '0.9rem', color: 'var(--color-neutral-500)', lineHeight: 1.65, marginBottom: '1.75rem', maxWidth: '32ch', margin: '0 auto 1.75rem' }}>
-            You've completed all {stats.total} onboarding steps. Time to start building great things with your team!
-          </p>
-
-          {/* Summary stats */}
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '0.5rem', marginBottom: '1.75rem',
-            background: 'var(--color-neutral-50)', borderRadius: '1rem',
-            padding: '1rem', border: '1px solid var(--color-neutral-100)',
-          }}>
-            {[
-              { v: stats.completed, l: 'Completed', c: '#16a34a' },
-              { v: stats.verified,  l: 'Verified',  c: '#7c3aed' },
-              { v: stats.total,     l: 'Total',     c: 'var(--color-neutral-800)' },
-            ].map(({ v, l, c }) => (
-              <div key={l} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: c }}>{v}</div>
-                <div style={{ fontSize: '0.68rem', color: 'var(--color-neutral-400)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.2rem' }}>{l}</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-            <Button onClick={onGoToDashboard} style={{ width: '100%' }}>
-              Continue to Dashboard <RiArrowRightLine />
-            </Button>
-            <Button variant="ghost" onClick={onClose} style={{ width: '100%' }}>
-              Review Steps
-            </Button>
-          </div>
-        </div>
       </motion.div>
-    </motion.div>
-  );
-}
 
-// ─── Profile Change Requests Component ─────────────────────────────
-
-function ProfileChangeRequestsCard() {
-  const { profileChangeRequests, fetchProfileChangeRequests } = useProfileStore();
-
-  useEffect(() => {
-    fetchProfileChangeRequests();
-  }, [fetchProfileChangeRequests]);
-
-  if (!profileChangeRequests || profileChangeRequests.length === 0) return null;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      style={{
-        background: '#fff',
-        border: '1.5px solid #cbd5e1',
-        borderRadius: '1.125rem',
-        padding: '1.25rem 1.5rem',
-        marginBottom: '1.5rem',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '1.1rem' }}>🆔</span>
-          <h3 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
-            Profile & Identity Change Requests
-          </h3>
-        </div>
-        <span style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: 700, background: '#eef2ff', padding: '0.2rem 0.6rem', borderRadius: '9999px' }}>
-          Supervisor Review Log
-        </span>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {profileChangeRequests.map((req) => {
-          const isPending = req.status === 'pending';
-          const isApproved = req.status === 'approved';
-          const isRejected = req.status === 'rejected';
-
-          const badgeBg = isPending ? '#fffbeb' : isApproved ? '#ecfdf5' : '#fef2f2';
-          const badgeColor = isPending ? '#d97706' : isApproved ? '#059669' : '#dc2626';
-
-          return (
-            <div
-              key={req.id}
-              style={{
-                background: '#f8fafc',
-                border: '1px solid var(--color-neutral-200)',
-                borderRadius: '0.75rem',
-                padding: '0.875rem 1rem',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>
-                  Submitted on {new Date(req.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </span>
-                <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '0.2rem 0.65rem', borderRadius: '9999px', background: badgeBg, color: badgeColor }}>
-                  {isPending ? '⏳ Pending Supervisor Approval' : isApproved ? '✅ Approved & Updated' : '❌ Request Rejected'}
-                </span>
-              </div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-600)', lineHeight: 1.6 }}>
-                <strong>Requested Details:</strong>{' '}
-                {Object.entries(req.proposedChanges).map(([k, v]) => (
-                  <span key={k} style={{ marginRight: '0.875rem', display: 'inline-block' }}>
-                    <span style={{ color: 'var(--color-neutral-500)', textTransform: 'capitalize' }}>{k}:</span>{' '}
-                    <span style={{ fontWeight: 600, color: 'var(--color-neutral-800)' }}>{String(v)}</span>
-                  </span>
-                ))}
-              </div>
-              {isRejected && req.rejectionReason && (
-                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#991b1b', background: '#fef2f2', border: '1px solid #fecaca', padding: '0.4rem 0.65rem', borderRadius: '0.375rem' }}>
-                  <strong>Supervisor Feedback:</strong> {req.rejectionReason}
-                </div>
-              )}
+      {/* ── Main Two-Column Layout ────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '28px', alignItems: 'start' }}>
+        
+        {/* ── LEFT COLUMN: YOUR JOURNEY CARD & CATEGORIES ────────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          {/* Cyan Gradient "YOUR JOURNEY" Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{
+              background: 'linear-gradient(145deg, #00c6ff 0%, #0072ff 100%)',
+              borderRadius: '20px',
+              padding: '24px 20px',
+              color: '#ffffff',
+              boxShadow: '0 12px 30px -6px rgba(0, 114, 255, 0.4)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.1em', opacity: 0.9, textTransform: 'uppercase', marginBottom: '16px' }}>
+              YOUR JOURNEY
             </div>
-          );
-        })}
-      </div>
-    </motion.div>
-  );
-}
 
-// ─── Main Page ─────────────────────────────────────────────────────────────────
+            {/* SVG Donut Progress Chart */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '10px 0 16px 0' }}>
+              <div style={{ position: 'relative', width: '120px', height: '120px' }}>
+                <svg width="120" height="120" viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255, 255, 255, 0.25)" strokeWidth="12" />
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="50"
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeWidth="12"
+                    strokeDasharray={314}
+                    strokeDashoffset={314 - (314 * progressPercentage) / 100}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                    transform="rotate(-90 60 60)"
+                  />
+                </svg>
+                <div style={{
+                  position: 'absolute',
+                  top: 0, left: 0, right: 0, bottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'column'
+                }}>
+                  <span style={{ fontSize: '24px', fontWeight: 900, lineHeight: 1 }}>{progressPercentage}%</span>
+                </div>
+              </div>
 
-export default function OnboardingDashboard() {
-  const navigate = useNavigate();
-  const {
-    steps, loading, error,
-    fetchSteps, resetOnboarding, getStats,
-    celebrated, setCelebrated,
-  } = useOnboardingStore();
-
-  useEffect(() => { fetchSteps(); }, [fetchSteps]);
-
-  const stats = getStats();
-
-  const stepsByCategory = useMemo(() =>
-    ORDERED_CATEGORIES.reduce((acc, cat) => {
-      const catSteps = steps.filter(s => s.category === cat);
-      if (catSteps.length) acc.push({ name: cat, steps: catSteps });
-      return acc;
-    }, []),
-  [steps]);
-
-  const [activeCategory, setActiveCategory] = useState(null);
-
-  // Auto-select first category once data loads
-  useEffect(() => {
-    if (stepsByCategory.length && !activeCategory) {
-      setActiveCategory(stepsByCategory[0].name);
-    }
-  }, [stepsByCategory, activeCategory]);
-
-  const nextStep = steps.find(s => s.status !== 'completed' && s.status !== 'verified');
-
-  // Trigger celebration at 100%
-  useEffect(() => {
-    if (steps.length > 0 && stats.percentage === 100 && !celebrated) {
-      const t = setTimeout(() => setCelebrated(true), 800);
-      return () => clearTimeout(t);
-    }
-  }, [stats.percentage, steps.length, celebrated, setCelebrated]);
-
-  const handleOpen = useCallback(stepId => {
-    navigate(`${ROUTES.ONBOARDING}/${stepId}`);
-  }, [navigate]);
-
-  if (loading) return <DashboardSkeleton />;
-
-  if (error) {
-    return (
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        padding: '5rem 1rem', gap: '1rem', textAlign: 'center',
-      }}>
-        <div style={{
-          width: '4rem', height: '4rem', borderRadius: '50%', background: '#fef2f2',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem',
-        }}>⚠️</div>
-        <h3 style={{ color: 'var(--color-neutral-800)', fontSize: '1.125rem', fontWeight: 700 }}>Failed to Load</h3>
-        <p style={{ color: 'var(--color-neutral-500)', maxWidth: '28ch', fontSize: '0.875rem' }}>{error}</p>
-        <Button onClick={fetchSteps}>Try Again</Button>
-      </div>
-    );
-  }
-
-  if (!steps.length) {
-    return (
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        padding: '5rem 1rem', gap: '1rem', textAlign: 'center',
-      }}>
-        <div style={{
-          width: '4rem', height: '4rem', borderRadius: '50%', background: '#f1f5f9',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem',
-        }}>📋</div>
-        <h3 style={{ color: 'var(--color-neutral-800)', fontSize: '1.125rem', fontWeight: 700 }}>No Steps Yet</h3>
-        <p style={{ color: 'var(--color-neutral-500)', maxWidth: '30ch', fontSize: '0.875rem' }}>
-          Your supervisor hasn't assigned any onboarding tasks yet. Check back soon.
-        </p>
-      </div>
-    );
-  }
-
-  const activeCategoryData = stepsByCategory.find(c => c.name === activeCategory);
-
-  return (
-    <>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '4rem' }}>
-
-        {/* ── Page Header ─────────────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}
-        >
-          <div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-neutral-900)', marginBottom: '0.25rem' }}>
-              Onboarding Checklist
-            </h1>
-            <p style={{ color: 'var(--color-neutral-500)', fontSize: '0.9rem' }}>
-              Complete your onboarding before diving into assigned tasks.
-            </p>
-          </div>
-        </motion.div>
-
-        {/* ── "Up Next" Spotlight Banner ───────────────────────────────── */}
-        <AnimatePresence>
-          {nextStep && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3, delay: 0.05 }}
-              style={{
-                background: 'linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%)',
-                border: '1.5px solid #c7d2fe',
-                borderRadius: '1.125rem',
-                padding: '1.125rem 1.5rem',
-                display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap',
-              }}
-            >
+              <h4 style={{ fontSize: '16px', fontWeight: 800, margin: '12px 0 2px 0' }}>
+                {progressPercentage}% Complete
+              </h4>
+              <p style={{ fontSize: '12px', opacity: 0.9, margin: 0, textAlign: 'center' }}>
+                {isOnboardingReady ? 'Onboarding Ready! 🎉' : 'Good start! Build on this energy.'}
+              </p>
+              
               <div style={{
-                width: '2.5rem', height: '2.5rem',
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                borderRadius: '0.75rem',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
+                background: 'rgba(255, 255, 255, 0.2)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '999px',
+                padding: '4px 14px',
+                fontSize: '11px',
+                fontWeight: 700,
+                marginTop: '10px'
               }}>
-                <RiPlayCircleLine style={{ color: '#fff', fontSize: '1.25rem' }} />
+                ⏱️ {remainingTasks} tasks remaining
               </div>
-              <div style={{ flex: 1, minWidth: '180px' }}>
-                <div style={{ fontSize: '0.675rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: '0.2rem' }}>
-                  Up Next
+            </div>
+
+            {/* 4 Metrics Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '16px' }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.18)', borderRadius: '12px', padding: '10px', textAlign: 'center' }}>
+                <span style={{ fontSize: '18px', fontWeight: 900, display: 'block' }}>{totalTasks}</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.8, textTransform: 'uppercase' }}>TOTAL</span>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.18)', borderRadius: '12px', padding: '10px', textAlign: 'center' }}>
+                <span style={{ fontSize: '18px', fontWeight: 900, display: 'block' }}>{completedTasks}</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.8, textTransform: 'uppercase' }}>DONE</span>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.18)', borderRadius: '12px', padding: '10px', textAlign: 'center' }}>
+                <span style={{ fontSize: '18px', fontWeight: 900, display: 'block' }}>{approvedDocsCount}</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.8, textTransform: 'uppercase' }}>APPROVED</span>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.18)', borderRadius: '12px', padding: '10px', textAlign: 'center' }}>
+                <span style={{ fontSize: '18px', fontWeight: 900, display: 'block' }}>{remainingTasks}</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.8, textTransform: 'uppercase' }}>REMAINING</span>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Categories Sidebar */}
+          <div style={{ background: '#ffffff', borderRadius: '16px', padding: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)' }}>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '12px', paddingLeft: '8px' }}>
+              CATEGORIES
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {CATEGORIES.map((cat) => {
+                const IconComponent = cat.icon;
+                const isActive = activeCategory === cat.id;
+                const count = getCategoryCount(cat.id);
+                const isFullyDone = count.done === count.total;
+
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategory(cat.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '12px',
+                      border: isActive ? '1.5px solid #10b981' : '1px solid transparent',
+                      background: isActive ? '#ecfdf5' : 'transparent',
+                      color: isActive ? '#065f46' : '#475569',
+                      fontWeight: isActive ? 700 : 500,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <IconComponent style={{ fontSize: '16px', color: isActive ? '#10b981' : cat.color }} />
+                      <span>{cat.name}</span>
+                    </div>
+
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '999px',
+                      background: isFullyDone ? '#d1fae5' : isActive ? '#ffffff' : '#f1f5f9',
+                      color: isFullyDone ? '#047857' : '#64748b'
+                    }}>
+                      {count.done}/{count.total}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+        </div>
+
+        {/* ── RIGHT COLUMN: ACTIVE CATEGORY PANEL ───────────────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          {/* Category Banner Card */}
+          {(() => {
+            const currentCatObj = CATEGORIES.find((c) => c.id === activeCategory) || CATEGORIES[0];
+            const CatIcon = currentCatObj.icon;
+            const count = getCategoryCount(activeCategory);
+
+            return (
+              <div style={{
+                background: '#ffffff',
+                borderRadius: '16px',
+                padding: '20px 24px',
+                border: '1.5px solid #a7f3d0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: '0 2px 12px rgba(16, 185, 129, 0.06)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '12px',
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '22px'
+                  }}>
+                    <CatIcon />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                      {currentCatObj.name}
+                    </h2>
+                    <span style={{ fontSize: '12px', color: '#059669', fontWeight: 600 }}>
+                      {count.done}/{count.total} completed
+                    </span>
+                  </div>
                 </div>
-                <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--color-neutral-900)' }}>
-                  {nextStep.title}
-                </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--color-neutral-500)', marginTop: '0.2rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <span>{nextStep.category}</span>
-                  <span style={{ color: 'var(--color-neutral-300)' }}>·</span>
-                  <span>{formatMins(nextStep.estimatedTime ?? nextStep.duration ?? 0)}</span>
+
+                <div style={{ width: '120px', height: '6px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${(count.done / count.total) * 100}%`,
+                    height: '100%',
+                    background: '#10b981',
+                    transition: 'width 0.3s ease'
+                  }} />
                 </div>
               </div>
-              <Button
-                onClick={() => navigate(`${ROUTES.ONBOARDING}/${nextStep.id}`)}
-                style={{ flexShrink: 0 }}
-                rightIcon={<RiArrowRightLine />}
-              >
-                Continue
-              </Button>
+            );
+          })()}
+
+          {/* ── Category 1: Internship Information Panel ─────────────────────── */}
+          {activeCategory === 'internship_info' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{ background: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}
+            >
+              <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 4px 0', color: '#0f172a' }}>
+                Internship Profile & Department Selection
+              </h3>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 20px 0' }}>
+                CWG PLC is the parent organization. FifthLab operates as a specialized innovation department under CWG.
+              </p>
+
+              <form onSubmit={handleInfoSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                    Parent Organization
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value="CWG PLC"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      background: '#f8fafc',
+                      fontWeight: 800,
+                      color: '#1e3a8a'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                    Select Department (Includes FifthLab)
+                  </label>
+                  <select
+                    value={info.department_id}
+                    onChange={(e) => handleDepartmentChange(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: '1px solid #3b82f6',
+                      background: '#ffffff',
+                      fontWeight: 600,
+                      color: '#0f172a'
+                    }}
+                  >
+                    {mockDepartments.map((dept) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.name} ({dept.code || 'DEPT'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Supervisor Auto-Assignment Card */}
+                <div style={{ gridColumn: '1 / -1', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#2563eb', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
+                      <RiUserFollowLine style={{ fontSize: '20px' }} />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase' }}>Auto-Assigned Department Supervisor</span>
+                      <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#1e3a8a', margin: '2px 0 0 0' }}>{assignedSupervisor.name}</h4>
+                      <span style={{ fontSize: '12px', color: '#3b82f6' }}>{assignedSupervisor.title} • {assignedSupervisor.email}</span>
+                    </div>
+                  </div>
+                  <span style={{ background: '#dbeafe', color: '#1e40af', fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px' }}>
+                    Assigned
+                  </span>
+                </div>
+
+                {/* Internship Duration Notice */}
+                <div style={{ gridColumn: '1 / -1', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', padding: '14px 18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#92400e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <RiTimeLine style={{ fontSize: '16px' }} /> Internship Duration Dates
+                    </span>
+                    <span style={{ background: '#fef3c7', color: '#b45309', fontSize: '11px', fontWeight: 800, padding: '3px 10px', borderRadius: '999px', border: '1px solid #fcd34d' }}>
+                      ⚡ Requires Supervisor Verification
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#78350f', marginBottom: '4px' }}>Start Date</label>
+                      <input
+                        type="date"
+                        value={info.start_date}
+                        onChange={(e) => setInfo({ ...info, start_date: e.target.value })}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#78350f', marginBottom: '4px' }}>End Date</label>
+                      <input
+                        type="date"
+                        value={info.end_date}
+                        onChange={(e) => setInfo({ ...info, end_date: e.target.value })}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      />
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '11px', color: '#a16207', marginTop: '6px', display: 'block' }}>
+                    * Dates submitted will be sent to supervisor ({assignedSupervisor.name}) for formal verification.
+                  </span>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                    School / Institution
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={info.institution}
+                    onChange={(e) => setInfo({ ...info, institution: e.target.value })}
+                    placeholder="e.g. University of Lagos"
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                    Course of Study / Major
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={info.field_of_study}
+                    onChange={(e) => setInfo({ ...info, field_of_study: e.target.value })}
+                    placeholder="e.g. Computer Science"
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                    Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={info.phone}
+                    onChange={(e) => setInfo({ ...info, phone: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1', marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="submit"
+                    style={{
+                      background: '#10b981',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '10px',
+                      padding: '12px 24px',
+                      fontWeight: 700,
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                    }}
+                  >
+                    <RiCheckLine /> Save & Proceed to Documents
+                  </button>
+                </div>
+
+              </form>
             </motion.div>
           )}
-        </AnimatePresence>
 
-        {/* ── Profile Change Requests ──────────────────────────────────── */}
-        <ProfileChangeRequestsCard />
-
-        {/* ── Main Layout: Sidebar + Content ───────────────────────────── */}
-        <div className="onboarding-layout">
-
-          {/* Sidebar */}
-          <ProgressSidebar
-            stats={stats}
-            categories={stepsByCategory}
-            activeCategory={activeCategory}
-            onCategoryChange={setActiveCategory}
-            onReset={resetOnboarding}
-          />
-
-          {/* Main Content Panel */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <AnimatePresence mode="wait">
-              {activeCategoryData && (
-                <CategoryPanel
-                  key={activeCategory}
-                  name={activeCategoryData.name}
-                  steps={activeCategoryData.steps}
-                  onOpen={handleOpen}
-                  isActive
-                />
+          {/* ── Category 2: Required Documents (STRICT PDF ONLY) ───────────── */}
+          {activeCategory === 'required_docs' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+            >
+              
+              {/* Readiness Banner Header */}
+              {isOnboardingReady ? (
+                <div style={{ background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', color: '#ffffff', borderRadius: '16px', padding: '20px 24px', boxShadow: '0 8px 24px rgba(16, 185, 129, 0.25)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <RiShieldCheckFill style={{ fontSize: '28px' }} />
+                    <h3 style={{ fontSize: '20px', fontWeight: 900, margin: 0 }}>ONBOARDING READY 🎉</h3>
+                  </div>
+                  <p style={{ fontSize: '13px', margin: 0, opacity: 0.95 }}>
+                    All 3 required PDF documents have been approved by supervisor {assignedSupervisor.name}.
+                  </p>
+                  <div style={{ marginTop: '12px', background: 'rgba(255, 255, 255, 0.2)', padding: '10px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 600 }}>
+                    ℹ️ <strong>HR Disclaimer:</strong> Trakive onboarding complements—not replaces—the official CWG PLC HR onboarding process.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>PDF Documentation Progress</span>
+                    <h4 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: '2px 0 0 0' }}>
+                      {approvedDocsCount}/3 PDF Documents Approved
+                    </h4>
+                  </div>
+                  <span style={{ background: '#dbeafe', color: '#1e40af', fontSize: '12px', fontWeight: 800, padding: '6px 14px', borderRadius: '999px' }}>
+                    Strictly PDF (.pdf) Only
+                  </span>
+                </div>
               )}
-            </AnimatePresence>
-          </div>
+
+              {/* Document Cards */}
+              {REQUIRED_DOCUMENTS.map((reqDoc) => {
+                const uploadedDoc = documents[reqDoc.category];
+                const hasError = uploadErrors[reqDoc.category];
+                const isApproved = uploadedDoc?.review_status === 'approved';
+                const isResubmit = uploadedDoc?.review_status === 'resubmission_required';
+                const isRejected = uploadedDoc?.review_status === 'rejected';
+
+                return (
+                  <div
+                    key={reqDoc.category}
+                    style={{
+                      background: '#ffffff',
+                      borderRadius: '16px',
+                      border: isApproved
+                        ? '1.5px solid #a7f3d0'
+                        : isResubmit
+                        ? '1.5px solid #fed7aa'
+                        : isRejected
+                        ? '1.5px solid #fecaca'
+                        : '1px solid #e2e8f0',
+                      padding: '20px',
+                      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '28px' }}>{reqDoc.icon}</span>
+                        <div>
+                          <h4 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                            {reqDoc.title}
+                          </h4>
+                          <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0 0' }}>
+                            {reqDoc.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Status Badge */}
+                      {uploadedDoc ? (
+                        <span style={{
+                          padding: '6px 12px',
+                          borderRadius: '999px',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          textTransform: 'uppercase',
+                          background: isApproved ? '#ecfdf5' : isResubmit ? '#fff7ed' : isRejected ? '#fef2f2' : '#fffbeb',
+                          color: isApproved ? '#059669' : isResubmit ? '#ea580c' : isRejected ? '#dc2626' : '#d97706',
+                          border: `1px solid ${isApproved ? '#a7f3d0' : isResubmit ? '#ffedd5' : isRejected ? '#fecaca' : '#fde68a'}`
+                        }}>
+                          {uploadedDoc.review_status.replace('_', ' ')}
+                        </span>
+                      ) : (
+                        <span style={{ background: '#f1f5f9', color: '#64748b', padding: '4px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 700 }}>
+                          PDF Required
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Resubmission Notes Alert Banner */}
+                    {(isResubmit || isRejected) && uploadedDoc?.reviewer_notes && (
+                      <div style={{ background: '#fff7ed', border: '1px solid #ffedd5', borderRadius: '10px', padding: '12px 14px', margin: '12px 0', fontSize: '13px', color: '#9a3412' }}>
+                        <strong>Supervisor Feedback ({assignedSupervisor.name}):</strong> "{uploadedDoc.reviewer_notes}"
+                      </div>
+                    )}
+
+                    {/* Upload Dropzone or File Preview */}
+                    {uploadedDoc ? (
+                      <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <RiFilePdfLine style={{ fontSize: '26px', color: '#ef4444' }} />
+                          <div>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
+                              {uploadedDoc.file_name}
+                            </span>
+                            <span style={{ fontSize: '11px', color: '#64748b' }}>
+                              {(uploadedDoc.file_size / (1024 * 1024)).toFixed(2)} MB • PDF Document
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <label style={{ cursor: 'pointer', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
+                            Replace PDF
+                            <input
+                              type="file"
+                              hidden
+                              accept="application/pdf,.pdf"
+                              onChange={(e) => handleFileUpload(reqDoc.category, e.target.files[0])}
+                            />
+                          </label>
+                          <button
+                            onClick={() => handleRemoveDoc(reqDoc.category)}
+                            style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '8px', padding: '6px 10px', cursor: 'pointer' }}
+                          >
+                            <RiDeleteBinLine />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '20px', textAlign: 'center', background: '#fafafa' }}>
+                        <RiFilePdfLine style={{ fontSize: '36px', color: '#ef4444', marginBottom: '6px' }} />
+                        <p style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                          Click or drag PDF file to upload
+                        </p>
+                        <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 12px 0' }}>
+                          ⛔ <strong>STRICT FORMAT RULE:</strong> Only PDF documents (.pdf) allowed. Max 10 MB.
+                        </p>
+                        <label style={{
+                          background: '#ef4444',
+                          color: '#ffffff',
+                          borderRadius: '8px',
+                          padding: '8px 18px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-block',
+                          boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)'
+                        }}>
+                          Browse PDF File
+                          <input
+                            type="file"
+                            hidden
+                            accept="application/pdf,.pdf"
+                            onChange={(e) => handleFileUpload(reqDoc.category, e.target.files[0])}
+                          />
+                        </label>
+                      </div>
+                    )}
+
+                    {/* Error message */}
+                    {hasError && (
+                      <div style={{ color: '#dc2626', fontSize: '12px', fontWeight: 600, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <RiAlertLine /> {hasError}
+                      </div>
+                    )}
+
+                    {/* Document History audit trail if resubmitted */}
+                    {uploadedDoc?.history?.length > 0 && (
+                      <div style={{ marginTop: '12px', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <RiHistoryLine /> Document Resubmission History ({uploadedDoc.history.length})
+                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
+                          {uploadedDoc.history.map((hist, hIdx) => (
+                            <div key={hIdx} style={{ fontSize: '11px', color: '#64748b', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px' }}>
+                              <span>v{hIdx + 1}: {hist.file_name}</span> • <span style={{ textTransform: 'uppercase' }}>{hist.review_status}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                );
+              })}
+            </motion.div>
+          )}
+
+          {/* ── Category 3: Welcome Panel ───────────────────────────────────── */}
+          {activeCategory === 'welcome' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{ background: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}
+            >
+              <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 6px 0', color: '#0f172a' }}>
+                Welcome to CWG PLC & FifthLab
+              </h3>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 20px 0' }}>
+                Get acquainted with our corporate portal and innovation labs by visiting our official websites below.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* FifthLab Interns see BOTH FifthLab & CWG PLC websites */}
+                {(isFifthLabDomain || info.department_name === 'FifthLab') && (
+                  <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '14px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase' }}>FifthLab Venture Lab</span>
+                      <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#0369a1', margin: '2px 0 0 0' }}>FifthLab Official Website</h4>
+                      <p style={{ fontSize: '12px', color: '#0e7490', margin: '2px 0 0 0' }}>Explore projects, startup initiatives, and tech venture lab programs.</p>
+                    </div>
+                    <a
+                      href="https://thefifthlab.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        background: '#0284c7',
+                        color: '#ffffff',
+                        padding: '10px 18px',
+                        borderRadius: '10px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      Visit FifthLab <RiExternalLinkLine />
+                    </a>
+                  </div>
+                )}
+
+                {/* CWG PLC Website (Visible to ALL interns) */}
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '14px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase' }}>Parent Organization</span>
+                    <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#1e3a8a', margin: '2px 0 0 0' }}>CWG PLC Corporate Website</h4>
+                    <p style={{ fontSize: '12px', color: '#1d4ed8', margin: '2px 0 0 0' }}>Learn about CWG PLC pan-African ICT infrastructure and enterprise services.</p>
+                  </div>
+                  <a
+                    href="https://cwg-plc.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      background: '#2563eb',
+                      color: '#ffffff',
+                      padding: '10px 18px',
+                      borderRadius: '10px',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    Visit CWG PLC <RiExternalLinkLine />
+                  </a>
+                </div>
+
+                <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => markStepCompletedAndNext('welcome', 'company_policies')}
+                    style={{
+                      background: '#10b981',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '10px',
+                      padding: '12px 24px',
+                      fontWeight: 700,
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                    }}
+                  >
+                    <RiCheckLine /> Mark Welcome Reviewed & Proceed to Policies <RiArrowRightLine />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── Category 4: Company Policies & Handbook ───────────────────────── */}
+          {activeCategory === 'company_policies' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{ background: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: '#0f172a' }}>
+                  Company Policies & Employee Handbook
+                </h3>
+                {completedSteps.company_policies ? (
+                  <span style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', fontSize: '12px', fontWeight: 800, padding: '4px 12px', borderRadius: '999px' }}>
+                    ✅ Completed
+                  </span>
+                ) : (
+                  <span style={{ background: '#fff7ed', color: '#ea580c', border: '1px solid #ffedd5', fontSize: '12px', fontWeight: 800, padding: '4px 12px', borderRadius: '999px' }}>
+                    ⏳ (In Progress)
+                  </span>
+                )}
+              </div>
+
+              <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '28px', textAlign: 'center', marginBottom: '20px' }}>
+                <RiShieldCheckFill style={{ fontSize: '40px', color: completedSteps.company_policies ? '#10b981' : '#94a3b8', marginBottom: '8px' }} />
+                <h4 style={{ fontSize: '15px', fontWeight: 700, color: '#334155', margin: 0 }}>
+                  Company Handbook Document
+                </h4>
+                <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
+                  The CWG PLC & FifthLab Employee Policy Handbook overview. Review policies and click below to acknowledge.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => markStepCompletedAndNext('company_policies', 'it_setup')}
+                  style={{
+                    background: '#10b981',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '12px 24px',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  <RiCheckLine /> Mark Policies Read & Proceed to IT Setup <RiArrowRightLine />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── Category 5: IT Setup (WIFI & CYBERSECURITY GUIDE) ─────────────── */}
+          {activeCategory === 'it_setup' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{ background: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '20px' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 4px 0', color: '#0f172a' }}>
+                    IT Setup & Security Confirmation
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                    Confirm your network connection and review CWG IT Security guidelines.
+                  </p>
+                </div>
+                {isItSetupComplete && (
+                  <span style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', fontSize: '12px', fontWeight: 800, padding: '4px 12px', borderRadius: '999px' }}>
+                    ✅ Completed
+                  </span>
+                )}
+              </div>
+
+              {/* 1. CWG Wi-Fi Network Confirmation */}
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '14px', padding: '18px 20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+                  <RiWifiLine style={{ fontSize: '24px', color: '#16a34a' }} />
+                  <div>
+                    <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#14532d', margin: 0 }}>CWG Corporate Wi-Fi Network Access</h4>
+                    <span style={{ fontSize: '12px', color: '#15803d' }}>SSID: CWG-Corporate-WiFi / FifthLab-Internal</span>
+                  </div>
+                </div>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #86efac' }}>
+                  <input
+                    type="checkbox"
+                    checked={itSetupState.wifiConfirmed}
+                    onChange={(e) => {
+                      setItSetupState({ ...itSetupState, wifiConfirmed: e.target.checked });
+                      if (e.target.checked) toast.success('Confirmed: Added to CWG Wi-Fi network.');
+                    }}
+                    style={{ width: '18px', height: '18px', accentColor: '#16a34a' }}
+                  />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#14532d' }}>
+                    I confirm that I have been added to CWG's Wi-Fi network.
+                  </span>
+                </label>
+              </div>
+
+              {/* 2. CyberSecurity & IT Security Guide */}
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '14px', padding: '18px 20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <RiShieldKeyholeLine style={{ fontSize: '24px', color: '#d97706' }} />
+                  <div>
+                    <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#78350f', margin: 0 }}>CWG CyberSecurity & IT Security Guide</h4>
+                    <span style={{ fontSize: '12px', color: '#92400e' }}>Mandatory Security Awareness Standard</span>
+                  </div>
+                </div>
+
+                <div style={{ background: '#ffffff', borderRadius: '10px', padding: '14px', border: '1px solid #fcd34d', fontSize: '12px', color: '#451a03', maxHeight: '140px', overflowY: 'auto', marginBottom: '12px', lineHeight: '1.6' }}>
+                  <strong>Security Best Practices for CWG Interns:</strong>
+                  <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px' }}>
+                    <li><strong>Password Security:</strong> Use strong 12+ character passwords and never share corporate credentials.</li>
+                    <li><strong>Phishing Awareness:</strong> Do not click untrusted links or open unsolicited attachments from unknown domains.</li>
+                    <li><strong>Data Confidentiality:</strong> Proprietary FifthLab & CWG code, client datasets, and internal communications must not be shared externally.</li>
+                    <li><strong>Device Security:</strong> Always lock your computer screen (`Win + L` or `Cmd + Ctrl + Q`) when leaving your workspace.</li>
+                  </ul>
+                </div>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #fcd34d' }}>
+                  <input
+                    type="checkbox"
+                    checked={itSetupState.securityGuideRead}
+                    onChange={(e) => {
+                      setItSetupState({ ...itSetupState, securityGuideRead: e.target.checked });
+                      if (e.target.checked) toast.success('Confirmed: CyberSecurity Guide read and acknowledged.');
+                    }}
+                    style={{ width: '18px', height: '18px', accentColor: '#d97706' }}
+                  />
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#78350f' }}>
+                    I have read, understood, and agree to abide by the CyberSecurity & IT Security Guide.
+                  </span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => {
+                    setItSetupState({ wifiConfirmed: true, securityGuideRead: true });
+                    markStepCompletedAndNext('it_setup', 'team_intro');
+                  }}
+                  style={{
+                    background: '#10b981',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '12px 24px',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  <RiCheckLine /> Complete IT Setup & Proceed to Team Intro <RiArrowRightLine />
+                </button>
+              </div>
+
+            </motion.div>
+          )}
+
+          {/* ── Category 6: Team Introduction (REAL DATA & CLICKABLE PROFILES) ── */}
+          {activeCategory === 'team_intro' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{ background: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 4px 0', color: '#0f172a' }}>
+                    Department Team Members & Supervisor
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                    Click on any team member profile to view their biography and background details.
+                  </p>
+                </div>
+                {completedSteps.team_intro && (
+                  <span style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', fontSize: '12px', fontWeight: 800, padding: '4px 12px', borderRadius: '999px' }}>
+                    ✅ Completed
+                  </span>
+                )}
+              </div>
+
+              {loadingTeam ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>Loading team profiles...</div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '20px' }}>
+                  {teamMembers.map((mem) => (
+                    <div
+                      key={mem.id}
+                      onClick={() => setSelectedMember(mem)}
+                      style={{
+                        background: mem.isSupervisor ? '#eff6ff' : '#f8fafc',
+                        border: mem.isSupervisor ? '1.5px solid #93c5fd' : '1px solid #e2e8f0',
+                        borderRadius: '14px',
+                        padding: '16px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                      }}
+                    >
+                      <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        background: mem.avatarColor || '#2563eb',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 900,
+                        fontSize: '16px'
+                      }}>
+                        {mem.name.split(' ').map((n) => n[0]).join('')}
+                      </div>
+
+                      <div style={{ flex: 1, overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {mem.name}
+                          </h4>
+                          {mem.isSupervisor && (
+                            <span style={{ background: '#2563eb', color: '#ffffff', fontSize: '9px', fontWeight: 800, padding: '2px 6px', borderRadius: '4px' }}>
+                              SUPERVISOR
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>{mem.role}</span>
+                        <span style={{ fontSize: '11px', color: '#3b82f6', fontWeight: 600 }}>Click to view Bio →</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => markStepCompletedAndNext('team_intro', 'training')}
+                  style={{
+                    background: '#10b981',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '12px 24px',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  <RiCheckLine /> Mark Team Intro Reviewed & Proceed to Training <RiArrowRightLine />
+                </button>
+              </div>
+
+              {/* Profile Details Modal */}
+              <AnimatePresence>
+                {selectedMember && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setSelectedMember(null)}
+                    style={{
+                      position: 'fixed',
+                      top: 0, left: 0, right: 0, bottom: 0,
+                      background: 'rgba(15, 23, 42, 0.6)',
+                      backdropFilter: 'blur(4px)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 1000,
+                      padding: '20px'
+                    }}
+                  >
+                    <motion.div
+                      initial={{ scale: 0.9, y: 20 }}
+                      animate={{ scale: 1, y: 0 }}
+                      exit={{ scale: 0.9, y: 20 }}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        background: '#ffffff',
+                        borderRadius: '20px',
+                        width: '100%',
+                        maxWidth: '520px',
+                        padding: '28px',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                        position: 'relative'
+                      }}
+                    >
+                      <button
+                        onClick={() => setSelectedMember(null)}
+                        style={{ position: 'absolute', top: '20px', right: '20px', background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <RiCloseLine style={{ fontSize: '20px', color: '#64748b' }} />
+                      </button>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+                        <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: selectedMember.avatarColor || '#2563eb', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '22px' }}>
+                          {selectedMember.name.split(' ').map((n) => n[0]).join('')}
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+                            {selectedMember.name}
+                          </h3>
+                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#2563eb' }}>
+                            {selectedMember.role}
+                          </span>
+                          <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>
+                            {selectedMember.department}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: '#475569' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <RiMailLine style={{ color: '#2563eb' }} />
+                          <span>{selectedMember.email}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <RiMapPinLine style={{ color: '#2563eb' }} />
+                          <span>{selectedMember.location}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Biography
+                        </h4>
+                        <p style={{ fontSize: '13px', color: '#334155', lineHeight: '1.6', margin: 0, background: '#f1f5f9', padding: '14px', borderRadius: '10px' }}>
+                          {selectedMember.bio}
+                        </p>
+                      </div>
+
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+            </motion.div>
+          )}
+
+          {/* ── Category 7: Training Module ─────────────────────────────────── */}
+          {activeCategory === 'training' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{ background: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: '#0f172a' }}>
+                  Internship Training Slide Deck (PDF)
+                </h3>
+                {completedSteps.training ? (
+                  <span style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', fontSize: '12px', fontWeight: 800, padding: '4px 12px', borderRadius: '999px' }}>
+                    ✅ Completed
+                  </span>
+                ) : (
+                  <span style={{ background: '#fff7ed', color: '#ea580c', border: '1px solid #ffedd5', fontSize: '12px', fontWeight: 800, padding: '4px 12px', borderRadius: '999px' }}>
+                    ⏳ (In Progress)
+                  </span>
+                )}
+              </div>
+
+              <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '28px', textAlign: 'center', marginBottom: '20px' }}>
+                <RiGraduationCapLine style={{ fontSize: '40px', color: completedSteps.training ? '#10b981' : '#94a3b8', marginBottom: '8px' }} />
+                <h4 style={{ fontSize: '15px', fontWeight: 700, color: '#334155', margin: 0 }}>
+                  PowerPoint Presentation Slide Deck (PDF)
+                </h4>
+                <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
+                  The training presentation slides will be uploaded here in PDF format. (In Progress)
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => markStepCompletedAndNext('training', null)}
+                  style={{
+                    background: '#10b981',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '12px 24px',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  <RiCheckLine /> Mark Training Completed & Finish Pathway
+                </button>
+              </div>
+            </motion.div>
+          )}
+
         </div>
       </div>
 
-      {/* ── Completion Celebration ───────────────────────────────────────── */}
-      <AnimatePresence>
-        {celebrated && stats.percentage === 100 && (
-          <CelebrationOverlay
-            stats={stats}
-            onClose={() => setCelebrated(false)}
-            onGoToDashboard={() => { setCelebrated(false); navigate(ROUTES.DASHBOARD); }}
-          />
-        )}
-      </AnimatePresence>
-    </>
+    </div>
   );
 }

@@ -5,13 +5,14 @@
  */
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   RiTaskLine, RiEdit2Line, RiTimeLine, RiCheckboxCircleLine,
   RiStarLine, RiMapLine, RiMegaphoneLine, RiAlarmLine,
   RiSettings3Line, RiUser3Line, RiBellLine, RiMoreLine,
   RiCheckLine, RiEyeLine, RiDeleteBinLine, RiArchiveLine,
-  RiMailUnreadLine,
+  RiMailUnreadLine, RiArrowRightSLine,
 } from 'react-icons/ri';
 import { getCategoryConfig } from '../../data/notificationCategories';
 import { formatNotificationTime } from '../../utils';
@@ -77,14 +78,30 @@ const NotificationItem = ({
   onDelete,
   onArchive,
 }) => {
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { category, title, shortDescription, timestamp, date, isRead, priority } = notification;
+  const { category, title, shortDescription, timestamp, date, isRead, priority, actionRoute, linkUrl, link_url, actionLabel } = notification;
   const catConfig = getCategoryConfig(category);
   const displayTime = formatNotificationTime(date, timestamp);
+
+  const targetRoute = actionRoute || linkUrl || link_url || (category?.includes('onboarding') ? '/supervisor/onboarding' : null);
+  const viewButtonLabel = actionLabel || (category?.includes('onboarding') ? 'View Onboarding' : category?.includes('review') || category?.includes('task') || category?.includes('submission') ? 'View Submission' : 'View');
 
   const handleItemClick = () => {
     if (onClick) onClick(notification);
     if (!isRead && onMarkRead) onMarkRead(notification.id);
+    if (targetRoute) {
+      navigate(targetRoute);
+    }
+  };
+
+  const handleViewClick = (e) => {
+    e.stopPropagation();
+    if (!isRead && onMarkRead) onMarkRead(notification.id);
+    if (onClick) onClick(notification);
+    if (targetRoute) {
+      navigate(targetRoute);
+    }
   };
 
   return (
@@ -196,6 +213,7 @@ const NotificationItem = ({
             alignItems: 'center',
             gap: '0.5rem',
             marginTop: '0.35rem',
+            flexWrap: 'wrap',
           }}
         >
           {/* Category badge */}
@@ -217,6 +235,32 @@ const NotificationItem = ({
           <span style={{ fontSize: '0.6875rem', color: 'var(--color-neutral-400)' }}>
             {displayTime}
           </span>
+
+          {/* View Action Button */}
+          {targetRoute && (
+            <button
+              onClick={handleViewClick}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.2rem',
+                padding: '0.15rem 0.55rem',
+                borderRadius: '0.375rem',
+                background: '#e0f2fe',
+                color: '#0284c7',
+                border: '1px solid #bae6fd',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                marginLeft: 'auto',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#bae6fd'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#e0f2fe'}
+            >
+              {viewButtonLabel} <RiArrowRightSLine />
+            </button>
+          )}
         </div>
       </div>
 

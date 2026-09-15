@@ -5,6 +5,7 @@
  * Replace mock data imports with real API calls (axios) to connect to the backend.
  */
 
+import api from './api';
 import { mockInternProfiles } from '../data/internProfiles';
 import { mockInternProgress } from '../data/internProgress';
 import { mockInternDocuments } from '../data/internDocuments';
@@ -30,7 +31,7 @@ function computeKPIs(interns) {
   const reviewsDue = interns.filter((i) => i.status === 'Pending Review').length;
   const avgScore =
     total > 0
-      ? (interns.reduce((sum, i) => sum + i.performanceScore, 0) / total).toFixed(1)
+      ? (interns.reduce((sum, i) => sum + Number(i.performanceScore || 0), 0) / total).toFixed(1)
       : '0.0';
 
   return [
@@ -51,7 +52,7 @@ function computeKPIs(interns) {
       description: 'Currently active and contributing',
       iconName: 'RiUserFollowLine',
       color: 'green',
-      trend: `${Math.round((active / total) * 100)}% of team`,
+      trend: total > 0 ? `${Math.round((active / total) * 100)}% of team` : '0% of team',
       trendType: 'positive',
     },
     {
@@ -105,8 +106,36 @@ export const internManagementService = {
    * @returns {Promise<{ interns: Array, total: number, kpis: Array }>}
    */
   async fetchInternList(params = {}) {
-    await delay();
-    let result = [...mockInternProfiles];
+    let rawResult = [];
+    try {
+      const res = await api.get('/interns', { params: { limit: 100 } });
+      const rawItems = res.data?.data?.items || res.data?.items || res.data?.data || [];
+      rawResult = rawItems.map((item) => ({
+        id: item.user_id || item.id,
+        internId: item.user_id || item.id,
+        name: `${item.first_name || ''} ${item.last_name || ''}`.trim() || item.email,
+        email: item.email,
+        department: item.department_name || item.department || 'Engineering',
+        role: 'Intern',
+        status: item.intern_status === 'active' ? 'Active' : (item.intern_status === 'onboarding' ? 'Pending Review' : 'Active'),
+        performanceScore: Number(item.performance_score || 4.5),
+        onboardingProgress: item.onboarding_ready ? 100 : (item.onboarding_step ? item.onboarding_step * 25 : 50),
+        currentTask: item.current_task || (item.onboarding_ready ? 'Active Internship' : 'Completing Onboarding'),
+        startDate: item.created_at ? item.created_at.split('T')[0] : '2026-06-01',
+        endDate: '2026-12-31',
+        batch: 'Batch 2026-A',
+        avatar: item.avatar_url || null,
+      }));
+    } catch (err) {
+      console.warn('Failed to fetch real interns from backend API:', err);
+    }
+
+    if (rawResult.length === 0 && mockInternProfiles.length > 0) {
+      rawResult = [...mockInternProfiles];
+    }
+
+    let result = rawResult;
+    const allInternsUnfiltered = [...result];
 
     const { search, department, status, performanceMin, performanceMax, onboardingStatus, batch, period } =
       params;
@@ -171,7 +200,7 @@ export const internManagementService = {
     return {
       interns: result,
       total: result.length,
-      kpis: computeKPIs(mockInternProfiles),
+      kpis: computeKPIs(allInternsUnfiltered),
     };
   },
 
@@ -181,14 +210,37 @@ export const internManagementService = {
    * @returns {Promise<{ profile: object | null }>}
    */
   async fetchInternProfile(internId) {
-    await delay(400);
-    const profile = mockInternProfiles.find((i) => i.id === internId) || null;
-    if (profile && !profile.internships) {
-      profile.internships = [
-        { id: `${internId}-p1`, title: 'Internship #1 (Jun 2025 - Nov 2025)', startDate: '2025-06-01', endDate: '2025-11-30', status: 'completed' },
-        { id: `${internId}-p2`, title: 'Internship #2 (Mar 2026 - Sep 2026)', startDate: '2026-03-01', endDate: '2026-09-01', status: 'active' },
-      ];
+    try {
+      const res = await api.get(`/interns/${internId}`);
+      const data = res.data?.data || res.data;
+      if (data) {
+        return {
+          profile: {
+            id: data.user_id || data.id || internId,
+            internId: data.user_id || data.id || internId,
+            name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.email,
+            email: data.email,
+            phone: data.phone || 'N/A',
+            department: data.department_name || 'Engineering',
+            role: 'Intern',
+            status: data.intern_status === 'active' ? 'Active' : 'Pending Review',
+            performanceScore: Number(data.performance_score || 4.8),
+            onboardingProgress: data.onboarding_ready ? 100 : 50,
+            institution: data.institution || 'N/A',
+            fieldOfStudy: data.field_of_study || 'N/A',
+            emergencyContact: data.emergency_contact || {},
+            skills: data.skills || [],
+            avatar: data.avatar_url || null,
+            internships: [
+              { id: `${internId}-p1`, title: 'Current Internship (2026)', startDate: data.user_created_at?.split('T')[0] || '2026-06-01', endDate: '2026-12-31', status: 'active' },
+            ],
+          }
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to fetch real intern profile:', e);
     }
+    const profile = mockInternProfiles.find((i) => i.id === internId) || null;
     return { profile };
   },
 

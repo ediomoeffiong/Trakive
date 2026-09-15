@@ -235,7 +235,7 @@ const isDemoUser = () => {
     const user = useAppStore.getState()?.user;
     if (!user) return false;
     const demoIds = ['u-1', 'u-2', 'u-3', 'u-4'];
-    const demoEmails = ['intern@trakive.com', 'supervisor@trakive.com', 'hr@trakive.com', 'head@trakive.com'];
+    const demoEmails = ['intern@thefifthlab.com', 'supervisor@thefifthlab.com', 'hr@thefifthlab.com', 'head@thefifthlab.com'];
     return demoIds.includes(user.id) || demoEmails.includes(user.email?.toLowerCase());
   } catch {
     return false;
@@ -744,7 +744,7 @@ export const profileService = {
       id: `pcr-${Date.now()}`,
       internId: currentProfile?.id || 'intern-1',
       internName: currentProfile?.fullName || `${currentProfile?.firstName || ''} ${currentProfile?.lastName || ''}`.trim() || 'Intern User',
-      internEmail: currentProfile?.email || 'intern@trakive.com',
+      internEmail: currentProfile?.email || 'intern@thefifthlab.com',
       submittedAt: new Date().toISOString(),
       status: 'pending',
       proposedChanges: { ...proposedData, fullName: `${proposedData.firstName || ''} ${proposedData.lastName || ''}`.trim() },

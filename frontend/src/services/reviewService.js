@@ -6,6 +6,7 @@
  * Structured for easy replacement with real API calls.
  */
 
+import api from './api';
 import {
   mockReviews,
   mockReviewDetails,
@@ -26,7 +27,7 @@ const isDemoUser = () => {
     const user = useAppStore.getState()?.user;
     if (!user) return false;
     const demoIds = ['u-1', 'u-2', 'u-3', 'u-4'];
-    const demoEmails = ['intern@trakive.com', 'supervisor@trakive.com', 'hr@trakive.com', 'head@trakive.com'];
+    const demoEmails = ['intern@thefifthlab.com', 'supervisor@thefifthlab.com', 'hr@thefifthlab.com', 'head@thefifthlab.com'];
     return demoIds.includes(user.id) || demoEmails.includes(user.email?.toLowerCase());
   } catch {
     return false;
@@ -191,28 +192,39 @@ export const reviewService = {
    * Fetch onboarding approval records for all interns.
    */
   fetchOnboardingApprovals: async () => {
-    await delay(700);
-    return JSON.parse(JSON.stringify(mockOnboardingApprovals));
+    try {
+      const response = await api.get('/onboarding/supervisor/queue');
+      const list = response?.data?.data || response?.data;
+      if (Array.isArray(list) && list.length > 0) {
+        return list.map((item) => ({
+          ...item,
+          internId: item.internId || item.intern_id || item.user_id,
+          intern_id: item.intern_id || item.internId || item.user_id,
+          internName: item.internName || item.intern_name || item.name || 'Intern',
+          department: item.department || 'Department',
+          steps: item.steps || item.documents || [],
+          documents: item.documents || item.steps || [],
+        }));
+      }
+    } catch (e) {
+      console.warn('Backend API call for onboarding queue failed', e);
+    }
+    return mockOnboardingApprovals || [];
   },
 
   /**
-   * Approve or reject an onboarding step.
+   * Approve or reject an onboarding step / document.
    * @param {string} internId
-   * @param {string} stepId
-   * @param {'approved' | 'rejected'} decision
+   * @param {string} documentId
+   * @param {'approved' | 'rejected' | 'resubmission_required'} decision
    * @param {string} notes
    */
-  updateOnboardingStep: async (internId, stepId, decision, notes = '') => {
-    await delay(700);
-    return {
-      success: true,
-      internId,
-      stepId,
-      decision,
+  updateOnboardingStep: async (internId, documentId, decision, notes = '') => {
+    const response = await api.patch(`/onboarding/documents/${documentId}/review`, {
+      status: decision,
       notes,
-      reviewedAt: new Date().toISOString(),
-      reviewedBy: 'Marcus Rodriguez',
-    };
+    });
+    return response.data || { success: true };
   },
 
   /**

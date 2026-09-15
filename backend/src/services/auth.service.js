@@ -59,11 +59,37 @@ const AuthService = {
       lastName = parts.slice(1).join(' ') || 'User';
     }
 
+    const emailDomain = (data.email || '').split('@')[1]?.toLowerCase().trim();
+    let matchedOrg = null;
+    if (emailDomain === 'thefifthlab.com') {
+      const orgRes = await query(`SELECT * FROM organizations WHERE slug = 'fifthlab' OR domain = 'thefifthlab.com' LIMIT 1`);
+      matchedOrg = orgRes.rows[0];
+      if (!matchedOrg) {
+        const createRes = await query(
+          `INSERT INTO organizations (name, slug, domain) VALUES ('FifthLab', 'fifthlab', 'thefifthlab.com') RETURNING *`
+        );
+        matchedOrg = createRes.rows[0];
+      }
+    } else if (emailDomain === 'cwg-plc.com') {
+      const orgRes = await query(`SELECT * FROM organizations WHERE slug = 'cwg-plc' OR domain = 'cwg-plc.com' LIMIT 1`);
+      matchedOrg = orgRes.rows[0];
+      if (!matchedOrg) {
+        const createRes = await query(
+          `INSERT INTO organizations (name, slug, domain) VALUES ('CWG PLC', 'cwg-plc', 'cwg-plc.com') RETURNING *`
+        );
+        matchedOrg = createRes.rows[0];
+      }
+    } else {
+      throw ApiError.badRequest('Only @thefifthlab.com and @cwg-plc.com email addresses are allowed for registration.');
+    }
+
+    const orgId = matchedOrg.id;
+
     const password_hash = await hashPassword(data.password);
-    const initialStatus = targetRoleName === 'intern' ? 'pending' : 'active';
+    const initialStatus = 'active';
 
     const newUser = await UserModel.create({
-      organization_id: data.organization_id || null,
+      organization_id: orgId,
       department_id: data.department_id || null,
       role_id: roleRecord.id,
       email: data.email,
@@ -79,7 +105,7 @@ const AuthService = {
     if (targetRoleName === 'intern') {
       await ProfileModel.upsertInternProfile({
         user_id: newUser.id,
-        organization_id: data.organization_id || null,
+        organization_id: orgId,
         department_id: data.department_id || null,
         supervisor_id: null,
         status: 'onboarding',
@@ -91,7 +117,7 @@ const AuthService = {
 
       await InternshipRecordModel.create({
         user_id: newUser.id,
-        organization_id: data.organization_id || null,
+        organization_id: orgId,
         department_id: data.department_id || null,
         supervisor_id: null,
         start_date: startDate || today.toISOString().split('T')[0],

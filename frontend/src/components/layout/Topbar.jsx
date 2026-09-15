@@ -176,7 +176,7 @@ const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) =>
         >
           <Avatar
             name={user?.name ?? 'Demo User'}
-            src={user?.avatarUrl || user?.avatar}
+            src={user?.avatarUrl || user?.avatar_url || user?.avatar}
             size="sm"
             online
           />

@@ -427,7 +427,7 @@ nvm alias default 20
 Download and install Git from git-scm.com. Configure your identity:
 \`\`\`bash
 git config --global user.name "Your Name"
-git config --global user.email 'ediomo.effiong@trakive.com'
+git config --global user.email 'ediomo.effiong@thefifthlab.com'
 \`\`\`
 
 **Step 4 — Clone and Run Trakive Frontend**

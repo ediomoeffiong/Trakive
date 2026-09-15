@@ -6,6 +6,7 @@
  * All methods return Promises with artificial delays to simulate backend responses.
  */
 
+import api from './api';
 import {
   mockNotifications,
   mockAnnouncements,
@@ -42,7 +43,7 @@ const isDemoUser = () => {
     const user = useAppStore.getState()?.user;
     if (!user) return false;
     const demoIds = ['u-1', 'u-2', 'u-3', 'u-4'];
-    const demoEmails = ['intern@trakive.com', 'supervisor@trakive.com', 'hr@trakive.com', 'head@trakive.com'];
+    const demoEmails = ['intern@thefifthlab.com', 'supervisor@thefifthlab.com', 'hr@thefifthlab.com', 'head@thefifthlab.com'];
     return demoIds.includes(user.id) || demoEmails.includes(user.email?.toLowerCase());
   } catch {
     return false;
@@ -77,17 +78,34 @@ export const notificationService = {
    * @returns {Promise<Array>}
    */
   getNotifications: async (role) => {
-    await delay(250);
+    try {
+      const response = await api.get('/notifications');
+      const list = response?.data?.data || response?.data;
+      if (Array.isArray(list)) {
+        return list.map((n) => ({
+          id: n.id,
+          category: n.type || 'system_update',
+          title: n.title,
+          shortDescription: n.message,
+          message: n.message,
+          timestamp: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          date: n.created_at,
+          isRead: !!n.is_read,
+          actionLabel: 'View Onboarding',
+          actionRoute: n.link_url || (role === 'Supervisor' ? '/supervisor/onboarding' : '/dashboard/onboarding'),
+          priority: 'normal',
+        }));
+      }
+    } catch (e) {
+      // ignore network errors
+    }
     const activeRole = getEffectiveRole(role);
     const key = getUserNotifKey(activeRole);
     const saved = localStorage.getItem(key);
     if (saved) {
       return JSON.parse(saved);
     }
-    // Initialize with default dataset for role
-    const initial = activeRole === 'Supervisor' ? [...mockSupervisorNotifications] : [...mockNotifications];
-    saveUserNotifications(initial, activeRole);
-    return initial;
+    return [];
   },
 
   /**
