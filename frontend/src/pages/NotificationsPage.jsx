@@ -59,13 +59,64 @@ function useIsMobile(breakpoint = 768) {
   return isMobile;
 }
 
+// ── Reusable Pagination Controls ─────────────────────────────────────────────
+function PaginationControls({ currentPage, totalPages, totalItems, pageSize = 10, onPageChange }) {
+  if (totalItems <= 0) return null;
+  const startItem = (currentPage - 1) * pageSize + 1;
+  const endItem = Math.min(currentPage * pageSize, totalItems);
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0.75rem 1.25rem',
+        borderTop: '1px solid var(--color-neutral-200)',
+        background: '#fff',
+        fontSize: '0.8125rem',
+        color: 'var(--color-neutral-600)',
+        flexShrink: 0,
+      }}
+    >
+      <span>
+        Showing <strong style={{ color: 'var(--color-neutral-900)' }}>{startItem}–{endItem}</strong> of{' '}
+        <strong style={{ color: 'var(--color-neutral-900)' }}>{totalItems}</strong>
+      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage <= 1}
+          className="btn btn-ghost btn-sm"
+          style={{ padding: '0.25rem 0.625rem', fontSize: '0.8125rem', opacity: currentPage <= 1 ? 0.4 : 1 }}
+        >
+          Previous
+        </button>
+        <span style={{ fontWeight: 600, color: 'var(--color-neutral-700)', padding: '0 0.25rem' }}>
+          Page {currentPage} of {totalPages}
+        </span>
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage >= totalPages}
+          className="btn btn-ghost btn-sm"
+          style={{ padding: '0.25rem 0.625rem', fontSize: '0.8125rem', opacity: currentPage >= totalPages ? 0.4 : 1 }}
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Notifications tab content ────────────────────────────────────────────────
 function NotificationsTabContent({ isMobile }) {
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
+
   const loadingNotifications = useNotificationStore((s) => s.loadingNotifications);
   const selectedNotification = useNotificationStore((s) => s.selectedNotification);
   const setSelectedNotification = useNotificationStore((s) => s.setSelectedNotification);
   const clearSelectedNotification = useNotificationStore((s) => s.clearSelectedNotification);
-  const getGroupedNotifications = useNotificationStore((s) => s.getGroupedNotifications);
   const getFilteredNotifications = useNotificationStore((s) => s.getFilteredNotifications);
   const markAsRead = useNotificationStore((s) => s.markAsRead);
   const markAsUnread = useNotificationStore((s) => s.markAsUnread);
@@ -74,9 +125,31 @@ function NotificationsTabContent({ isMobile }) {
   const searchQuery = useNotificationStore((s) => s.searchQuery);
   const filters = useNotificationStore((s) => s.filters);
 
-  const grouped = getGroupedNotifications();
-  const filteredTotal = getFilteredNotifications().length;
-  const hasAnyNotifications = filteredTotal > 0;
+  const allFiltered = getFilteredNotifications();
+  const totalItems = allFiltered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const hasAnyNotifications = totalItems > 0;
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, filters]);
+
+  const currentPage = Math.min(page, totalPages);
+  const paginatedList = allFiltered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
+  const weekStart = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const grouped = { today: [], yesterday: [], thisWeek: [], older: [] };
+  paginatedList.forEach((n) => {
+    const d = new Date(n.date);
+    if (d >= todayStart) grouped.today.push(n);
+    else if (d >= yesterdayStart) grouped.yesterday.push(n);
+    else if (d >= weekStart) grouped.thisWeek.push(n);
+    else grouped.older.push(n);
+  });
 
   const handleMarkRead = useCallback((id) => {
     markAsRead(id);
@@ -115,9 +188,10 @@ function NotificationsTabContent({ isMobile }) {
         alignItems: 'flex-start',
         flex: 1,
         minHeight: 0,
+        position: 'relative',
       }}
     >
-      {/* Notification list */}
+      {/* Notification list column */}
       <div
         style={{
           flex: 1,
@@ -126,51 +200,63 @@ function NotificationsTabContent({ isMobile }) {
           border: '1px solid var(--color-neutral-200)',
           overflow: 'hidden',
           boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-          minHeight: 300,
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: 'calc(100vh - 220px)',
         }}
       >
-        {loadingNotifications ? (
-          <NotificationListSkeleton count={6} />
-        ) : !hasAnyNotifications ? (
-          // Empty state variants
-          searchQuery ? (
-            <EmptyState
-              icon={<RiSearchLine />}
-              title="No results found"
-              description={`No notifications match "${searchQuery}". Try a different search term.`}
-            />
-          ) : filters.status === 'unread' ? (
-            <EmptyState
-              icon={<RiCheckDoubleLine />}
-              title="All caught up!"
-              description="You have no unread notifications. Great job staying on top of things!"
-            />
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: 300 }}>
+          {loadingNotifications ? (
+            <NotificationListSkeleton count={6} />
+          ) : !hasAnyNotifications ? (
+            searchQuery ? (
+              <EmptyState
+                icon={<RiSearchLine />}
+                title="No results found"
+                description={`No notifications match "${searchQuery}". Try a different search term.`}
+              />
+            ) : filters.status === 'unread' ? (
+              <EmptyState
+                icon={<RiCheckDoubleLine />}
+                title="All caught up!"
+                description="You have no unread notifications. Great job staying on top of things!"
+              />
+            ) : (
+              <EmptyState
+                icon={<RiBellLine />}
+                title="No notifications yet"
+                description="When you receive notifications, they'll appear here."
+              />
+            )
           ) : (
-            <EmptyState
-              icon={<RiBellLine />}
-              title="No notifications yet"
-              description="When you receive notifications, they'll appear here."
-            />
-          )
-        ) : (
-          <AnimatePresence>
-            {grouped.today.length > 0 && (
-              <NotificationGroup key="group-today" label="Today" notifications={grouped.today} {...listProps} />
-            )}
-            {grouped.yesterday.length > 0 && (
-              <NotificationGroup key="group-yesterday" label="Yesterday" notifications={grouped.yesterday} {...listProps} />
-            )}
-            {grouped.thisWeek.length > 0 && (
-              <NotificationGroup key="group-thisWeek" label="This Week" notifications={grouped.thisWeek} {...listProps} />
-            )}
-            {grouped.older.length > 0 && (
-              <NotificationGroup key="group-older" label="Older" notifications={grouped.older} {...listProps} />
-            )}
-          </AnimatePresence>
-        )}
+            <AnimatePresence>
+              {grouped.today.length > 0 && (
+                <NotificationGroup key="group-today" label="Today" notifications={grouped.today} {...listProps} />
+              )}
+              {grouped.yesterday.length > 0 && (
+                <NotificationGroup key="group-yesterday" label="Yesterday" notifications={grouped.yesterday} {...listProps} />
+              )}
+              {grouped.thisWeek.length > 0 && (
+                <NotificationGroup key="group-thisWeek" label="This Week" notifications={grouped.thisWeek} {...listProps} />
+              )}
+              {grouped.older.length > 0 && (
+                <NotificationGroup key="group-older" label="Older" notifications={grouped.older} {...listProps} />
+              )}
+            </AnimatePresence>
+          )}
+        </div>
+
+        {/* Pagination controls */}
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+        />
       </div>
 
-      {/* Detail panel — desktop only */}
+      {/* Detail panel — desktop only (sticky) */}
       {!isMobile && (
         <AnimatePresence>
           {selectedNotification && (
@@ -197,6 +283,9 @@ function NotificationsTabContent({ isMobile }) {
 
 // ── Announcements tab content ─────────────────────────────────────────────────
 function AnnouncementsTabContent() {
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
+
   const announcements = useNotificationStore((s) => s.announcements);
   const loadingAnnouncements = useNotificationStore((s) => s.loadingAnnouncements);
 
@@ -218,21 +307,38 @@ function AnnouncementsTabContent() {
     );
   }
 
+  const totalItems = announcements.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedAnnouncements = announcements.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
-    >
-      {announcements.map((ann) => (
-        <AnnouncementCard key={ann.id} announcement={ann} />
-      ))}
-    </motion.div>
+    <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', overflow: 'hidden' }}>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem' }}
+      >
+        {paginatedAnnouncements.map((ann) => (
+          <AnnouncementCard key={ann.id} announcement={ann} />
+        ))}
+      </motion.div>
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
+    </div>
   );
 }
 
 // ── Reminders tab content ─────────────────────────────────────────────────────
 function RemindersTabContent() {
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
+
   const reminders = useNotificationStore((s) => s.reminders);
   const loadingReminders = useNotificationStore((s) => s.loadingReminders);
 
@@ -254,85 +360,98 @@ function RemindersTabContent() {
     );
   }
 
-  // Split into urgency groups
-  const critical = reminders.filter((r) => r.urgency === 'critical' || r.urgency === 'overdue');
-  const upcoming = reminders.filter((r) => r.urgency === 'warning');
-  const normal = reminders.filter((r) => r.urgency === 'normal');
+  const totalItems = reminders.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedReminders = reminders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const critical = paginatedReminders.filter((r) => r.urgency === 'critical' || r.urgency === 'overdue');
+  const upcoming = paginatedReminders.filter((r) => r.urgency === 'warning');
+  const normal = paginatedReminders.filter((r) => r.urgency === 'normal');
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      {critical.length > 0 && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h3
-            style={{
-              margin: '0 0 0.75rem',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              color: '#dc2626',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-            }}
-          >
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
-            Needs Immediate Attention
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {critical.map((r) => <ReminderCard key={r.id} reminder={r} />)}
+    <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', overflow: 'hidden' }}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: '1rem' }}>
+        {critical.length > 0 && (
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h3
+              style={{
+                margin: '0 0 0.75rem',
+                fontSize: '0.8125rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: '#dc2626',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
+              Needs Immediate Attention
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {critical.map((r) => <ReminderCard key={r.id} reminder={r} />)}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {upcoming.length > 0 && (
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h3
-            style={{
-              margin: '0 0 0.75rem',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              color: '#c2410c',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-            }}
-          >
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} />
-            Coming Up Soon
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {upcoming.map((r) => <ReminderCard key={r.id} reminder={r} />)}
+        {upcoming.length > 0 && (
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h3
+              style={{
+                margin: '0 0 0.75rem',
+                fontSize: '0.8125rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: '#c2410c',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} />
+              Coming Up Soon
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {upcoming.map((r) => <ReminderCard key={r.id} reminder={r} />)}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {normal.length > 0 && (
-        <div>
-          <h3
-            style={{
-              margin: '0 0 0.75rem',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              color: 'var(--color-neutral-500)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-            }}
-          >
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-neutral-400)', display: 'inline-block' }} />
-            Upcoming
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {normal.map((r) => <ReminderCard key={r.id} reminder={r} />)}
+        {normal.length > 0 && (
+          <div>
+            <h3
+              style={{
+                margin: '0 0 0.75rem',
+                fontSize: '0.8125rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: 'var(--color-neutral-500)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-neutral-400)', display: 'inline-block' }} />
+              Upcoming
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {normal.map((r) => <ReminderCard key={r.id} reminder={r} />)}
+            </div>
           </div>
-        </div>
-      )}
-    </motion.div>
+        )}
+      </motion.div>
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
+    </div>
   );
 }
 
@@ -344,8 +463,6 @@ const NotificationsPage = () => {
   const user = useAppStore((s) => s.user);
   const fetchAll = useNotificationStore((s) => s.fetchAll);
   const markAllAsRead = useNotificationStore((s) => s.markAllAsRead);
-  const startSimulatedUpdates = useNotificationStore((s) => s.startSimulatedUpdates);
-  const stopSimulatedUpdates = useNotificationStore((s) => s.stopSimulatedUpdates);
   const getUnreadCount = useNotificationStore((s) => s.getUnreadCount);
   const setPreferencesOpen = useNotificationStore((s) => s.setPreferencesOpen);
   const preferencesOpen = useNotificationStore((s) => s.preferencesOpen);
@@ -354,9 +471,6 @@ const NotificationsPage = () => {
 
   useEffect(() => {
     fetchAll(user?.role);
-    // Start simulated real-time updates (replace with WS in production)
-    startSimulatedUpdates();
-    return () => stopSimulatedUpdates();
   }, [user?.role]); // eslint-disable-line
 
   const handleMarkAll = async () => {

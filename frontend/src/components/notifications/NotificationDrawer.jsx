@@ -26,6 +26,7 @@ const NotificationDrawer = () => {
   const fetchNotifications = useNotificationStore((s) => s.fetchNotifications);
   const markAllAsRead = useNotificationStore((s) => s.markAllAsRead);
   const markAsRead = useNotificationStore((s) => s.markAsRead);
+  const setSelectedNotification = useNotificationStore((s) => s.setSelectedNotification);
   const getUnreadCount = useNotificationStore((s) => s.getUnreadCount);
 
   const unreadCount = getUnreadCount();
@@ -34,11 +35,15 @@ const NotificationDrawer = () => {
     .slice(0, 5);
 
   const user = useAppStore((s) => s.user);
-  const isSupervisor = user?.role === 'Supervisor';
-  const notificationsRoute = isSupervisor ? ROUTES.SUPERVISOR_NOTIFICATIONS : ROUTES.NOTIFICATIONS;
+  const userRole = user?.role;
+  const notificationsRoute =
+    userRole === 'Supervisor' ? (ROUTES.SUPERVISOR_NOTIFICATIONS || '/supervisor/notifications')
+    : userRole === 'HR Administrator' ? (ROUTES.ADMIN_NOTIFICATIONS || '/admin/notifications')
+    : userRole === 'Department Head' ? (ROUTES.DEPARTMENT_HEAD_NOTIFICATIONS || '/department-head/notifications')
+    : (ROUTES.NOTIFICATIONS || '/dashboard/notifications');
 
   useEffect(() => {
-    // Only fetch if we haven't loaded yet
+    // Fetch notifications if state is empty
     if (notifications.length === 0) {
       fetchNotifications(user?.role);
     }
@@ -50,13 +55,10 @@ const NotificationDrawer = () => {
   };
 
   const handleNotificationClick = (notification) => {
-    markAsRead(notification.id);
+    markAsRead(notification.id, user?.role);
+    setSelectedNotification(notification);
     setDrawerOpen(false);
-    if (notification.actionRoute) {
-      navigate(notification.actionRoute);
-    } else {
-      navigate(notificationsRoute);
-    }
+    navigate(notificationsRoute);
   };
 
   return (

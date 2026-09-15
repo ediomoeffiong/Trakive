@@ -116,7 +116,20 @@ export const notificationService = {
       priority: data.priority || 'normal',
     };
 
-    const existing = await notificationService.getNotifications(activeRole);
+    // Synchronously read current storage to prevent async race condition during login
+    const key = getUserNotifKey(activeRole);
+    const saved = localStorage.getItem(key);
+    let existing = [];
+    if (saved) {
+      try {
+        existing = JSON.parse(saved);
+      } catch {
+        existing = [];
+      }
+    } else {
+      existing = activeRole === 'Supervisor' ? [...mockSupervisorNotifications] : [...mockNotifications];
+    }
+
     const updated = [newNotif, ...existing];
     saveUserNotifications(updated, activeRole);
     return newNotif;

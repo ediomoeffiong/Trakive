@@ -22,6 +22,7 @@ import Avatar from '../ui/Avatar';
 import { useCurrentUser, useTheme, useAppStore } from '../../store';
 import { NotificationDrawer } from '../notifications';
 import { ROUTES } from '../../constants';
+import { formatRole } from '../../utils';
 
 // ── Route → Page title map ────────────────────────────────────────────────────
 const PAGE_TITLES = {
@@ -164,8 +165,8 @@ const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) =>
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.25rem 0.5rem',
+            gap: '0.75rem',
+            padding: '0.375rem 0.75rem',
             borderRadius: '99px',
             cursor: 'pointer'
           }}
@@ -179,14 +180,14 @@ const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) =>
             size="sm"
             online
           />
-          {/* User Name & Role (Desktop only) */}
-          <div className="lg-only" style={{ textAlign: 'left', lineHeight: 1.1 }}>
-            <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-800)' }}>
+          {/* User Role & Name (Desktop only) */}
+          <div className="lg-only" style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.1, marginBottom: '2px' }}>
+              {formatRole(user?.role)}
+            </span>
+            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-800)', lineHeight: 1.1 }}>
               {user?.name ?? 'Demo User'}
-            </p>
-            <p style={{ margin: 0, fontSize: '0.6875rem', fontWeight: 500, color: 'var(--color-neutral-400)' }}>
-              {user?.role ?? 'Intern'}
-            </p>
+            </span>
           </div>
         </button>
 
@@ -222,7 +223,7 @@ const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) =>
                     {user?.name ?? 'Demo User'}
                   </p>
                   <p style={{ fontSize: '0.75rem', color: 'var(--color-neutral-500)', margin: 0 }}>
-                    {user?.role ?? 'Intern'} • {user?.department ?? 'Engineering'}
+                    {formatRole(user?.role)} • {user?.department ?? 'Engineering'}
                   </p>
                 </div>
                 <div style={{ height: '1px', backgroundColor: 'var(--color-neutral-200)', margin: '0.5rem 0' }} />

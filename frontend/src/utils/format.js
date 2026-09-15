@@ -58,3 +58,49 @@ export function truncate(str, maxLength = 80) {
   if (!str || str.length <= maxLength) return str;
   return str.slice(0, maxLength).trimEnd() + '…';
 }
+
+/**
+ * Format a user role string into a clean, human-readable display string.
+ * @param {string} role
+ * @returns {string}
+ */
+export function formatRole(role) {
+  if (!role) return 'Intern';
+  const norm = String(role).trim().toLowerCase();
+  if (norm === 'intern') return 'Intern';
+  if (norm === 'supervisor') return 'Supervisor';
+  if (norm === 'hr_admin' || norm === 'hr administrator' || norm === 'hr admin' || norm === 'admin') return 'HR Administrator';
+  if (norm === 'department_head' || norm === 'department head' || norm === 'dept head' || norm === 'head') return 'Department Head';
+  return norm.replace(/(?:^|\s|_|-)\w/g, (m) => m.toUpperCase().replace(/_|-/, ' '));
+}
+
+/**
+ * Format a notification timestamp into dynamic human relative time.
+ * @param {Date|string|number} [date]
+ * @param {string} [fallback]
+ * @returns {string}
+ */
+export function formatNotificationTime(date, fallback) {
+  if (!date && fallback && fallback !== 'Just now') return fallback;
+  if (!date) return 'Just now';
+
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return (fallback && fallback !== 'Just now') ? fallback : 'Just now';
+
+  const now = Date.now();
+  const diffMs = now - d.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  if (diffSec < 45) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHour < 24) return `${diffHour}h ago`;
+  if (diffDay === 1) return 'Yesterday';
+  if (diffDay < 7) return `${diffDay}d ago`;
+  if (diffDay < 30) return `${Math.floor(diffDay / 7)}w ago`;
+  return formatDate(d, { month: 'short', day: 'numeric' });
+}
+
+

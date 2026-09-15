@@ -21,6 +21,7 @@ import Avatar from '../ui/Avatar';
 import { useCurrentUser, useTheme, useAppStore } from '../../store';
 import { NotificationDrawer } from '../notifications';
 import { ROUTES } from '../../constants';
+import { formatRole } from '../../utils';
 
 const ADMIN_PAGE_TITLES = {
   [ROUTES.ADMIN_DASHBOARD]:          'HR Dashboard',
@@ -194,8 +195,8 @@ const AdminTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false 
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.25rem 0.5rem',
+            gap: '0.75rem',
+            padding: '0.375rem 0.75rem',
             borderRadius: '99px',
             cursor: 'pointer',
           }}
@@ -210,13 +211,13 @@ const AdminTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false 
             online
           />
 
-          <div className="lg-only" style={{ textAlign: 'left', lineHeight: 1.1 }}>
-            <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-800)' }}>
+          <div className="lg-only" style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#0ea5e9', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.1, marginBottom: '2px' }}>
+              {formatRole(adminRole)}
+            </span>
+            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-800)', lineHeight: 1.1 }}>
               {adminName}
-            </p>
-            <p style={{ margin: 0, fontSize: '0.6875rem', fontWeight: 500, color: '#0ea5e9' }}>
-              {adminRole}
-            </p>
+            </span>
           </div>
         </button>
 
@@ -251,7 +252,7 @@ const AdminTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false 
                     {adminName}
                   </p>
                   <p style={{ fontSize: '0.75rem', color: 'var(--color-neutral-500)', margin: 0 }}>
-                    {adminRole}
+                    {formatRole(adminRole)}
                   </p>
                 </div>
                 <div style={{ height: '1px', backgroundColor: 'var(--color-neutral-200)', margin: '0.5rem 0' }} />

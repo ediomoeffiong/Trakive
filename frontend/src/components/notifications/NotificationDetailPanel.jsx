@@ -17,6 +17,7 @@ import {
 import { getCategoryConfig } from '../../data/notificationCategories';
 import Avatar from '../ui/Avatar';
 import { useNotificationStore } from '../../store';
+import { formatNotificationTime } from '../../utils';
 
 const ICON_MAP = {
   RiTaskLine, RiEdit2Line, RiTimeLine, RiCheckboxCircleLine,
@@ -55,11 +56,12 @@ const NotificationDetailPanel = ({ notification, onClose, isMobile = false }) =>
   const IconComponent = ICON_MAP[catConfig.icon] ?? RiBellLine;
   const priorityMeta = PRIORITY_META[priority] ?? PRIORITY_META.normal;
 
+  const relativeTime = formatNotificationTime(date, timestamp);
   const formattedDate = date
-    ? new Date(date).toLocaleDateString('en-US', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
-      })
-    : timestamp;
+    ? `${new Date(date).toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
+      })} (${relativeTime})`
+    : relativeTime;
 
   const panelContent = (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -300,12 +302,15 @@ const NotificationDetailPanel = ({ notification, onClose, isMobile = false }) =>
         exit={{ opacity: 0, x: 24 }}
         transition={{ duration: 0.22 }}
         style={{
+          position: 'sticky',
+          top: 0,
           width: 380,
+          maxHeight: 'calc(100vh - 200px)',
+          height: 'calc(100vh - 200px)',
           flexShrink: 0,
           border: '1px solid var(--color-neutral-200)',
           borderRadius: '1rem',
           background: '#fff',
-          height: '100%',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
