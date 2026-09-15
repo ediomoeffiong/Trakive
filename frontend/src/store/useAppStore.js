@@ -65,14 +65,21 @@ const createAuthSlice = (set, get) => ({
       set({ user: response.user, isAuthenticated: true, isLoading: false });
 
       // Dispatch security notification
-      useNotificationStore.getState().addNotification({
+      const userRole = response.user?.role;
+      const settingsRoute =
+        userRole === 'Supervisor' ? ROUTES.SUPERVISOR_SETTINGS || '/supervisor/settings'
+        : userRole === 'HR Administrator' ? ROUTES.ADMIN_SETTINGS || '/admin/settings'
+        : userRole === 'Department Head' ? ROUTES.DEPARTMENT_HEAD_SETTINGS || '/department-head/settings'
+        : ROUTES.SETTINGS || '/dashboard/settings';
+
+      await useNotificationStore.getState().addNotification({
         category: 'new_login_detected',
         title: 'New Login Detected',
         shortDescription: 'Your account was accessed from a web browser.',
         message: `Account logged in successfully at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. If this was not you, please update your security settings immediately.`,
         actionLabel: 'Account Security',
-        actionRoute: response.user?.role === 'Supervisor' ? '/supervisor/profile' : '/dashboard/profile',
-      }, response.user?.role);
+        actionRoute: settingsRoute,
+      }, userRole);
 
       return response;
     } catch (err) {

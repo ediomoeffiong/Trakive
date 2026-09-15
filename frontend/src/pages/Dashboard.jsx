@@ -354,31 +354,54 @@ const Dashboard = () => {
       )}
 
       {/* ── 1. Welcome Section ────────────────────────────────────────────────── */}
-      <section style={{ background: '#00b4d8', borderRadius: '1.125rem', padding: '2rem', color: '#fff', boxShadow: '0 8px 32px rgba(37,99,235,0.22)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', mdDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
+      <section style={{
+        background: 'linear-gradient(135deg, #0284c7 0%, #00b4d8 100%)',
+        borderRadius: '1.125rem',
+        padding: '1.75rem 2rem',
+        color: '#ffffff',
+        boxShadow: '0 8px 32px rgba(2, 132, 199, 0.22)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.25rem'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: '#fff' }}>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 0.35rem 0', color: '#ffffff' }}>
               {getGreeting()}, {user?.name?.split(' ')[0] || 'Intern'} 👋
             </h2>
-            <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.875rem', lineHeight: 1.6 }}>
+            <p style={{ margin: 0, color: '#ffffff', opacity: 0.95, fontSize: '0.9375rem', fontWeight: 500, lineHeight: 1.5 }}>
               You're making excellent progress this week.
             </p>
           </div>
-          {progress && (
-            <div className="dashboard-welcome-widget" style={{ background: '#00b4d8', padding: '1rem', borderRadius: '0.75rem', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.09)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.8125rem' }}>
-                <span style={{ opacity: 0.9, fontWeight: 500 }}>Profile Completion</span>
-                <span style={{ fontWeight: 700 }}>{progress.profileCompletion?.value}%</span>
-              </div>
-              <div style={{ height: '6px', background: '#00b4d8', borderRadius: '99px', overflow: 'hidden' }}>
-                <div style={{ width: `${progress.profileCompletion?.value}%`, height: '100%', background: 'var(--color-primary-400)', transition: 'width 0.8s ease-out' }} />
-              </div>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.9)' }}>
-                {progress.internship?.durationText}
-              </p>
-            </div>
-          )}
         </div>
+
+        {progress && (
+          <div
+            style={{
+              width: '100%',
+              background: 'rgba(255, 255, 255, 0.18)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '0.875rem',
+              padding: '1rem 1.25rem',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.625rem', fontSize: '0.875rem', color: '#ffffff', fontWeight: 700 }}>
+              <span style={{ color: '#ffffff', fontSize: '0.9375rem', fontWeight: 700 }}>Profile Completion</span>
+              <span style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff' }}>{progress.profileCompletion?.value}%</span>
+            </div>
+            {/* Progress track */}
+            <div style={{ height: '8px', background: 'rgba(255, 255, 255, 0.3)', borderRadius: '99px', overflow: 'hidden' }}>
+              {/* Progress bar fill - WHITE */}
+              <div style={{ width: `${progress.profileCompletion?.value}%`, height: '100%', background: '#ffffff', borderRadius: '99px', transition: 'width 0.8s ease-out' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.625rem', fontSize: '0.8125rem', color: '#ffffff', fontWeight: 600 }}>
+              <span style={{ color: '#ffffff', opacity: 0.95 }}>Active Internship</span>
+              <span style={{ color: '#ffffff', fontWeight: 700 }}>{progress.internship?.durationText}</span>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ── 2. KPI Cards ──────────────────────────────────────────────────────── */}

@@ -12,6 +12,7 @@ import {
 } from 'react-icons/fi';
 import { useProfileStore } from '../../store/useProfileStore';
 import ProfileAtAGlance from './ProfileAtAGlance';
+import { formatRole } from '../../utils';
 
 const INTERN_TABS = [
   { key: 'overview', label: 'Overview' },
@@ -115,7 +116,7 @@ const ProfileHeader = ({ completion, isSupervisorOverride = false }) => {
   const completionTone =
     completionPct >= 80 ? 'success' : completionPct >= 50 ? 'warning' : 'danger';
 
-  const titleLine = [profile?.jobTitle || role, profile?.department].filter(Boolean).join(' / ');
+  const titleLine = [profile?.jobTitle || formatRole(role), profile?.department].filter(Boolean).join(' / ');
   const locationLine = [profile?.city, profile?.state || profile?.country]
     .filter(Boolean)
     .join(', ');

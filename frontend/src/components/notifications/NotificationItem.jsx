@@ -14,6 +14,7 @@ import {
   RiMailUnreadLine,
 } from 'react-icons/ri';
 import { getCategoryConfig } from '../../data/notificationCategories';
+import { formatNotificationTime } from '../../utils';
 
 // ── Icon map ────────────────────────────────────────────────────────────────
 const ICON_MAP = {
@@ -77,8 +78,9 @@ const NotificationItem = ({
   onArchive,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { category, title, shortDescription, timestamp, isRead, priority } = notification;
+  const { category, title, shortDescription, timestamp, date, isRead, priority } = notification;
   const catConfig = getCategoryConfig(category);
+  const displayTime = formatNotificationTime(date, timestamp);
 
   const handleItemClick = () => {
     if (onClick) onClick(notification);
@@ -213,7 +215,7 @@ const NotificationItem = ({
             </span>
           )}
           <span style={{ fontSize: '0.6875rem', color: 'var(--color-neutral-400)' }}>
-            {timestamp}
+            {displayTime}
           </span>
         </div>
       </div>

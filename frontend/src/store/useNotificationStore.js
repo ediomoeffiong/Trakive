@@ -241,24 +241,14 @@ export const useNotificationStore = create((set, get) => ({
       searchQuery: '',
     }),
 
-  // ── Simulated Real-Time ────────────────────────────────────────────────────
+  // ── Simulated Real-Time (Disabled per user request) ───────────────────────
 
   startSimulatedUpdates: () => {
-    const cleanup = notificationService.simulateNewNotification(
-      (newNotification) => {
-        set((state) => ({
-          notifications: [newNotification, ...state.notifications],
-        }));
-      },
-      15000
-    );
-    set({ _simulationCleanup: cleanup });
+    // Disabled auto-triggering intervals so fake notifications do not pop up automatically
   },
 
   stopSimulatedUpdates: () => {
-    const cleanup = get()._simulationCleanup;
-    if (typeof cleanup === 'function') cleanup();
-    set({ _simulationCleanup: null });
+    // No-op
   },
 
   // ── Computed Selectors ─────────────────────────────────────────────────────
