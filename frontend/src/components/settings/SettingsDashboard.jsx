@@ -49,7 +49,7 @@ const CATEGORIES = [
     label:       'Appearance',
     description: 'Theme, layout density, and sidebar behavior',
     icon:        RiPaletteLine,
-    color:       { bg: '#fdf4ff', text: '#9333ea' },
+    color:       { bg: '#eff6ff', text: '#2563eb' },
   },
   {
     id:          'privacy',
