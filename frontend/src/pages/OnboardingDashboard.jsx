@@ -71,12 +71,12 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 const CATEGORIES = [
   { id: 'internship_info', name: 'Internship Info', icon: RiFolderUserLine, color: '#3b82f6' },
-  { id: 'required_docs', name: 'Required Documents', icon: RiFileTextLine, color: '#8b5cf6' },
+  { id: 'required_docs', name: 'Required Documents', icon: RiFileTextLine, color: '#2563eb' },
   { id: 'welcome', name: 'Welcome', icon: RiEmotionHappyLine, color: '#10b981' },
   { id: 'company_policies', name: 'Company Policies', icon: RiShieldCheckFill, color: '#06b6d4' },
   { id: 'it_setup', name: 'IT Setup', icon: RiComputerLine, color: '#f59e0b' },
   { id: 'team_intro', name: 'Team Introduction', icon: RiTeamLine, color: '#ec4899' },
-  { id: 'training', name: 'Training', icon: RiGraduationCapLine, color: '#6366f1' },
+  { id: 'training', name: 'Training', icon: RiGraduationCapLine, color: '#0284c7' },
 ];
 
 const ONBOARDING_SECTION_LABELS = CATEGORIES.reduce((acc, item) => {
@@ -99,10 +99,6 @@ export default function OnboardingDashboard() {
   // 1. Detect Department Context
   const emailDomain = (user?.email || '').split('@')[1]?.toLowerCase() || '';
   const isFifthLabDomain = emailDomain === 'thefifthlab.com';
-  const organizationName =
-    user?.organization_name ||
-    user?.organization ||
-    (isFifthLabDomain ? 'CWG PLC' : 'Trakive');
 
   const [activeCategory, setActiveCategory] = useState('required_docs');
   const [submittingDocs, setSubmittingDocs] = useState(false);
@@ -242,7 +238,7 @@ export default function OnboardingDashboard() {
             location: u.office_location || 'FifthLab Office, Lagos',
             isSupervisor: u.role_name === 'supervisor' || u.role_name === 'department_head',
             bio: u.bio || `${u.first_name} is an active member of the ${info.department_name} team at FifthLab.`,
-            avatarColor: ['#2563eb', '#ec4899', '#8b5cf6', '#f59e0b', '#10b981'][idx % 5],
+            avatarColor: ['#2563eb', '#0284c7', '#0ea5e9', '#f59e0b', '#10b981'][idx % 5],
           }));
           setTeamMembers(formatted);
           setLoadingTeam(false);
@@ -734,27 +730,15 @@ export default function OnboardingDashboard() {
   }, [info.is_saved, submittedDocsCount, isItSetupComplete, approvedDocsCount]);
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: '1440px', margin: '0 auto', fontFamily: 'Inter, system-ui, sans-serif', color: '#0f172a' }}>
+    <div className="onboarding-page">
       
       {/* ── Page Header ────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a', margin: 0, tracking: '-0.02em' }}>
+      <div className="onboarding-header">
+        <div style={{ minWidth: 0 }}>
+          <div className="onboarding-header-title">
+            <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
               Onboarding Pathway
             </h1>
-            <span style={{
-              background: 'linear-gradient(135deg, #1e3a8a, #2563eb)',
-              color: '#ffffff',
-              fontSize: '11px',
-              fontWeight: 800,
-              padding: '4px 12px',
-              borderRadius: '999px',
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase'
-            }}>
-              {organizationName} (PARENT ORGANISATION)
-            </span>
             {isFifthLabDomain && (
               <span style={{
                 background: '#e0f2fe',
@@ -779,41 +763,32 @@ export default function OnboardingDashboard() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        style={{
-          background: 'linear-gradient(135deg, #e0e7ff 0%, #ede9fe 50%, #f0f9ff 100%)',
-          border: '1px solid #c7d2fe',
-          borderRadius: '16px',
-          padding: '16px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '28px',
-          boxShadow: '0 4px 20px -4px rgba(99, 102, 241, 0.12)'
-        }}
+        className="onboarding-up-next"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div className="onboarding-up-next-copy">
           <div style={{
             width: '44px',
             height: '44px',
             borderRadius: '12px',
-            background: '#6366f1',
+            background: '#2563eb',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#ffffff',
             fontSize: '22px',
-            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
+            flexShrink: 0
           }}>
             <RiArrowRightLine />
           </div>
-          <div>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#4f46e5', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          <div style={{ minWidth: 0 }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#1d4ed8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               UP NEXT
             </span>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1e1b4b', margin: '2px 0 0 0' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: '2px 0 0 0' }}>
               {upNextItem.title}
             </h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px', fontSize: '12px', color: '#6366f1' }}>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginTop: '4px', fontSize: '12px', color: '#2563eb' }}>
               <span>{upNextItem.categoryName}</span>
               <span>•</span>
               <span>{upNextItem.time}</span>
@@ -823,6 +798,7 @@ export default function OnboardingDashboard() {
 
         <button
           onClick={() => setActiveCategory(upNextItem.catId)}
+          className="onboarding-action-btn"
           style={{
             background: '#2563eb',
             color: '#ffffff',
@@ -844,10 +820,10 @@ export default function OnboardingDashboard() {
       </motion.div>
 
       {/* ── Main Two-Column Layout ────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '28px', alignItems: 'start' }}>
+      <div className="onboarding-layout">
         
         {/* ── LEFT COLUMN: YOUR JOURNEY CARD & CATEGORIES ────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0, width: '100%' }}>
           
           {/* Cyan Gradient "YOUR JOURNEY" Card */}
           <motion.div
@@ -996,7 +972,7 @@ export default function OnboardingDashboard() {
         </div>
 
         {/* ── RIGHT COLUMN: ACTIVE CATEGORY PANEL ───────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0, width: '100%' }}>
           
           {/* Category Banner Card */}
           {(() => {
@@ -1005,14 +981,11 @@ export default function OnboardingDashboard() {
             const count = getCategoryCount(activeCategory);
 
             return (
-              <div style={{
+              <div className="onboarding-inline-row" style={{
                 background: '#ffffff',
                 borderRadius: '16px',
                 padding: '20px 24px',
                 border: '1.5px solid #a7f3d0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
                 boxShadow: '0 2px 12px rgba(16, 185, 129, 0.06)'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -1039,7 +1012,7 @@ export default function OnboardingDashboard() {
                   </div>
                 </div>
 
-                <div style={{ width: '120px', height: '6px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
+                <div style={{ width: '120px', maxWidth: '100%', height: '6px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden', flex: '1 1 120px' }}>
                   <div style={{
                     width: `${(count.done / count.total) * 100}%`,
                     height: '100%',
@@ -1065,7 +1038,7 @@ export default function OnboardingDashboard() {
                 Select the department where your internship will be managed.
               </p>
 
-              <form onSubmit={handleInfoSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <form onSubmit={handleInfoSubmit} className="onboarding-form-grid">
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
                     Department
@@ -1097,7 +1070,7 @@ export default function OnboardingDashboard() {
                 </div>
 
                 {/* Supervisor Auto-Assignment Card */}
-                <div style={{ gridColumn: '1 / -1', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div className="onboarding-inline-row" style={{ gridColumn: '1 / -1', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '14px 18px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#2563eb', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
                       <RiUserFollowLine style={{ fontSize: '20px' }} />
@@ -1115,7 +1088,7 @@ export default function OnboardingDashboard() {
 
                 {/* Internship Duration Notice */}
                 <div style={{ gridColumn: '1 / -1', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', padding: '14px 18px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div className="onboarding-inline-row" style={{ marginBottom: '8px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 800, color: '#92400e', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <RiTimeLine style={{ fontSize: '16px' }} /> Internship Duration Dates
                     </span>
@@ -1124,7 +1097,7 @@ export default function OnboardingDashboard() {
                     </span>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="onboarding-dates-grid">
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#78350f', marginBottom: '4px' }}>Start Date</label>
                       <input
@@ -1203,10 +1176,11 @@ export default function OnboardingDashboard() {
                   />
                 </div>
 
-                <div style={{ gridColumn: '1 / -1', marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ gridColumn: '1 / -1', marginTop: '12px', display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                   <button
                     type="submit"
                     disabled={savingInfo || loadingDepartments || !info.department_id}
+                    className="onboarding-action-btn"
                     style={{
                       background: savingInfo || !info.department_id ? '#94a3b8' : '#10b981',
                       color: '#ffffff',
@@ -1253,7 +1227,7 @@ export default function OnboardingDashboard() {
                   </div>
                 </div>
               ) : (
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div className="onboarding-inline-row" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '14px 20px' }}>
                   <div>
                     <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>PDF Documentation Progress</span>
                     <h4 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: '2px 0 0 0' }}>
@@ -1291,7 +1265,7 @@ export default function OnboardingDashboard() {
                       boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div className="onboarding-inline-row" style={{ marginBottom: '12px', alignItems: 'flex-start' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <span style={{ fontSize: '28px' }}>{reqDoc.icon}</span>
                         <div>
@@ -1451,6 +1425,7 @@ export default function OnboardingDashboard() {
                   type="button"
                   onClick={handleSubmitDocuments}
                   disabled={submittingDocs || submittedDocsCount < 3}
+                  className="onboarding-action-btn"
                   style={{
                     background: submittedDocsCount < 3 ? '#94a3b8' : '#10b981',
                     color: '#ffffff',
@@ -1465,7 +1440,7 @@ export default function OnboardingDashboard() {
                     gap: '8px',
                     boxShadow: submittedDocsCount < 3 ? 'none' : '0 4px 14px rgba(16, 185, 129, 0.3)',
                     opacity: submittingDocs ? 0.75 : 1,
-                    whiteSpace: 'nowrap',
+                    whiteSpace: 'normal',
                   }}
                 >
                   {submittingDocs ? (
@@ -1495,7 +1470,7 @@ export default function OnboardingDashboard() {
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '14px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div className="onboarding-inline-row" style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '14px', padding: '16px 20px' }}>
                   <div>
                     <span style={{ fontSize: '11px', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase' }}>FifthLab Venture Lab</span>
                     <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#0369a1', margin: '2px 0 0 0' }}>FifthLab Official Website</h4>
@@ -1522,7 +1497,7 @@ export default function OnboardingDashboard() {
                   </a>
                 </div>
 
-                <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
                   <button
                     onClick={() => markStepCompletedAndNext('welcome', 'company_policies')}
                     style={{
@@ -1537,7 +1512,9 @@ export default function OnboardingDashboard() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                      boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                      maxWidth: '100%',
+                      whiteSpace: 'normal',
                     }}
                   >
                     <RiCheckLine /> Mark Welcome Reviewed & Proceed to Policies <RiArrowRightLine />
@@ -1554,7 +1531,7 @@ export default function OnboardingDashboard() {
               animate={{ opacity: 1, y: 0 }}
               style={{ background: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div className="onboarding-inline-row" style={{ marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: '#0f172a' }}>
                   Company Policies & Employee Handbook
                 </h3>
@@ -1579,7 +1556,7 @@ export default function OnboardingDashboard() {
                 </p>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
                 <button
                   onClick={() => markStepCompletedAndNext('company_policies', 'it_setup')}
                   style={{
@@ -1594,7 +1571,9 @@ export default function OnboardingDashboard() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                    maxWidth: '100%',
+                    whiteSpace: 'normal',
                   }}
                 >
                   <RiCheckLine /> Mark Policies Read & Proceed to IT Setup <RiArrowRightLine />
@@ -1610,7 +1589,7 @@ export default function OnboardingDashboard() {
               animate={{ opacity: 1, y: 0 }}
               style={{ background: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '20px' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="onboarding-inline-row">
                 <div>
                   <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 4px 0', color: '#0f172a' }}>
                     IT Setup & Security Confirmation
@@ -1688,7 +1667,7 @@ export default function OnboardingDashboard() {
                 </label>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
                 <button
                   onClick={() => {
                     if (!hasConfirmedItSetup) {
@@ -1712,6 +1691,8 @@ export default function OnboardingDashboard() {
                     gap: '8px',
                     boxShadow: hasConfirmedItSetup ? '0 4px 14px rgba(16, 185, 129, 0.3)' : 'none',
                     opacity: hasConfirmedItSetup ? 1 : 0.75,
+                    maxWidth: '100%',
+                    whiteSpace: 'normal',
                   }}
                 >
                   <RiCheckLine /> Complete IT Setup & Proceed to Team Intro <RiArrowRightLine />
@@ -1728,7 +1709,7 @@ export default function OnboardingDashboard() {
               animate={{ opacity: 1, y: 0 }}
               style={{ background: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div className="onboarding-inline-row" style={{ marginBottom: '12px' }}>
                 <div>
                   <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 4px 0', color: '#0f172a' }}>
                     Department Team Members & Supervisor
@@ -1747,7 +1728,7 @@ export default function OnboardingDashboard() {
               {loadingTeam ? (
                 <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>Loading team profiles...</div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '14px', marginBottom: '20px' }} className="onboarding-team-grid">
                   {teamMembers.map((mem) => (
                     <div
                       key={mem.id}
@@ -1798,7 +1779,7 @@ export default function OnboardingDashboard() {
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
                 <button
                   onClick={() => markStepCompletedAndNext('team_intro', 'training')}
                   style={{
@@ -1813,7 +1794,9 @@ export default function OnboardingDashboard() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                    maxWidth: '100%',
+                    whiteSpace: 'normal',
                   }}
                 >
                   <RiCheckLine /> Mark Team Intro Reviewed & Proceed to Training <RiArrowRightLine />
@@ -1914,7 +1897,7 @@ export default function OnboardingDashboard() {
               animate={{ opacity: 1, y: 0 }}
               style={{ background: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div className="onboarding-inline-row" style={{ marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: '#0f172a' }}>
                   Internship Training Slide Deck (PDF)
                 </h3>
@@ -1939,7 +1922,7 @@ export default function OnboardingDashboard() {
                 </p>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
                 <button
                   onClick={() => markStepCompletedAndNext('training', null)}
                   style={{
@@ -1954,7 +1937,9 @@ export default function OnboardingDashboard() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                    maxWidth: '100%',
+                    whiteSpace: 'normal',
                   }}
                 >
                   <RiCheckLine /> Mark Training Completed & Finish Pathway

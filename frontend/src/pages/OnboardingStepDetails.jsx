@@ -66,7 +66,7 @@ const STATUS_CONFIG = {
 };
 
 const RESOURCE_TYPE_CONFIG = {
-  video: { Icon: RiPlayCircleLine,    accent: '#6366f1', light: '#eef2ff', label: 'Video' },
+  video: { Icon: RiPlayCircleLine,    accent: '#2563eb', light: '#eff6ff', label: 'Video' },
   pdf:   { Icon: RiFileDownloadLine,  accent: '#ef4444', light: '#fef2f2', label: 'PDF Document' },
   guide: { Icon: RiBookOpenLine,      accent: '#10b981', light: '#ecfdf5', label: 'Guide' },
   link:  { Icon: RiExternalLinkLine,  accent: '#3b82f6', light: '#eff6ff', label: 'External Link' },
@@ -515,11 +515,11 @@ export default function OnboardingStepDetails() {
             ? 'linear-gradient(90deg, #22c55e, #16a34a)'
             : isLocked
               ? 'linear-gradient(90deg, #f59e0b, #d97706)'
-              : 'linear-gradient(90deg, #6366f1, #3b82f6)',
+              : 'linear-gradient(90deg, #2563eb, #0ea5e9)',
         }} />
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ flex: 1, minWidth: '240px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             {/* Category tag */}
             <span style={{
               display: 'inline-block', fontSize: '0.7rem', fontWeight: 700,
@@ -567,8 +567,8 @@ export default function OnboardingStepDetails() {
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
                   fontSize: '0.75rem', fontWeight: 700,
-                  color: '#4f46e5', background: '#eef2ff',
-                  border: '1px solid #c7d2fe',
+                  color: '#1d4ed8', background: '#eff6ff',
+                  border: '1px solid #bfdbfe',
                   padding: '0.25rem 0.625rem', borderRadius: '99px',
                 }}>
                   <RiShieldCheckFill style={{ fontSize: '0.8rem' }} />
@@ -629,7 +629,7 @@ export default function OnboardingStepDetails() {
             >
               <div>
                 <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-neutral-900)', marginBottom: '0.375rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ width: '4px', height: '1rem', background: '#6366f1', borderRadius: '99px', display: 'inline-block' }} />
+                  <span style={{ width: '4px', height: '1rem', background: '#2563eb', borderRadius: '99px', display: 'inline-block' }} />
                   Document Upload
                 </h3>
                 <p style={{ fontSize: '0.8rem', color: 'var(--color-neutral-500)', margin: 0, lineHeight: 1.6 }}>
@@ -950,11 +950,11 @@ export default function OnboardingStepDetails() {
                 background: 'rgba(255,255,255,0.15)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <RiShieldUserLine style={{ color: '#a5b4fc', fontSize: '1rem' }} />
+                <RiShieldUserLine style={{ color: '#93c5fd', fontSize: '1rem' }} />
               </div>
               <div>
-                <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#e0e7ff' }}>Supervisor Panel</div>
-                <div style={{ fontSize: '0.68rem', color: '#818cf8', marginTop: '0.1rem' }}>Demo — simulates real actions</div>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#dbeafe' }}>Supervisor Panel</div>
+                <div style={{ fontSize: '0.68rem', color: '#93c5fd', marginTop: '0.1rem' }}>Demo — simulates real actions</div>
               </div>
             </div>
 
@@ -964,8 +964,8 @@ export default function OnboardingStepDetails() {
 
             {simulatingReview ? (
               <div style={{ padding: '0.875rem', background: 'rgba(255,255,255,0.08)', borderRadius: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: '#c7d2fe', fontWeight: 600 }}>
-                  <div style={{ width: '14px', height: '14px', borderRadius: '50%', border: '2.5px solid #818cf8', borderTopColor: 'transparent', animation: 'spin 1s linear infinite', flexShrink: 0 }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: '#bfdbfe', fontWeight: 600 }}>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '50%', border: '2.5px solid #93c5fd', borderTopColor: 'transparent', animation: 'spin 1s linear infinite', flexShrink: 0 }} />
                   Reviewing your submission…
                 </div>
                 <ProgressBar value={100} animated />
@@ -1008,7 +1008,7 @@ export default function OnboardingStepDetails() {
             {/* Verification history */}
             {step.verificationHistory?.length > 0 && (
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#818cf8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Verification History</div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Verification History</div>
                 {step.verificationHistory.map(h => (
                   <div key={h.id} style={{
                     background: 'rgba(255,255,255,0.07)',
@@ -1016,7 +1016,7 @@ export default function OnboardingStepDetails() {
                     border: '1px solid rgba(255,255,255,0.08)',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#e0e7ff' }}>{h.reviewer}</span>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#dbeafe' }}>{h.reviewer}</span>
                       <span style={{
                         fontSize: '0.68rem', fontWeight: 700,
                         color: h.status === 'verified' ? '#86efac' : '#fca5a5',
@@ -1025,7 +1025,7 @@ export default function OnboardingStepDetails() {
                       </span>
                     </div>
                     {h.notes && <p style={{ fontSize: '0.78rem', color: '#a5b4fc', margin: 0, lineHeight: 1.6 }}>{h.notes}</p>}
-                    <div style={{ fontSize: '0.68rem', color: '#6366f1', marginTop: '0.375rem' }}>{formatDateTime(h.date)}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#2563eb', marginTop: '0.375rem' }}>{formatDateTime(h.date)}</div>
                   </div>
                 ))}
               </div>

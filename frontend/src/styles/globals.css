@@ -422,6 +422,114 @@ p  { color: var(--color-neutral-600); }
   border-radius: 0.5rem;
 }
 
+/* ── Onboarding pathway page (intern /dashboard/onboarding) ───────────────── */
+.onboarding-page {
+  width: 100%;
+  min-width: 0;
+  max-width: 1440px;
+  margin: 0 auto;
+  font-family: Inter, system-ui, sans-serif;
+  color: #0f172a;
+}
+
+.onboarding-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 20px;
+}
+
+.onboarding-header-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+
+.onboarding-up-next {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 50%, #f0f9ff 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 20px -4px rgba(37, 99, 235, 0.12);
+  min-width: 0;
+}
+
+.onboarding-up-next-copy {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.onboarding-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+.onboarding-layout > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.onboarding-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.onboarding-dates-grid,
+.onboarding-team-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.onboarding-inline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.onboarding-action-btn {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  justify-content: center;
+}
+
+@media (min-width: 640px) {
+  .onboarding-form-grid,
+  .onboarding-dates-grid,
+  .onboarding-team-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .onboarding-layout {
+    grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+    gap: 28px;
+  }
+}
+
 /* ── Dashboard welcome card: prevent inner widget overflow ───────────────────
    Remove the fixed minWidth on the progress mini-widget. */
 .dashboard-welcome-widget {
@@ -874,7 +982,7 @@ p  { color: var(--color-neutral-600); }
 
 @media (max-width: 900px) {
   .step-detail-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
