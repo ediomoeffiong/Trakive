@@ -7,6 +7,7 @@ const InternshipRecordModel = require('../models/internshipRecord.model');
 const { validateInternshipDates } = require('../validators/internshipDate.validator');
 const { hashPassword } = require('../utils/password.utils');
 const { getPaginationParams, formatPaginatedResponse } = require('../utils/pagination');
+const { resolveFifthLabDefaults } = require('../utils/fifthlabDefaults');
 
 const InternService = {
   async getEffectiveOrgId(requestingUser) {
@@ -29,9 +30,16 @@ const InternService = {
 
     const passwordHash = await hashPassword(data.password || 'TrakiveIntern2026!');
 
+    const fifthLabDefaults = await resolveFifthLabDefaults({
+      organizationId: orgId,
+      departmentId: data.department_id || null,
+      supervisorId: data.supervisor_id || null,
+      email: data.email,
+    });
+
     const user = await UserModel.create({
       organization_id: orgId,
-      department_id: data.department_id || null,
+      department_id: fifthLabDefaults.departmentId,
       role_id: internRole.id,
       email: data.email,
       password_hash: passwordHash,
@@ -42,12 +50,12 @@ const InternService = {
       is_email_verified: true,
     });
 
-    let supervisorProfileId = data.supervisor_id || null;
+    let supervisorProfileId = fifthLabDefaults.supervisorId;
 
     const internProfile = await ProfileModel.upsertInternProfile({
       user_id: user.id,
       organization_id: orgId,
-      department_id: data.department_id || null,
+      department_id: fifthLabDefaults.departmentId,
       supervisor_id: supervisorProfileId,
       institution: data.institution || null,
       field_of_study: data.field_of_study || null,
@@ -56,6 +64,16 @@ const InternService = {
       skills: data.skills || [],
       status: 'onboarding',
     });
+
+    if (supervisorProfileId && internProfile?.id) {
+      await ProfileModel.recordSupervisorAssignment(
+        internProfile.id,
+        supervisorProfileId,
+        requestingUser.id,
+        'active',
+        'Auto-assigned default FifthLab supervisor'
+      );
+    }
 
     await AuditLogModel.log({
       organizationId: orgId,
@@ -126,11 +144,28 @@ const InternService = {
       await UserModel.update(internUserId, userUpdates);
     }
 
-    await ProfileModel.upsertInternProfile({
+    const nextDepartmentId = data.department_id !== undefined ? data.department_id : profile.department_id;
+    const explicitSupervisor = data.supervisor_id !== undefined;
+    const fifthLabDefaults = await resolveFifthLabDefaults({
+      organizationId: profile.organization_id,
+      departmentId: nextDepartmentId,
+      supervisorId: explicitSupervisor ? data.supervisor_id : profile.supervisor_id,
+      email: profile.email,
+    });
+
+    const nextSupervisorId = explicitSupervisor
+      ? data.supervisor_id
+      : (profile.supervisor_id || fifthLabDefaults.supervisorId);
+
+    if (fifthLabDefaults.departmentId && fifthLabDefaults.departmentId !== profile.department_id) {
+      await UserModel.update(internUserId, { department_id: fifthLabDefaults.departmentId });
+    }
+
+    const internProfile = await ProfileModel.upsertInternProfile({
       user_id: internUserId,
       organization_id: profile.organization_id,
-      department_id: data.department_id !== undefined ? data.department_id : profile.department_id,
-      supervisor_id: data.supervisor_id !== undefined ? data.supervisor_id : profile.supervisor_id,
+      department_id: fifthLabDefaults.departmentId,
+      supervisor_id: nextSupervisorId,
       institution: data.institution,
       field_of_study: data.field_of_study,
       academic_year: data.academic_year,
@@ -138,6 +173,16 @@ const InternService = {
       skills: data.skills,
       status: data.status || profile.intern_status,
     });
+
+    if (!profile.supervisor_id && nextSupervisorId && internProfile?.id) {
+      await ProfileModel.recordSupervisorAssignment(
+        internProfile.id,
+        nextSupervisorId,
+        requestingUser.id,
+        'active',
+        'Auto-assigned default FifthLab supervisor'
+      );
+    }
 
     await AuditLogModel.log({
       organizationId: profile.organization_id,
@@ -229,7 +274,27 @@ const InternService = {
       throw ApiError.notFound('Intern profile not found');
     }
 
-    const updated = await ProfileModel.assignInternDepartmentAndSupervisor(internUserId, departmentId, profile.supervisor_id);
+    const fifthLabDefaults = await resolveFifthLabDefaults({
+      organizationId: profile.organization_id,
+      departmentId,
+      supervisorId: profile.supervisor_id,
+      email: profile.email,
+    });
+    const updated = await ProfileModel.assignInternDepartmentAndSupervisor(
+      internUserId,
+      fifthLabDefaults.departmentId,
+      fifthLabDefaults.supervisorId
+    );
+
+    if (!profile.supervisor_id && fifthLabDefaults.supervisorId && updated?.id) {
+      await ProfileModel.recordSupervisorAssignment(
+        updated.id,
+        fifthLabDefaults.supervisorId,
+        requestingUser.id,
+        'active',
+        'Auto-assigned default FifthLab supervisor'
+      );
+    }
 
     await AuditLogModel.log({
       organizationId: profile.organization_id,
@@ -237,7 +302,7 @@ const InternService = {
       action: 'INTERN_ASSIGN_DEPARTMENT',
       entityType: 'intern_profiles',
       entityId: internUserId,
-      details: { department_id: departmentId },
+      details: { department_id: fifthLabDefaults.departmentId },
       ipAddress,
       userAgent,
     });

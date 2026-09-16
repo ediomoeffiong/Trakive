@@ -14,6 +14,7 @@ import {
   RiHistoryLine,
 } from 'react-icons/ri';
 import { HistoryTimelineSkeleton } from './ReviewSkeletonLoaders';
+import { STANDARD_DEPARTMENTS } from '../../../utils/departments';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmt = (iso) =>
@@ -202,12 +203,9 @@ const ReviewHistoryView = ({
             style={{ padding: '0.5rem 0.875rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-neutral-200)', fontSize: '0.875rem', color: 'var(--color-neutral-700)', background: '#fff', cursor: 'pointer', outline: 'none' }}
           >
             <option value="">All Departments</option>
-            <option value="Frontend Engineering">Frontend Engineering</option>
-            <option value="Backend Engineering">Backend Engineering</option>
-            <option value="UI/UX Design">UI/UX Design</option>
-            <option value="Data Science">Data Science</option>
-            <option value="DevOps">DevOps</option>
-            <option value="Product Management">Product Management</option>
+            {STANDARD_DEPARTMENTS.map((department) => (
+              <option key={department.id} value={department.name}>{department.name}</option>
+            ))}
           </select>
 
           {/* Decision */}

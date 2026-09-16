@@ -1,14 +1,13 @@
 /**
  * @file OnboardingDashboard.jsx
- * @description CWG PLC Intern Onboarding Pathway for Trakive.
+ * @description FifthLab Intern Onboarding Pathway for Trakive.
  * Restores the sleek former look & feel featuring:
- *  - Parent Organization: CWG PLC (with FifthLab acting as a department)
  *  - Real Database Data for Team Introduction & Supervisor Assignment (No Demo Dates/Static Fallbacks)
  *  - Supervisor Verification notice for Internship Duration
  *  - STRICT PDF-ONLY Document Upload Restriction (.pdf only)
- *  - Welcome Panel: Dual Website links for FifthLab interns (thefifthlab.com & cwg-plc.com), single for CWG
+ *  - Welcome Panel: FifthLab website link
  *  - Company Policies & Handbook: Marked "(In Progress)"
- *  - IT Setup: CWG Wi-Fi confirmation checkbox + CyberSecurity Guide reading confirmation
+ *  - IT Setup: Wi-Fi confirmation checkbox + CyberSecurity Guide reading confirmation
  *  - Team Introduction: Real department team members & supervisor profiles with clickable Bios
  *  - Training Module: Slide Deck (PDF) marked "(In Progress)"
  *  - "YOUR JOURNEY" Cyan Gradient Progress Card & Donut Chart
@@ -19,20 +18,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
-  RiBuildingLine,
   RiFolderUserLine,
   RiFileTextLine,
-  RiCheckboxCircleFill,
   RiTimeLine,
   RiAlertLine,
-  RiCloseCircleFill,
   RiUploadCloudLine,
-  RiDownloadLine,
   RiCheckLine,
-  RiInformationLine,
   RiShieldCheckFill,
   RiArrowRightLine,
-  RiRefreshLine,
   RiUserFollowLine,
   RiComputerLine,
   RiTeamLine,
@@ -45,13 +38,13 @@ import {
   RiWifiLine,
   RiShieldKeyholeLine,
   RiCloseLine,
-  RiUser3Line,
   RiMailLine,
   RiMapPinLine,
 } from 'react-icons/ri';
 
 import api from '../services/api';
 import { useAppStore } from '../store/useAppStore';
+import { sanitizeDepartments } from '../utils/departments';
 
 const REQUIRED_DOCUMENTS = [
   {
@@ -69,7 +62,7 @@ const REQUIRED_DOCUMENTS = [
   {
     category: 'acceptance_letter',
     title: 'Acceptance Letter (PDF)',
-    description: 'Signed copy of your CWG PLC / FifthLab internship offer or acceptance letter (PDF format only).',
+    description: 'Signed copy of your FifthLab internship offer or acceptance letter (PDF format only).',
     icon: '✍️',
   },
 ];
@@ -86,6 +79,11 @@ const CATEGORIES = [
   { id: 'training', name: 'Training', icon: RiGraduationCapLine, color: '#6366f1' },
 ];
 
+const ONBOARDING_SECTION_LABELS = CATEGORIES.reduce((acc, item) => {
+  acc[item.id] = item.name;
+  return acc;
+}, {});
+
 const safeJson = (value, fallback) => {
   try {
     return value ? JSON.parse(value) : fallback;
@@ -98,12 +96,13 @@ export default function OnboardingDashboard() {
   const user = useAppStore((state) => state.user);
   const updateUserMeta = useAppStore((state) => state.updateUserMeta);
 
-  // 1. Detect Organisation & Department Context
+  // 1. Detect Department Context
   const emailDomain = (user?.email || '').split('@')[1]?.toLowerCase() || '';
   const isFifthLabDomain = emailDomain === 'thefifthlab.com';
-  
-  // Organization is ALWAYS CWG PLC (Parent Organization)
-  const organizationName = 'CWG PLC';
+  const organizationName =
+    user?.organization_name ||
+    user?.organization ||
+    (isFifthLabDomain ? 'CWG PLC' : 'Trakive');
 
   const [activeCategory, setActiveCategory] = useState('required_docs');
   const [submittingDocs, setSubmittingDocs] = useState(false);
@@ -142,9 +141,9 @@ export default function OnboardingDashboard() {
       setLoadingDepartments(true);
       try {
         const res = await api.get('/departments', { params: { limit: 100 } });
-        const list = res?.data?.data || [];
+        const list = sanitizeDepartments(res?.data?.data || []);
         if (!mounted) return;
-        setDepartments(Array.isArray(list) ? list : []);
+        setDepartments(list);
 
         if (!info.department_id && list.length > 0) {
           const preferred =
@@ -240,9 +239,9 @@ export default function OnboardingDashboard() {
             role: u.title || (u.role_name === 'supervisor' ? 'Lead Supervisor' : 'Team Member'),
             department: info.department_name || 'FifthLab',
             email: u.email,
-            location: u.office_location || 'CWG PLC Headquarters, Lagos',
+            location: u.office_location || 'FifthLab Office, Lagos',
             isSupervisor: u.role_name === 'supervisor' || u.role_name === 'department_head',
-            bio: u.bio || `${u.first_name} is an active member of the ${info.department_name} team at CWG PLC & FifthLab.`,
+            bio: u.bio || `${u.first_name} is an active member of the ${info.department_name} team at FifthLab.`,
             avatarColor: ['#2563eb', '#ec4899', '#8b5cf6', '#f59e0b', '#10b981'][idx % 5],
           }));
           setTeamMembers(formatted);
@@ -261,9 +260,9 @@ export default function OnboardingDashboard() {
             role: assignedSupervisor.title || 'Lead Supervisor',
             department: info.department_name,
             email: assignedSupervisor.email,
-            location: 'CWG HQ, Annex 2, Victoria Island, Lagos',
+            location: 'FifthLab Office, Lagos',
             isSupervisor: true,
-            bio: `${assignedSupervisor.name} is the Lead Supervisor overseeing intern mentorship and engineering labs across ${info.department_name} at CWG PLC & FifthLab.`,
+            bio: `${assignedSupervisor.name} is the Lead Supervisor overseeing intern mentorship across ${info.department_name} at FifthLab.`,
             avatarColor: '#2563eb',
           },
           {
@@ -272,9 +271,9 @@ export default function OnboardingDashboard() {
             role: 'Software Intern',
             department: info.department_name,
             email: user?.email || 'intern@thefifthlab.com',
-            location: 'CWG HQ, Lagos',
+            location: 'FifthLab Office, Lagos',
             isSupervisor: false,
-            bio: `Software Intern in the ${info.department_name} department at CWG PLC & FifthLab.`,
+            bio: `Software Intern in the ${info.department_name} department at FifthLab.`,
             avatarColor: '#10b981',
           }
         ]);
@@ -342,11 +341,45 @@ export default function OnboardingDashboard() {
     localStorage.setItem(`trakive_onboarding_completed_steps_${user?.id || 'default'}`, JSON.stringify(completedSteps));
   }, [completedSteps, user?.id]);
 
-  const markStepCompletedAndNext = (currentCatId, nextCatId) => {
-    setCompletedSteps((prev) => ({ ...prev, [currentCatId]: true }));
-    toast.success('Onboarding section marked as completed!');
-    if (nextCatId) {
-      setActiveCategory(nextCatId);
+  const getOnboardingDetailsPayload = (section) => {
+    if (section === 'internship_info') {
+      return {
+        department_id: info.department_id,
+        department_name: info.department_name,
+        institution: info.institution,
+        field_of_study: info.field_of_study,
+        phone: info.phone,
+        date_of_birth: info.date_of_birth,
+        start_date: info.start_date,
+        end_date: info.end_date,
+      };
+    }
+    if (section === 'it_setup') {
+      return {
+        wifiConfirmed: itSetupState.wifiConfirmed,
+        securityGuideRead: itSetupState.securityGuideRead,
+      };
+    }
+    return {
+      label: ONBOARDING_SECTION_LABELS[section] || section,
+    };
+  };
+
+  const markStepCompletedAndNext = async (currentCatId, nextCatId) => {
+    try {
+      await api.post('/onboarding/details', {
+        section: currentCatId,
+        status: 'completed',
+        details: getOnboardingDetailsPayload(currentCatId),
+      });
+      setCompletedSteps((prev) => ({ ...prev, [currentCatId]: true }));
+      toast.success('Onboarding section sent to supervisor.');
+      if (nextCatId) {
+        setActiveCategory(nextCatId);
+      }
+    } catch (err) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to send onboarding details to supervisor.';
+      toast.error(message);
     }
   };
 
@@ -402,6 +435,7 @@ export default function OnboardingDashboard() {
         department_id: info.department_id,
         institution: info.institution || undefined,
         field_of_study: info.field_of_study || undefined,
+        phone: info.phone || undefined,
         date_of_birth: info.date_of_birth,
         start_date: info.start_date,
         end_date: info.end_date,
@@ -559,12 +593,14 @@ export default function OnboardingDashboard() {
     setSubmittingDocs(true);
     try {
       // Ensure department/supervisor link exists even if info was only partially saved earlier
-      if (info.department_id) {
+      if (info.department_id && !info.is_saved) {
         try {
           await api.post('/onboarding/info', {
             department_id: info.department_id,
             institution: info.institution || undefined,
             field_of_study: info.field_of_study || undefined,
+            phone: info.phone || undefined,
+            date_of_birth: info.date_of_birth || undefined,
             start_date: info.start_date || undefined,
             end_date: info.end_date || undefined,
           });
@@ -623,7 +659,8 @@ export default function OnboardingDashboard() {
     return Object.values(documents).filter((d) => d !== null).length;
   }, [documents]);
 
-  const isItSetupComplete = (itSetupState.wifiConfirmed && itSetupState.securityGuideRead) || completedSteps.it_setup;
+  const hasConfirmedItSetup = itSetupState.wifiConfirmed && itSetupState.securityGuideRead;
+  const isItSetupComplete = hasConfirmedItSetup || completedSteps.it_setup;
   const isOnboardingReady = approvedDocsCount === 3;
 
   // Total Tasks and Journey calculations
@@ -674,7 +711,7 @@ export default function OnboardingDashboard() {
     }
     if (!isItSetupComplete) {
       return {
-        title: 'Complete CWG Wi-Fi & IT Security Guide Confirmation',
+        title: 'Complete Wi-Fi & IT Security Guide Confirmation',
         categoryName: 'IT Setup',
         time: '5m',
         catId: 'it_setup',
@@ -1025,34 +1062,13 @@ export default function OnboardingDashboard() {
                 Internship Profile & Department Selection
               </h3>
               <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 20px 0' }}>
-                CWG PLC is the parent organization. FifthLab operates as a specialized innovation department under CWG.
+                Select the department where your internship will be managed.
               </p>
 
               <form onSubmit={handleInfoSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                
-                <div>
+                <div style={{ gridColumn: '1 / -1' }}>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                    Parent Organization
-                  </label>
-                  <input
-                    type="text"
-                    disabled
-                    value="CWG PLC"
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      background: '#f8fafc',
-                      fontWeight: 800,
-                      color: '#1e3a8a'
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
-                    Select Department (Includes FifthLab)
+                    Department
                   </label>
                   <select
                     value={info.department_id}
@@ -1074,7 +1090,7 @@ export default function OnboardingDashboard() {
                     </option>
                     {departments.map((dept) => (
                       <option key={dept.id} value={dept.id}>
-                        {dept.name}{dept.code ? ` (${dept.code})` : ''}
+                        {dept.name}
                       </option>
                     ))}
                   </select>
@@ -1233,7 +1249,7 @@ export default function OnboardingDashboard() {
                     All 3 required PDF documents have been approved by supervisor {assignedSupervisor.name}.
                   </p>
                   <div style={{ marginTop: '12px', background: 'rgba(255, 255, 255, 0.2)', padding: '10px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 600 }}>
-                    ℹ️ <strong>HR Disclaimer:</strong> Trakive onboarding complements—not replaces—the official CWG PLC HR onboarding process.
+                    ℹ️ <strong>HR Disclaimer:</strong> Trakive onboarding complements the official HR onboarding process.
                   </div>
                 </div>
               ) : (
@@ -1472,56 +1488,25 @@ export default function OnboardingDashboard() {
               style={{ background: '#ffffff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0' }}
             >
               <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 6px 0', color: '#0f172a' }}>
-                Welcome to CWG PLC & FifthLab
+                Welcome to FifthLab
               </h3>
               <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 20px 0' }}>
-                Get acquainted with our corporate portal and innovation labs by visiting our official websites below.
+                Get acquainted with FifthLab by visiting the official website below.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {/* FifthLab Interns see BOTH FifthLab & CWG PLC websites */}
-                {(isFifthLabDomain || info.department_name === 'FifthLab') && (
-                  <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '14px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div>
-                      <span style={{ fontSize: '11px', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase' }}>FifthLab Venture Lab</span>
-                      <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#0369a1', margin: '2px 0 0 0' }}>FifthLab Official Website</h4>
-                      <p style={{ fontSize: '12px', color: '#0e7490', margin: '2px 0 0 0' }}>Explore projects, startup initiatives, and tech venture lab programs.</p>
-                    </div>
-                    <a
-                      href="https://thefifthlab.com/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        background: '#0284c7',
-                        color: '#ffffff',
-                        padding: '10px 18px',
-                        borderRadius: '10px',
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        textDecoration: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      Visit FifthLab <RiExternalLinkLine />
-                    </a>
-                  </div>
-                )}
-
-                {/* CWG PLC Website (Visible to ALL interns) */}
-                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '14px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '14px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase' }}>Parent Organization</span>
-                    <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#1e3a8a', margin: '2px 0 0 0' }}>CWG PLC Corporate Website</h4>
-                    <p style={{ fontSize: '12px', color: '#1d4ed8', margin: '2px 0 0 0' }}>Learn about CWG PLC pan-African ICT infrastructure and enterprise services.</p>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase' }}>FifthLab Venture Lab</span>
+                    <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#0369a1', margin: '2px 0 0 0' }}>FifthLab Official Website</h4>
+                    <p style={{ fontSize: '12px', color: '#0e7490', margin: '2px 0 0 0' }}>Explore projects, startup initiatives, and tech venture lab programs.</p>
                   </div>
                   <a
-                    href="https://cwg-plc.com/"
+                    href="https://thefifthlab.com/"
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
-                      background: '#2563eb',
+                      background: '#0284c7',
                       color: '#ffffff',
                       padding: '10px 18px',
                       borderRadius: '10px',
@@ -1533,7 +1518,7 @@ export default function OnboardingDashboard() {
                       gap: '6px'
                     }}
                   >
-                    Visit CWG PLC <RiExternalLinkLine />
+                    Visit FifthLab <RiExternalLinkLine />
                   </a>
                 </div>
 
@@ -1590,7 +1575,7 @@ export default function OnboardingDashboard() {
                   Company Handbook Document
                 </h4>
                 <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
-                  The CWG PLC & FifthLab Employee Policy Handbook overview. Review policies and click below to acknowledge.
+                  The FifthLab Employee Policy Handbook overview. Review policies and click below to acknowledge.
                 </p>
               </div>
 
@@ -1631,7 +1616,7 @@ export default function OnboardingDashboard() {
                     IT Setup & Security Confirmation
                   </h3>
                   <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-                    Confirm your network connection and review CWG IT Security guidelines.
+                    Confirm your network connection and review IT Security guidelines.
                   </p>
                 </div>
                 {isItSetupComplete && (
@@ -1641,13 +1626,13 @@ export default function OnboardingDashboard() {
                 )}
               </div>
 
-              {/* 1. CWG Wi-Fi Network Confirmation */}
+              {/* 1. Wi-Fi Network Confirmation */}
               <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '14px', padding: '18px 20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                   <RiWifiLine style={{ fontSize: '24px', color: '#16a34a' }} />
                   <div>
-                    <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#14532d', margin: 0 }}>CWG Corporate Wi-Fi Network Access</h4>
-                    <span style={{ fontSize: '12px', color: '#15803d' }}>SSID: CWG-Corporate-WiFi / FifthLab-Internal</span>
+                    <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#14532d', margin: 0 }}>FifthLab Wi-Fi Network Access</h4>
+                    <span style={{ fontSize: '12px', color: '#15803d' }}>SSID: FifthLab-Internal</span>
                   </div>
                 </div>
 
@@ -1657,12 +1642,12 @@ export default function OnboardingDashboard() {
                     checked={itSetupState.wifiConfirmed}
                     onChange={(e) => {
                       setItSetupState({ ...itSetupState, wifiConfirmed: e.target.checked });
-                      if (e.target.checked) toast.success('Confirmed: Added to CWG Wi-Fi network.');
+                      if (e.target.checked) toast.success('Confirmed: Added to FifthLab Wi-Fi network.');
                     }}
                     style={{ width: '18px', height: '18px', accentColor: '#16a34a' }}
                   />
                   <span style={{ fontSize: '13px', fontWeight: 700, color: '#14532d' }}>
-                    I confirm that I have been added to CWG's Wi-Fi network.
+                    I confirm that I have been added to FifthLab's Wi-Fi network.
                   </span>
                 </label>
               </div>
@@ -1672,17 +1657,17 @@ export default function OnboardingDashboard() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                   <RiShieldKeyholeLine style={{ fontSize: '24px', color: '#d97706' }} />
                   <div>
-                    <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#78350f', margin: 0 }}>CWG CyberSecurity & IT Security Guide</h4>
+                    <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#78350f', margin: 0 }}>CyberSecurity & IT Security Guide</h4>
                     <span style={{ fontSize: '12px', color: '#92400e' }}>Mandatory Security Awareness Standard</span>
                   </div>
                 </div>
 
                 <div style={{ background: '#ffffff', borderRadius: '10px', padding: '14px', border: '1px solid #fcd34d', fontSize: '12px', color: '#451a03', maxHeight: '140px', overflowY: 'auto', marginBottom: '12px', lineHeight: '1.6' }}>
-                  <strong>Security Best Practices for CWG Interns:</strong>
+                  <strong>Security Best Practices for FifthLab Interns:</strong>
                   <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px' }}>
                     <li><strong>Password Security:</strong> Use strong 12+ character passwords and never share corporate credentials.</li>
                     <li><strong>Phishing Awareness:</strong> Do not click untrusted links or open unsolicited attachments from unknown domains.</li>
-                    <li><strong>Data Confidentiality:</strong> Proprietary FifthLab & CWG code, client datasets, and internal communications must not be shared externally.</li>
+                    <li><strong>Data Confidentiality:</strong> Proprietary FifthLab code, client datasets, and internal communications must not be shared externally.</li>
                     <li><strong>Device Security:</strong> Always lock your computer screen (`Win + L` or `Cmd + Ctrl + Q`) when leaving your workspace.</li>
                   </ul>
                 </div>
@@ -1706,22 +1691,27 @@ export default function OnboardingDashboard() {
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => {
-                    setItSetupState({ wifiConfirmed: true, securityGuideRead: true });
+                    if (!hasConfirmedItSetup) {
+                      toast.error('Please tick both IT setup confirmations before continuing.');
+                      return;
+                    }
                     markStepCompletedAndNext('it_setup', 'team_intro');
                   }}
+                  disabled={!hasConfirmedItSetup}
                   style={{
-                    background: '#10b981',
+                    background: hasConfirmedItSetup ? '#10b981' : '#94a3b8',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '10px',
                     padding: '12px 24px',
                     fontWeight: 700,
                     fontSize: '14px',
-                    cursor: 'pointer',
+                    cursor: hasConfirmedItSetup ? 'pointer' : 'not-allowed',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                    boxShadow: hasConfirmedItSetup ? '0 4px 14px rgba(16, 185, 129, 0.3)' : 'none',
+                    opacity: hasConfirmedItSetup ? 1 : 0.75,
                   }}
                 >
                   <RiCheckLine /> Complete IT Setup & Proceed to Team Intro <RiArrowRightLine />

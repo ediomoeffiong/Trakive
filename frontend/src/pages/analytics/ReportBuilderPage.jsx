@@ -14,16 +14,17 @@ import {
 } from 'react-icons/ri';
 import { useAnalyticsStore } from '../../store';
 import { PerformanceLineChart } from '../../components/analytics';
+import { STANDARD_DEPARTMENTS } from '../../utils/departments';
 
 export default function ReportBuilderPage() {
   const navigate = useNavigate();
   const { createSavedReport, chartData } = useAnalyticsStore();
 
-  const [title, setTitle] = useState('Monthly Engineering Intern Assessment');
+  const [title, setTitle] = useState('Monthly FifthLab Intern Assessment');
   const [description, setDescription] = useState('Detailed breakdown of intern task completion, code quality, and supervisor SLA velocity.');
   const [reportType, setReportType] = useState('Performance Analytics');
   const [period, setPeriod] = useState('This Month');
-  const [dataSource, setDataSource] = useState('FifthLab Engineering');
+  const [dataSource, setDataSource] = useState('FifthLab');
   const [selectedMetrics, setSelectedMetrics] = useState(['Overall Rating', 'Task Speed', 'Onboarding Step Sign-offs']);
 
 
@@ -163,10 +164,10 @@ export default function ReportBuilderPage() {
           <div>
             <label style={labelStyle}>Data Source Filter</label>
             <select value={dataSource} onChange={(e) => setDataSource(e.target.value)} style={inputStyle}>
-              <option>FifthLab Engineering</option>
-              <option>Human Resources</option>
-              <option>UI/UX Design</option>
               <option>All Departments</option>
+              {STANDARD_DEPARTMENTS.map((department) => (
+                <option key={department.id}>{department.name}</option>
+              ))}
             </select>
           </div>
 

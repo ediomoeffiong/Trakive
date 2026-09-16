@@ -5,3 +5,5 @@
 
 export * from './format';
 export * from './helpers';
+export * from './people';
+export * from './departments';

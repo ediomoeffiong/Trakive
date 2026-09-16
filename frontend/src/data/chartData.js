@@ -29,18 +29,19 @@ export const mockMonthlyPerformanceTrend = [
 // Bar Chart: Task Completion by Department
 export const mockDeptTaskCompletion = [
   { department: 'FifthLab', completed: 95, inProgress: 24, pendingReview: 8 },
-  { department: 'Engineering', completed: 82, inProgress: 30, pendingReview: 12 },
-  { department: 'Human Resources', completed: 45, inProgress: 10, pendingReview: 4 },
-  { department: 'UI/UX Design', completed: 64, inProgress: 14, pendingReview: 5 },
-  { department: 'Product Mgmt', completed: 56, inProgress: 6, pendingReview: 2 },
+  { department: 'Human Resources (HR)', completed: 45, inProgress: 10, pendingReview: 4 },
+  { department: 'IT Department', completed: 82, inProgress: 30, pendingReview: 12 },
+  { department: 'IT Infrastructure', completed: 64, inProgress: 14, pendingReview: 5 },
+  { department: 'Networking', completed: 56, inProgress: 6, pendingReview: 2 },
+  { department: 'Data Centre', completed: 42, inProgress: 8, pendingReview: 3 },
 ];
 
 // Bar Chart: Department & Supervisor Comparisons
 export const mockPerformanceComparison = [
   { entity: 'FifthLab', score: 4.8, taskSpeed: 94, reviewQuality: 98 },
-  { entity: 'Engineering', score: 4.5, taskSpeed: 88, reviewQuality: 92 },
-  { entity: 'UI/UX Design', score: 4.6, taskSpeed: 91, reviewQuality: 95 },
-  { entity: 'HR & Ops', score: 4.3, taskSpeed: 85, reviewQuality: 90 },
+  { entity: 'Human Resources (HR)', score: 4.3, taskSpeed: 85, reviewQuality: 90 },
+  { entity: 'IT Department', score: 4.5, taskSpeed: 88, reviewQuality: 92 },
+  { entity: 'IT Infrastructure', score: 4.6, taskSpeed: 91, reviewQuality: 95 },
 ];
 
 // Donut Chart: Task Status Distribution

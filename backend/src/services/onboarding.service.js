@@ -11,6 +11,16 @@ const AuditLogModel = require('../models/auditLog.model');
 const NotificationModel = require('../models/notification.model');
 const { hashPassword } = require('../utils/password.utils');
 const { getPaginationParams, formatPaginatedResponse } = require('../utils/pagination');
+const { resolveFifthLabDefaults } = require('../utils/fifthlabDefaults');
+
+const ONBOARDING_SECTION_LABELS = {
+  internship_info: 'Internship Info',
+  welcome: 'Welcome',
+  company_policies: 'Company Policies',
+  it_setup: 'IT Setup',
+  team_intro: 'Team Introduction',
+  training: 'Training',
+};
 
 const VALID_TRANSITIONS = {
   applied: ['under_review', 'accepted', 'approved', 'rejected'],
@@ -27,6 +37,11 @@ const VALID_TRANSITIONS = {
 };
 
 const OnboardingService = {
+  async findCurrentApplicationForUser(userId) {
+    const apps = await ApplicationModel.findPaginated({ applicant_id: userId, limit: 1 });
+    return apps[0] || null;
+  },
+
   async getEffectiveOrgId(requestingUser) {
     if (requestingUser.organization_id) return requestingUser.organization_id;
     throw ApiError.badRequest('User must be assigned to an organization before managing onboarding');
@@ -44,13 +59,22 @@ const OnboardingService = {
       return internProfile;
     }
 
-    const targetDeptId =
+    const initialTargetDeptId =
       preferredDepartmentId ||
       internProfile?.department_id ||
       requestingUser.department_id ||
       null;
+    const fifthLabDefaults = await resolveFifthLabDefaults({
+      organizationId: orgId,
+      departmentId: initialTargetDeptId,
+      supervisorId: null,
+      email: requestingUser.email,
+    });
+    const targetDeptId = fifthLabDefaults.departmentId;
 
-    let assignedSupervisorProfile = null;
+    let assignedSupervisorProfile = fifthLabDefaults.supervisorId
+      ? await ProfileModel.findSupervisorById(fifthLabDefaults.supervisorId)
+      : null;
     if (targetDeptId) {
       const supRes = await query(
         `SELECT sp.* FROM supervisor_profiles sp
@@ -63,7 +87,7 @@ const OnboardingService = {
          LIMIT 1`,
         [targetDeptId, orgId]
       );
-      assignedSupervisorProfile = supRes.rows[0] || null;
+      assignedSupervisorProfile = assignedSupervisorProfile || supRes.rows[0] || null;
     }
 
     if (!assignedSupervisorProfile) {
@@ -105,6 +129,22 @@ const OnboardingService = {
     }
 
     return internProfile;
+  },
+
+  async notifyAssignedSupervisor(requestingUser, { title, message, type = 'onboarding_submission', linkUrl = '/supervisor/onboarding' }) {
+    const internProfile = await ProfileModel.findInternProfileByUserId(requestingUser.id);
+    if (!internProfile?.supervisor_id) return;
+
+    const supProfile = await ProfileModel.findSupervisorById(internProfile.supervisor_id);
+    if (!supProfile?.user_id) return;
+
+    await NotificationModel.create({
+      userId: supProfile.user_id,
+      title,
+      message,
+      type,
+      linkUrl,
+    });
   },
 
   validateStateTransition(currentStatus, newStatus) {
@@ -259,15 +299,37 @@ const OnboardingService = {
     }
 
     const onbData = application.onboarding_data || {};
+    const fifthLabDefaults = await resolveFifthLabDefaults({
+      organizationId: application.organization_id,
+      departmentId: application.department_id,
+      supervisorId: null,
+      email: applicantUser.email,
+    });
+
     const internProfile = await ProfileModel.upsertInternProfile({
       user_id: applicantUser.id,
       organization_id: application.organization_id,
-      department_id: application.department_id,
+      department_id: fifthLabDefaults.departmentId,
+      supervisor_id: fifthLabDefaults.supervisorId,
       institution: onbData.institution || null,
       field_of_study: onbData.field_of_study || null,
       academic_year: onbData.academic_year || null,
       status: 'onboarding',
     });
+
+    if (fifthLabDefaults.departmentId) {
+      await UserModel.update(applicantUser.id, { department_id: fifthLabDefaults.departmentId });
+    }
+
+    if (fifthLabDefaults.supervisorId && internProfile?.id) {
+      await ProfileModel.recordSupervisorAssignment(
+        internProfile.id,
+        fifthLabDefaults.supervisorId,
+        requestingUser.id,
+        'active',
+        'Auto-assigned default FifthLab supervisor'
+      );
+    }
 
     const updatedApp = await ApplicationModel.updateStatus(applicationId, {
       status: 'account_created',
@@ -297,16 +359,26 @@ const OnboardingService = {
     if (data.application_id) {
       application = await ApplicationModel.findById(data.application_id);
     } else {
-      const apps = await ApplicationModel.findPaginated({ applicant_id: requestingUser.id, limit: 1 });
-      application = apps[0] || null;
+      application = await this.findCurrentApplicationForUser(requestingUser.id);
     }
 
     const orgId = await this.getEffectiveOrgId(requestingUser);
 
     let assignedSupervisorProfile = null;
     let targetDeptId = data.department_id || requestingUser.department_id || null;
+    const fifthLabDefaults = await resolveFifthLabDefaults({
+      organizationId: orgId,
+      departmentId: targetDeptId,
+      supervisorId: null,
+      email: requestingUser.email,
+    });
+    targetDeptId = fifthLabDefaults.departmentId;
+    if (fifthLabDefaults.supervisorId) {
+      assignedSupervisorProfile = await ProfileModel.findSupervisorById(fifthLabDefaults.supervisorId);
+    }
     await UserModel.update(requestingUser.id, {
       date_of_birth: data.date_of_birth || data.dateOfBirth || null,
+      phone: data.phone || requestingUser.phone || null,
       ...(targetDeptId ? { department_id: targetDeptId } : {}),
     });
 
@@ -319,7 +391,7 @@ const OnboardingService = {
          ORDER BY (sp.department_id IS NOT NULL) DESC, sp.created_at ASC LIMIT 1`,
         [targetDeptId, orgId]
       );
-      assignedSupervisorProfile = supRes.rows[0] || null;
+      assignedSupervisorProfile = assignedSupervisorProfile || supRes.rows[0] || null;
     }
 
     const internProfile = await ProfileModel.upsertInternProfile({
@@ -369,8 +441,32 @@ const OnboardingService = {
       const mergedData = {
         ...(application.onboarding_data || {}),
         info_submitted: true,
+        phone: data.phone || requestingUser.phone || null,
+        institution: data.institution,
+        field_of_study: data.field_of_study,
+        academic_year: data.academic_year,
+        start_date: data.start_date,
+        end_date: data.end_date,
+        department_id: targetDeptId,
         emergency_contact: data.emergency_contact,
         skills: data.skills,
+        onboarding_details: {
+          ...((application.onboarding_data || {}).onboarding_details || {}),
+          internship_info: {
+            status: 'submitted',
+            review_status: 'pending',
+            submitted_at: new Date().toISOString(),
+            details: {
+              department_id: targetDeptId,
+              institution: data.institution,
+              field_of_study: data.field_of_study,
+              academic_year: data.academic_year,
+              phone: data.phone || requestingUser.phone || null,
+              start_date: data.start_date,
+              end_date: data.end_date,
+            },
+          },
+        },
       };
 
       updatedApp = await ApplicationModel.updateStatus(application.id, {
@@ -382,9 +478,165 @@ const OnboardingService = {
 
     const completeProfile = await ProfileModel.getCompleteInternProfile(requestingUser.id);
 
+    try {
+      await this.notifyAssignedSupervisor(requestingUser, {
+        title: 'Onboarding Details Submitted',
+        message: `${requestingUser.first_name} ${requestingUser.last_name} submitted internship onboarding details for supervisor review.`,
+        type: 'onboarding_submission',
+      });
+    } catch (notifErr) {
+      console.warn('Failed to send onboarding details notification:', notifErr);
+    }
+
     return {
       application: updatedApp,
       intern_profile: completeProfile,
+    };
+  },
+
+  async submitOnboardingDetails(data, requestingUser, ipAddress = null, userAgent = null) {
+    const orgId = await this.getEffectiveOrgId(requestingUser);
+    await this.ensureInternSupervisorLink(requestingUser);
+
+    const application = await this.findCurrentApplicationForUser(requestingUser.id);
+    const sectionLabel = ONBOARDING_SECTION_LABELS[data.section] || data.section;
+    const submittedAt = new Date().toISOString();
+    let updatedApp = null;
+
+    if (application) {
+      const previousData = application.onboarding_data || {};
+      const previousDetails = previousData.onboarding_details || {};
+      const mergedData = {
+        ...previousData,
+        onboarding_details: {
+          ...previousDetails,
+          [data.section]: {
+            status: data.status || 'completed',
+            review_status: 'pending',
+            submitted_at: submittedAt,
+            details: data.details || {},
+          },
+        },
+      };
+
+      updatedApp = await ApplicationModel.updateStatus(application.id, {
+        status: application.status === 'account_created' ? 'onboarding_in_progress' : application.status,
+        onboarding_data: mergedData,
+      });
+    }
+
+    await AuditLogModel.log({
+      organizationId: orgId,
+      userId: requestingUser.id,
+      action: 'ONBOARDING_DETAILS_SUBMIT',
+      entityType: 'intern_profiles',
+      entityId: requestingUser.id,
+      details: { section: data.section, status: data.status || 'completed' },
+      ipAddress,
+      userAgent,
+    });
+
+    try {
+      await this.notifyAssignedSupervisor(requestingUser, {
+        title: 'Onboarding Details Updated',
+        message: `${requestingUser.first_name} ${requestingUser.last_name} completed ${sectionLabel} in onboarding.`,
+        type: 'onboarding_submission',
+      });
+    } catch (notifErr) {
+      console.warn('Failed to send onboarding section notification:', notifErr);
+    }
+
+    return {
+      application: updatedApp,
+      section: data.section,
+      status: data.status || 'completed',
+      submitted_at: submittedAt,
+    };
+  },
+
+  async reviewOnboardingDetails(internId, section, { status, notes }, reviewerUser, ipAddress = null, userAgent = null) {
+    if (!ONBOARDING_SECTION_LABELS[section]) {
+      throw ApiError.badRequest('Unknown onboarding section');
+    }
+
+    const reqRole = reviewerUser.role_name ? reviewerUser.role_name.toLowerCase() : '';
+    const isSystemAdmin = ['super_admin', 'org_admin', 'admin', 'hr', 'head'].includes(reqRole);
+    const internProfile = await ProfileModel.findInternProfileByUserId(internId);
+
+    if (!isSystemAdmin) {
+      if (reqRole !== 'supervisor') {
+        throw ApiError.forbidden('Only supervisors or system administrators can review onboarding details');
+      }
+      const supProfile = await ProfileModel.findSupervisorProfileByUserId(reviewerUser.id);
+      if (!supProfile || !internProfile || internProfile.supervisor_id !== supProfile.id) {
+        throw ApiError.forbidden('Supervisors can only review onboarding details for their assigned interns');
+      }
+    }
+
+    if (['rejected', 'resubmission_required'].includes(status) && (!notes || !notes.trim())) {
+      throw ApiError.badRequest('A comment or reason is required when rejecting or requesting changes.');
+    }
+
+    const application = await this.findCurrentApplicationForUser(internId);
+    if (!application) {
+      throw ApiError.notFound('Application not found for intern');
+    }
+
+    const previousData = application.onboarding_data || {};
+    const previousDetails = previousData.onboarding_details || {};
+    const targetDetail = previousDetails[section];
+    if (!targetDetail) {
+      throw ApiError.notFound('Onboarding details section has not been submitted');
+    }
+
+    const reviewedAt = new Date().toISOString();
+    const updatedDetail = {
+      ...targetDetail,
+      review_status: status,
+      reviewed_by: reviewerUser.id,
+      reviewed_at: reviewedAt,
+      review_notes: notes ? notes.trim() : '',
+    };
+
+    const updatedApp = await ApplicationModel.updateStatus(application.id, {
+      status: application.status === 'account_created' ? 'onboarding_in_progress' : application.status,
+      onboarding_data: {
+        ...previousData,
+        onboarding_details: {
+          ...previousDetails,
+          [section]: updatedDetail,
+        },
+      },
+    });
+
+    await AuditLogModel.log({
+      organizationId: application.organization_id || reviewerUser.organization_id,
+      userId: reviewerUser.id,
+      action: `ONBOARDING_DETAILS_REVIEW_${status.toUpperCase()}`,
+      entityType: 'internship_applications',
+      entityId: application.id,
+      details: { section, review_status: status, notes },
+      ipAddress,
+      userAgent,
+    });
+
+    try {
+      const formattedStatus = status.replace('_', ' ');
+      await NotificationModel.create({
+        userId: internId,
+        title: `${ONBOARDING_SECTION_LABELS[section]} ${formattedStatus.toUpperCase()}`,
+        message: `Your ${ONBOARDING_SECTION_LABELS[section]} onboarding details were marked as ${formattedStatus}.${notes ? ` Feedback: "${notes}"` : ''}`,
+        type: 'onboarding_review',
+        linkUrl: '/dashboard/onboarding',
+      });
+    } catch (notifErr) {
+      console.warn('Failed to send onboarding details review notification to intern:', notifErr);
+    }
+
+    return {
+      application: updatedApp,
+      section,
+      detail: updatedDetail,
     };
   },
 
@@ -461,19 +713,10 @@ const OnboardingService = {
 
     // Notify assigned supervisor about intern onboarding document submission
     try {
-      const internProfile = await ProfileModel.findInternProfileByUserId(requestingUser.id);
-      if (internProfile && internProfile.supervisor_id) {
-        const supProfile = await ProfileModel.findSupervisorById(internProfile.supervisor_id);
-        if (supProfile && supProfile.user_id) {
-          await NotificationModel.create({
-            userId: supProfile.user_id,
-            title: 'New Onboarding Document Submitted',
-            message: `${requestingUser.first_name} ${requestingUser.last_name} uploaded '${doc.title}' for onboarding review.`,
-            type: 'onboarding_submission',
-            linkUrl: '/supervisor/onboarding',
-          });
-        }
-      }
+      await this.notifyAssignedSupervisor(requestingUser, {
+        title: 'New Onboarding Document Submitted',
+        message: `${requestingUser.first_name} ${requestingUser.last_name} uploaded '${doc.title}' for onboarding review.`,
+      });
     } catch (notifErr) {
       console.warn('Failed to send onboarding document submission notification:', notifErr);
     }
@@ -613,6 +856,8 @@ const OnboardingService = {
 
         const docTracking = await this.trackDocuments(user.id, requestingUser);
         const hasSubmittedDocs = docTracking.checklist.some((d) => d.submitted);
+        const application = await this.findCurrentApplicationForUser(user.id);
+        const onboardingDetails = application?.onboarding_data?.onboarding_details || {};
 
         if (supProfile) {
           const isAssigned = fullProfile.supervisor_id === supProfile.id;
@@ -646,6 +891,15 @@ const OnboardingService = {
           total_required: docTracking.total_required,
           progress_label: docTracking.progress_label,
           onboarding_ready: docTracking.onboarding_ready,
+          onboarding_details: onboardingDetails,
+          onboarding_info: {
+            institution: fullProfile.institution || application?.onboarding_data?.institution || null,
+            field_of_study: fullProfile.field_of_study || application?.onboarding_data?.field_of_study || null,
+            academic_year: fullProfile.academic_year || application?.onboarding_data?.academic_year || null,
+            phone: user.phone || application?.onboarding_data?.phone || null,
+            start_date: fullProfile.start_date || application?.onboarding_data?.start_date || null,
+            end_date: fullProfile.end_date || application?.onboarding_data?.end_date || null,
+          },
           documents: docTracking.checklist,
           steps: docTracking.checklist,
         };

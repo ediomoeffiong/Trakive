@@ -21,6 +21,7 @@ import {
   RiLoader3Line,
 } from 'react-icons/ri';
 import { mockInternProfiles } from '../../../data/internProfiles';
+import { STANDARD_DEPARTMENTS } from '../../../utils/departments';
 
 const ASSIGN_MODES = [
   { id: 'individual', label: 'Individual', icon: RiUserAddLine, desc: 'Select specific interns' },
@@ -28,10 +29,7 @@ const ASSIGN_MODES = [
   { id: 'batch', label: 'By Batch', icon: RiGroupLine, desc: 'Assign to an internship batch' },
 ];
 
-const DEPARTMENTS = [
-  'Frontend Engineering', 'Backend Engineering', 'Backend Integration',
-  'UX/UI Design', 'QA & Testing', 'Design Systems', 'Program Management',
-];
+const DEPARTMENTS = STANDARD_DEPARTMENTS.map((department) => department.name);
 
 const BATCHES = ['Batch 2026-A', 'Batch 2026-B', 'Batch 2025-C'];
 

@@ -41,6 +41,34 @@ const REQUIRED_DOC_TITLES = {
   acceptance_letter: 'Acceptance Letter',
 };
 
+const DETAIL_TITLES = {
+  internship_info: 'Internship Info',
+  welcome: 'Welcome',
+  company_policies: 'Company Policies',
+  it_setup: 'IT Setup',
+  team_intro: 'Team Introduction',
+  training: 'Training',
+};
+
+const formatDate = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString('en-GB');
+};
+
+const getSubmittedDetails = (intern) =>
+  Object.entries(intern.onboarding_details || {})
+    .filter(([, value]) => value?.status === 'completed' || value?.status === 'submitted' || value?.review_status)
+    .map(([key, value]) => ({
+      key,
+      title: DETAIL_TITLES[key] || key.replace(/_/g, ' '),
+      submittedAt: formatDate(value.submitted_at),
+      details: value.details || {},
+      review_status: value.review_status || 'pending',
+      review_notes: value.review_notes || '',
+    }));
+
 const getInitialsBg = (initials = 'IN') => {
   const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#7c3aed', '#059669'];
   return colors[(initials.charCodeAt(0) || 0) % colors.length];
@@ -199,11 +227,123 @@ const DocumentReviewPanel = ({ intern, docItem, actionLoading, onReviewComplete,
   );
 };
 
+const DetailReviewPanel = ({ intern, detailItem, actionLoading, onReviewComplete, onBack }) => {
+  const [decision, setDecision] = useState(null);
+  const [notes, setNotes] = useState('');
+  const status = detailItem.review_status || 'pending';
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
+  const rows = Object.entries(detailItem.details || {}).filter(([, value]) => value !== undefined && value !== null && value !== '');
+
+  const handleConfirmAction = () => {
+    if (!decision) return;
+    if ((decision === 'rejected' || decision === 'resubmission_required') && !notes.trim()) {
+      toast.error('A review comment/reason is REQUIRED when rejecting or requesting changes.');
+      return;
+    }
+    onReviewComplete?.(intern.internId || intern.intern_id, `detail:${detailItem.key}`, decision, notes);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }}
+      style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+    >
+      <button
+        onClick={onBack}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', background: 'none', border: 'none', cursor: 'pointer', color: '#00b4d8', fontSize: '0.875rem', fontWeight: 700, padding: 0 }}
+      >
+        <RiArrowLeftLine /> Back to {intern.internName}
+      </button>
+
+      <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', padding: '1.25rem', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>{detailItem.title}</h3>
+            <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
+              Submitted by <strong>{intern.internName}</strong>{detailItem.submittedAt ? ` on ${detailItem.submittedAt}` : ''}
+            </p>
+          </div>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.75rem', borderRadius: '9999px', background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, fontSize: '0.75rem', fontWeight: 800 }}>
+            <cfg.icon /> {cfg.label}
+          </span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+          {rows.length > 0 ? rows.map(([label, value]) => (
+            <div key={label} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '0.75rem' }}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>{label.replace(/_/g, ' ')}</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginTop: '0.2rem' }}>
+                {String(value)}
+              </div>
+            </div>
+          )) : (
+            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>No submitted fields were included.</div>
+          )}
+        </div>
+
+        {detailItem.review_notes && (
+          <div style={{ marginTop: '1rem', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '0.75rem', padding: '0.85rem', fontSize: '0.85rem', color: '#9a3412' }}>
+            Previous feedback: {detailItem.review_notes}
+          </div>
+        )}
+      </div>
+
+      <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', padding: '1.25rem' }}>
+        <h4 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-800)' }}>Supervisor Review Action</h4>
+        <div style={{ display: 'flex', gap: '0.625rem', marginBottom: '1.25rem' }}>
+          {[
+            { id: 'approved', label: 'Approve', bg: '#ecfdf5', color: '#059669', activeBorder: '#10b981' },
+            { id: 'resubmission_required', label: 'Request Changes', bg: '#fff7ed', color: '#ea580c', activeBorder: '#f97316' },
+            { id: 'rejected', label: 'Reject', bg: '#fef2f2', color: '#dc2626', activeBorder: '#ef4444' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setDecision(item.id)}
+              style={{
+                flex: 1, padding: '0.75rem 0.5rem', borderRadius: '0.75rem',
+                border: decision === item.id ? `2px solid ${item.activeBorder}` : '1px solid var(--color-neutral-200)',
+                background: decision === item.id ? item.bg : '#fff',
+                color: decision === item.id ? item.color : 'var(--color-neutral-700)',
+                fontWeight: 800, fontSize: '0.8125rem', cursor: 'pointer',
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder={decision === 'rejected' || decision === 'resubmission_required' ? 'Specify what the intern should correct...' : 'Optional reviewer feedback...'}
+          rows={3}
+          style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-neutral-300)', fontSize: '0.875rem', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: '1rem' }}
+        />
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+          <button onClick={onBack} style={{ padding: '0.625rem 1rem', borderRadius: '0.625rem', border: '1px solid var(--color-neutral-300)', background: '#fff', color: 'var(--color-neutral-600)', fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer' }}>
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirmAction}
+            disabled={!decision || actionLoading}
+            style={{ padding: '0.625rem 1.25rem', borderRadius: '0.625rem', border: 'none', background: !decision ? 'var(--color-neutral-300)' : decision === 'approved' ? '#059669' : decision === 'resubmission_required' ? '#ea580c' : '#dc2626', color: '#fff', fontSize: '0.8125rem', fontWeight: 800, cursor: !decision || actionLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            {actionLoading ? <RiLoader4Line style={{ animation: 'spin 0.8s linear infinite' }} /> : null}
+            Submit Decision
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 // ── Intern Card ───────────────────────────────────────────────────────────────
 const InternOnboardingCard = ({ intern, onSelectIntern }) => {
   const steps = intern.steps || intern.documents || [];
   const approvedCount = steps.filter((s) => s.status === 'approved' || s.review_status === 'approved').length;
   const totalCount = 3;
+  const submittedDetails = getSubmittedDetails(intern);
 
   return (
     <motion.div
@@ -230,6 +370,24 @@ const InternOnboardingCard = ({ intern, onSelectIntern }) => {
           {approvedCount}/3 Approved
         </span>
       </div>
+
+      {submittedDetails.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+          {submittedDetails.slice(0, 4).map((item) => (
+            <span
+              key={item.key}
+              style={{ fontSize: '0.68rem', fontWeight: 800, color: '#0369a1', background: '#e0f2fe', border: '1px solid #bae6fd', padding: '0.2rem 0.5rem', borderRadius: '9999px' }}
+            >
+              {item.title}
+            </span>
+          ))}
+          {submittedDetails.length > 4 && (
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#475569', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '0.2rem 0.5rem', borderRadius: '9999px' }}>
+              +{submittedDetails.length - 4} more
+            </span>
+          )}
+        </div>
+      )}
 
       {/* 3 Required Documents Checklist Statuses */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
@@ -264,6 +422,7 @@ const InternOnboardingCard = ({ intern, onSelectIntern }) => {
 export default function OnboardingApprovalsView({ queue = [], isLoading = false, actionLoading = false, onApprove, onReject }) {
   const [selectedIntern, setSelectedIntern] = useState(null);
   const [selectedDocItem, setSelectedDocItem] = useState(null);
+  const [selectedDetailItem, setSelectedDetailItem] = useState(null);
 
   const displayQueue = queue;
 
@@ -297,8 +456,26 @@ export default function OnboardingApprovalsView({ queue = [], isLoading = false,
     );
   }
 
+  if (selectedIntern && selectedDetailItem) {
+    return (
+      <DetailReviewPanel
+        intern={selectedIntern}
+        detailItem={selectedDetailItem}
+        actionLoading={actionLoading}
+        onReviewComplete={(internId, detailId, decision, notes) => {
+          if (decision === 'approved') onApprove?.(internId, detailId, notes);
+          else onReject?.(internId, detailId, notes, decision);
+          setSelectedDetailItem(null);
+        }}
+        onBack={() => setSelectedDetailItem(null)}
+      />
+    );
+  }
+
   if (selectedIntern) {
     const steps = selectedIntern.steps || selectedIntern.documents || [];
+    const submittedDetails = getSubmittedDetails(selectedIntern);
+    const info = selectedIntern.onboarding_info || {};
     return (
       <motion.div initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         <button
@@ -311,6 +488,44 @@ export default function OnboardingApprovalsView({ queue = [], isLoading = false,
         <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', padding: '1.25rem', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
           <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>{selectedIntern.internName} — Onboarding Documents</h3>
           <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--color-neutral-500)' }}>Select any required document below to review, approve, or request resubmission.</p>
+        </div>
+
+        <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', padding: '1.25rem', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
+          <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>Submitted Onboarding Details</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+            {[
+              ['Institution', info.institution],
+              ['Field of Study', info.field_of_study],
+              ['Phone', info.phone],
+              ['Start Date', formatDate(info.start_date)],
+              ['End Date', formatDate(info.end_date)],
+            ].map(([label, value]) => (
+              <div key={label} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '0.75rem' }}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>{label}</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginTop: '0.2rem' }}>{value || 'Not submitted'}</div>
+              </div>
+            ))}
+          </div>
+          {submittedDetails.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {submittedDetails.map((item) => (
+                <div
+                  key={item.key}
+                  onClick={() => setSelectedDetailItem(item)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', padding: '0.65rem 0.75rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.65rem', cursor: 'pointer' }}
+                >
+                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#166534' }}>{item.title}</span>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: STATUS_CONFIG[item.review_status]?.color || '#15803d' }}>
+                    {STATUS_CONFIG[item.review_status]?.label || (item.submittedAt ? `Submitted ${item.submittedAt}` : 'Submitted')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: '0.82rem', color: '#64748b', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '0.85rem' }}>
+              No non-document onboarding details have been submitted yet.
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

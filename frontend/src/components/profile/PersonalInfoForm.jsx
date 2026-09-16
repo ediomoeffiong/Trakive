@@ -423,7 +423,7 @@ const PersonalInfoForm = () => {
           System Role & Administrative Permissions Locked
         </p>
         <p style={{ margin: '0.2rem 0 0', fontSize: '0.8125rem', color: '#64748b' }}>
-          Role: <strong>{profile?.role || 'Intern'}</strong> ({profile?.employeeId || 'ID pending'}). Job Title, Department, and Email Address can only be modified by system administrators.
+          Role: <strong>{profile?.role || 'Intern'}</strong>. Job Title, Department, and Email Address can only be modified by system administrators.
         </p>
       </div>
 

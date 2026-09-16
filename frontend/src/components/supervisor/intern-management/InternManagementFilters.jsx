@@ -6,8 +6,9 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { RiFilter3Line, RiCloseLine } from 'react-icons/ri';
+import { STANDARD_DEPARTMENTS } from '../../../utils/departments';
 
-const DEPARTMENTS = ['All', 'Frontend Engineering', 'Backend Engineering', 'UI/UX Design', 'DevOps', 'Product Management', 'Data Science'];
+const DEPARTMENTS = ['All', ...STANDARD_DEPARTMENTS.map((department) => department.name)];
 const STATUSES = ['All', 'Active', 'Pending Review', 'Needs Help', 'On Leave'];
 const ONBOARDING_STATUSES = ['All', 'Complete', 'In Progress', 'Not Started'];
 const BATCHES = ['All', 'Spring 2026', 'Summer 2026'];

@@ -26,6 +26,19 @@ const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: 600, colo
 const fieldStyle = { display: 'flex', flexDirection: 'column' };
 
 const STEPS = ['Details', 'Assign Interns', 'Milestones', 'Review'];
+const MIN_PROJECT_DURATION_DAYS = 6;
+
+const addDays = (dateString, days) => {
+  if (!dateString) return '';
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (Number.isNaN(date.getTime())) return '';
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().split('T')[0];
+};
+
+const isOutsideRange = (date, min, max) =>
+  Boolean(date && ((min && date < min) || (max && date > max)));
 
 function StepIndicator({ current }) {
   return (
@@ -59,6 +72,7 @@ export function CreateProjectDrawer({ isOpen, onClose, onSuccess }) {
 
   const [details, setDetails] = useState({ title: '', description: '', priority: 'medium', start_date: '', due_date: '', project_link_url: '', notes: '' });
   const [milestones, setMilestones] = useState([{ title: '', due_date: '' }]);
+  const minDueDate = addDays(details.start_date, MIN_PROJECT_DURATION_DAYS);
 
   useEffect(() => {
     if (isOpen) {
@@ -68,11 +82,47 @@ export function CreateProjectDrawer({ isOpen, onClose, onSuccess }) {
     }
   }, [isOpen]);
 
-  const setDetail = (field) => (e) => setDetails((d) => ({ ...d, [field]: e.target.value }));
+  const setDetail = (field) => (e) => {
+    const value = e.target.value;
+    setDetails((d) => {
+      const next = { ...d, [field]: value };
+      if (field === 'start_date') {
+        const nextMinDueDate = addDays(value, MIN_PROJECT_DURATION_DAYS);
+        if (next.due_date && nextMinDueDate && next.due_date < nextMinDueDate) {
+          next.due_date = '';
+          toast.error('End date must be at least 6 days after the start date.');
+        }
+        setMilestones((items) => items.map((item) => (
+          item.due_date && isOutsideRange(item.due_date, value, next.due_date)
+            ? { ...item, due_date: '' }
+            : item
+        )));
+      }
+      if (field === 'due_date') {
+        const currentMinDueDate = addDays(next.start_date, MIN_PROJECT_DURATION_DAYS);
+        if (currentMinDueDate && value && value < currentMinDueDate) {
+          toast.error('End date must be at least 6 days after the start date.');
+          next.due_date = '';
+        }
+        setMilestones((items) => items.map((item) => (
+          item.due_date && isOutsideRange(item.due_date, next.start_date, next.due_date)
+            ? { ...item, due_date: '' }
+            : item
+        )));
+      }
+      return next;
+    });
+  };
   const addMilestone = () => setMilestones((m) => [...m, { title: '', due_date: '' }]);
   const removeMilestone = (i) => setMilestones((m) => m.filter((_, idx) => idx !== i));
-  const setMilestone = (i, field) => (e) =>
-    setMilestones((m) => m.map((item, idx) => idx === i ? { ...item, [field]: e.target.value } : item));
+  const setMilestone = (i, field) => (e) => {
+    const value = e.target.value;
+    if (field === 'due_date' && isOutsideRange(value, details.start_date, details.due_date)) {
+      toast.error('Milestone dates must be within the project start and end dates.');
+      return;
+    }
+    setMilestones((m) => m.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
+  };
   const toggleIntern = (id) =>
     setSelectedInterns((sel) => sel.includes(id) ? sel.filter((s) => s !== id) : [...sel, id]);
 
@@ -90,18 +140,24 @@ export function CreateProjectDrawer({ isOpen, onClose, onSuccess }) {
       if (missing.length > 0) {
         return toast.error(`Please select a date for the following missing section(s): ${missing.join(', ')}`);
       }
-      if (details.start_date > details.due_date) {
-        return toast.error('Due Date cannot be before Start Date');
+      if (minDueDate && details.due_date < minDueDate) {
+        return toast.error('End date must be at least 6 days after the start date.');
       }
     } else if (step === 2) {
       const missingMilestoneDates = [];
+      const invalidMilestoneDates = [];
       milestones.forEach((m, idx) => {
         if (m.title.trim() && !m.due_date) {
           missingMilestoneDates.push(`Milestone ${idx + 1} ("${m.title.trim()}") Due Date`);
+        } else if (m.title.trim() && isOutsideRange(m.due_date, details.start_date, details.due_date)) {
+          invalidMilestoneDates.push(`Milestone ${idx + 1}`);
         }
       });
       if (missingMilestoneDates.length > 0) {
         return toast.error(`Please select a date for the following missing section(s): ${missingMilestoneDates.join(', ')}`);
+      }
+      if (invalidMilestoneDates.length > 0) {
+        return toast.error('Milestone dates must be within the project start and end dates.');
       }
     }
     setStep(step + 1);
@@ -119,6 +175,12 @@ export function CreateProjectDrawer({ isOpen, onClose, onSuccess }) {
     });
     if (missing.length > 0) {
       return toast.error(`Please select a date for the following missing section(s): ${missing.join(', ')}`);
+    }
+    if (minDueDate && details.due_date < minDueDate) {
+      return toast.error('End date must be at least 6 days after the start date.');
+    }
+    if (milestones.some((m) => m.title.trim() && isOutsideRange(m.due_date, details.start_date, details.due_date))) {
+      return toast.error('Milestone dates must be within the project start and end dates.');
     }
 
     setLoading(true);
@@ -179,7 +241,7 @@ export function CreateProjectDrawer({ isOpen, onClose, onSuccess }) {
               </div>
               <div style={fieldStyle}>
                 <label style={labelStyle}>Due Date <span style={{ color: 'var(--color-danger-500)' }}>*</span></label>
-                <input style={inputStyle} type="date" value={details.due_date} onChange={setDetail('due_date')} />
+                <input style={inputStyle} type="date" min={minDueDate || undefined} value={details.due_date} onChange={setDetail('due_date')} />
               </div>
             </div>
             <div style={fieldStyle}>
@@ -251,7 +313,14 @@ export function CreateProjectDrawer({ isOpen, onClose, onSuccess }) {
             {milestones.map((m, i) => (
               <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
                 <input style={{ ...inputStyle, flex: 1 }} placeholder={`Milestone ${i + 1}`} value={m.title} onChange={setMilestone(i, 'title')} />
-                <input style={{ ...inputStyle, width: '140px' }} type="date" value={m.due_date} onChange={setMilestone(i, 'due_date')} />
+                <input
+                  style={{ ...inputStyle, width: '140px' }}
+                  type="date"
+                  min={details.start_date || undefined}
+                  max={details.due_date || undefined}
+                  value={m.due_date}
+                  onChange={setMilestone(i, 'due_date')}
+                />
                 {milestones.length > 1 && (
                   <button type="button" onClick={() => removeMilestone(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-danger-500)', flexShrink: 0 }}>
                     <RiDeleteBinLine />

@@ -3,6 +3,8 @@
  * @description Metrics and statistics for the Reports & Analytics module.
  */
 
+import { STANDARD_DEPARTMENTS } from '../utils/departments';
+
 export const mockDashboardMetrics = {
   overallPerformanceScore: 0,
   performanceScoreTrend: '0%',
@@ -50,9 +52,9 @@ export const mockFilterOptions = {
     { label: 'Last 90 Days', value: 'last_90' },
     { label: 'Year to Date', value: 'ytd' },
   ],
-  departments: ['All Departments', 'FifthLab'],
+  departments: ['All Departments', ...STANDARD_DEPARTMENTS.map((department) => department.name)],
   batches: ['All Cohorts'],
-  supervisors: ['All Supervisors', 'Tochukwu Mgbemmena'],
+  supervisors: ['All Supervisors', 'Tochukwu Mgbemena'],
   interns: ['All Interns'],
   taskStatuses: ['All Statuses', 'Completed', 'In Progress', 'Pending Review', 'Overdue'],
   reviewCycles: ['All Cycles', 'Onboarding Review', 'Mid-Term Evaluation', 'Final Assessment'],

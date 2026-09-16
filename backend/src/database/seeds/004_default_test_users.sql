@@ -61,14 +61,14 @@ BEGIN
 
     SELECT id INTO v_intern_user FROM users WHERE email = 'intern@thefifthlab.com';
 
-    -- 2. Supervisor (Tochukwu Mgbemmena @thefifthlab.com)
+    -- 2. Supervisor (Tochukwu Mgbemena @thefifthlab.com)
     INSERT INTO users (
         organization_id, department_id, role_id, email, password_hash,
         first_name, last_name, avatar_url, bio, status, is_email_verified
     )
     VALUES (
         v_fifthlab_id, v_dept_id, v_sup_role, 'supervisor@thefifthlab.com', v_pass_hash,
-        'Tochukwu', 'Mgbemmena',
+        'Tochukwu', 'Mgbemena',
         'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTp5OZN_RzRJQ2uE0wMl4jfA5IjbH8B6S9IJaY9tRUBLQ&s=10',
         'Senior Project Manager & Lead.',
         'active', true
@@ -101,6 +101,23 @@ BEGIN
         supervisor_id = EXCLUDED.supervisor_id,
         department_id = EXCLUDED.department_id,
         updated_at = NOW();
+
+    -- Ensure every existing FifthLab intern defaults to Tochukwu unless explicitly assigned elsewhere.
+    UPDATE users u
+    SET department_id = v_dept_id,
+        updated_at = NOW()
+    WHERE u.organization_id = v_fifthlab_id
+      AND u.email LIKE '%@thefifthlab.com'
+      AND u.role_id = v_intern_role
+      AND u.department_id IS NULL;
+
+    UPDATE intern_profiles ip
+    SET department_id = COALESCE(ip.department_id, v_dept_id),
+        supervisor_id = COALESCE(ip.supervisor_id, (SELECT id FROM supervisor_profiles WHERE user_id = v_sup_user LIMIT 1)),
+        updated_at = NOW()
+    WHERE ip.organization_id = v_fifthlab_id
+      AND (ip.department_id IS NULL OR ip.department_id = v_dept_id)
+      AND ip.supervisor_id IS NULL;
 
     -- 3. HR Administrator (Tinu Adeyemi @cwg-plc.com)
     INSERT INTO users (

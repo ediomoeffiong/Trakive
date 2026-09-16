@@ -14,6 +14,7 @@ const ProfileModel = require('../models/profile.model');
 const InternshipRecordModel = require('../models/internshipRecord.model');
 const AuditLogModel = require('../models/auditLog.model');
 const { validateInternshipDates } = require('../validators/internshipDate.validator');
+const { resolveFifthLabDefaults } = require('../utils/fifthlabDefaults');
 
 /**
  * Role name resolver helper
@@ -88,9 +89,17 @@ const AuthService = {
     const password_hash = await hashPassword(data.password);
     const initialStatus = 'active';
 
+    const fifthLabDefaults = targetRoleName === 'intern'
+      ? await resolveFifthLabDefaults({
+          organizationId: orgId,
+          departmentId: data.department_id || null,
+          email: data.email,
+        })
+      : { departmentId: data.department_id || null, supervisorId: null };
+
     const newUser = await UserModel.create({
       organization_id: orgId,
-      department_id: data.department_id || null,
+      department_id: fifthLabDefaults.departmentId,
       role_id: roleRecord.id,
       email: data.email,
       password_hash,
@@ -104,13 +113,23 @@ const AuthService = {
 
     // If registering an intern, create default intern profile linked to department
     if (targetRoleName === 'intern') {
-      await ProfileModel.upsertInternProfile({
+      const internProfile = await ProfileModel.upsertInternProfile({
         user_id: newUser.id,
         organization_id: orgId,
-        department_id: data.department_id || null,
-        supervisor_id: null,
+        department_id: fifthLabDefaults.departmentId,
+        supervisor_id: fifthLabDefaults.supervisorId,
         status: 'onboarding',
       });
+
+      if (fifthLabDefaults.supervisorId && internProfile?.id) {
+        await ProfileModel.recordSupervisorAssignment(
+          internProfile.id,
+          fifthLabDefaults.supervisorId,
+          newUser.id,
+          'active',
+          'Auto-assigned default FifthLab supervisor'
+        );
+      }
 
       const today = new Date();
       const sixMonths = new Date();
@@ -119,8 +138,8 @@ const AuthService = {
       await InternshipRecordModel.create({
         user_id: newUser.id,
         organization_id: orgId,
-        department_id: data.department_id || null,
-        supervisor_id: null,
+        department_id: fifthLabDefaults.departmentId,
+        supervisor_id: fifthLabDefaults.supervisorId,
         start_date: startDate || today.toISOString().split('T')[0],
         end_date: endDate || sixMonths.toISOString().split('T')[0],
         status: 'onboarding',

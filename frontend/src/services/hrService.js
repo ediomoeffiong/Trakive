@@ -15,6 +15,8 @@ import {
   mockBatches,
   mockUserDirectory,
 } from '../data';
+import { sanitizeDepartments } from '../utils/departments';
+import { normalizePersonRecord } from '../utils/people';
 
 const delay = (ms = 600) => new Promise((res) => setTimeout(res, ms));
 
@@ -36,7 +38,7 @@ export const fetchHRDashboard = async () => {
 export const fetchHRInterns = async (params = {}) => {
   await delay(600);
   // interns are users with role === 'Intern'
-  let interns = mockUserDirectory.filter((u) => u.role === 'Intern');
+  let interns = mockUserDirectory.filter((u) => u.role === 'Intern').map((u) => normalizePersonRecord(u));
   if (params.search) {
     const q = params.search.toLowerCase();
     interns = interns.filter(
@@ -69,7 +71,7 @@ export const updateInternStatus = async (internId, status) => {
 
 export const fetchHRSupervisors = async (params = {}) => {
   await delay(600);
-  let supervisors = [...mockSupervisors];
+  let supervisors = mockSupervisors.map((s) => normalizePersonRecord(s));
   if (params.search) {
     const q = params.search.toLowerCase();
     supervisors = supervisors.filter(
@@ -113,7 +115,7 @@ export const assignDepartmentToSupervisor = async (supervisorId, departmentId) =
 
 export const fetchHRDepartments = async (params = {}) => {
   await delay(500);
-  let departments = [...mockDepartments];
+  let departments = sanitizeDepartments(mockDepartments);
   if (params.search) {
     const q = params.search.toLowerCase();
     departments = departments.filter((d) => d.name.toLowerCase().includes(q));
@@ -203,7 +205,7 @@ export const deleteAnnouncement = async (announcementId) => {
 
 export const fetchHRUsers = async (params = {}) => {
   await delay(600);
-  let users = [...mockUserDirectory];
+  let users = mockUserDirectory.map((u) => normalizePersonRecord(u));
   if (params.search) {
     const q = params.search.toLowerCase();
     users = users.filter(

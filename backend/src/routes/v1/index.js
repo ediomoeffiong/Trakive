@@ -8,6 +8,7 @@ const applicationRoutes = require('./application.routes');
 const onboardingRoutes = require('./onboarding.routes');
 const analyticsRoutes = require('./analytics.routes');
 const reportRoutes = require('./report.routes');
+const reviewRoutes = require('./review.routes');
 
 // Day 9 Routes
 const searchRoutes = require('./search.routes');
@@ -43,6 +44,7 @@ router.use('/onboarding', onboardingRoutes);
 // Day 8 Routes: Analytics & Reports
 router.use('/analytics', analyticsRoutes);
 router.use('/reports', reportRoutes);
+router.use('/reviews', reviewRoutes);
 
 // Day 9 Routes: Search, Audit Logs & Automations
 router.use('/search', searchRoutes);

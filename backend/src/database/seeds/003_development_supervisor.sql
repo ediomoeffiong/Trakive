@@ -21,7 +21,7 @@ BEGIN
     VALUES (
         v_org_id, v_dept_id, v_role_id, 'supervisor@thefifthlab.com',
         '$2b$10$NXusR0Tb8VWYwIIy7IG75.y8K/kHdmKvfUvI64HBex/HWGa/pcAua',
-        'Tochukwu', 'Mgbemmena', 'active', true
+        'Tochukwu', 'Mgbemena', 'active', true
     )
     ON CONFLICT (email) DO UPDATE SET
         organization_id = EXCLUDED.organization_id,

@@ -201,6 +201,7 @@ export default function AnalyticsDashboardPage() {
                     value={metrics?.overallPerformanceScore != null && Number(metrics.overallPerformanceScore) > 0 ? `${metrics.overallPerformanceScore} / 5.0` : '0.0 / 5.0'}
                     trend={metrics?.performanceScoreTrend}
                     positive={metrics?.performanceScorePositive}
+                    onClick={() => navigate('/dashboard/analytics/drilldown/performance')}
                   />
                   {effectiveRole !== USER_ROLES.INTERN && (
                     <KPICardItem
@@ -208,6 +209,7 @@ export default function AnalyticsDashboardPage() {
                       value={metrics?.activeInterns ?? 0}
                       trend={metrics?.activeInternsTrend}
                       positive={metrics?.activeInternsPositive}
+                      onClick={() => navigate('/dashboard/analytics/compare')}
                     />
                   )}
                   <KPICardItem
@@ -215,12 +217,14 @@ export default function AnalyticsDashboardPage() {
                     value={metrics?.completedTasks ?? 0}
                     trend={metrics?.completedTasksTrend}
                     positive={metrics?.completedTasksPositive}
+                    onClick={() => navigate('/dashboard/analytics/drilldown/task')}
                   />
                   <KPICardItem
                     title="Onboarding Completion"
                     value={metrics?.onboardingCompletionRate ?? '0%'}
                     trend={metrics?.onboardingCompletionTrend}
                     positive={metrics?.onboardingCompletionPositive}
+                    onClick={() => navigate('/dashboard/analytics/drilldown/performance')}
                   />
                 </div>
               </section>
@@ -279,16 +283,18 @@ export default function AnalyticsDashboardPage() {
   );
 }
 
-function KPICardItem({ title, value, trend, positive }) {
+function KPICardItem({ title, value, trend, positive, onClick }) {
   return (
     <motion.div
       whileHover={{ y: -2 }}
+      onClick={onClick}
       style={{
         background: '#ffffff',
         borderRadius: '1rem',
         padding: '1.25rem',
         border: '1px solid var(--color-neutral-200)',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+        cursor: onClick ? 'pointer' : 'default',
       }}
     >
       <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-neutral-500)', textTransform: 'uppercase' }}>

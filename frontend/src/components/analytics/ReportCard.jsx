@@ -210,7 +210,11 @@ export const ReportSummaryGrid = ({ summaryCards }) => {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', marginTop: '0.75rem' }}>
-          {upcomingReviewDeadlines.slice(0, 2).map((item) => (
+          {upcomingReviewDeadlines.length === 0 ? (
+            <div style={{ padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: 'var(--color-neutral-50)', border: '1px solid var(--color-neutral-200)', fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
+              No submissions are currently waiting for review.
+            </div>
+          ) : upcomingReviewDeadlines.slice(0, 2).map((item) => (
             <div
               key={item.id}
               style={{
@@ -246,7 +250,11 @@ export const ReportSummaryGrid = ({ summaryCards }) => {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', marginTop: '0.75rem' }}>
-          {overdueTasks.map((item) => (
+          {overdueTasks.length === 0 ? (
+            <div style={{ padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: '0.8125rem', color: '#166534' }}>
+              No overdue tasks in the current scope.
+            </div>
+          ) : overdueTasks.map((item) => (
             <div
               key={item.id}
               style={{
@@ -299,6 +307,6 @@ const metricBoxStyle = (bg) => ({
   borderRadius: '0.625rem',
   backgroundColor: bg,
   display: 'flex',
-  justify: 'space-between',
+  justifyContent: 'space-between',
   alignItems: 'center',
 });

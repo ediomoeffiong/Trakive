@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { STANDARD_DEPARTMENTS } = require('../utils/departments');
 
 const DepartmentModel = {
   async findById(id) {
@@ -136,6 +137,26 @@ const DepartmentModel = {
     return res.rows;
   },
 
+  async ensureStandardDepartments(organizationId) {
+    if (!organizationId) return;
+
+    for (const department of STANDARD_DEPARTMENTS) {
+      await query(
+        `
+          INSERT INTO departments (organization_id, name, code, description)
+          VALUES ($1, $2, $3, $4)
+          ON CONFLICT (organization_id, name)
+          DO UPDATE SET
+            code = EXCLUDED.code,
+            description = COALESCE(departments.description, EXCLUDED.description),
+            deleted_at = NULL,
+            updated_at = NOW();
+        `,
+        [organizationId, department.name, department.code, department.description]
+      );
+    }
+  },
+
   async count({ organization_id = null, search = '' }) {
     let whereClauses = ['d.deleted_at IS NULL'];
     let values = [];
@@ -168,8 +189,8 @@ const DepartmentModel = {
         u.id, u.first_name, u.last_name, u.email, u.phone, u.avatar_url, u.status, u.created_at,
         r.name AS role_name,
         COALESCE(sp.title, hp.title, ip.field_of_study, 'Team Member') AS title,
-        COALESCE(hp.office_location, 'CWG PLC Headquarters, Lagos') AS office_location,
-        COALESCE(hp.bio, sp.specialization, 'Active team member in CWG PLC & FifthLab.') AS bio
+        COALESCE(hp.office_location, 'FifthLab Office, Lagos') AS office_location,
+        COALESCE(hp.bio, sp.specialization, 'Active team member at FifthLab.') AS bio
       FROM users u
       JOIN roles r ON r.id = u.role_id
       LEFT JOIN supervisor_profiles sp ON sp.user_id = u.id

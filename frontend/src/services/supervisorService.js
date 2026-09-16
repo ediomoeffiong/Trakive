@@ -1,4 +1,5 @@
 import api from './api';
+import { normalizeDepartmentForPerson, normalizePersonRecord } from '../utils/people';
 
 export const supervisorService = {
   async fetchDashboard() {
@@ -51,18 +52,21 @@ export const supervisorService = {
       });
       const rawItems = res.data?.data?.items || res.data?.items || res.data?.data || [];
 
-      const formattedInterns = rawItems.map((item) => ({
-        id: item.user_id || item.id,
-        name: `${item.first_name || ''} ${item.last_name || ''}`.trim() || item.email,
-        email: item.email,
-        department: item.department_name || item.department || 'Engineering',
-        currentTask: item.current_task || (item.onboarding_ready ? 'Onboarding Complete' : 'Completing Onboarding'),
-        performanceScore: item.performance_score || '4.8',
-        onboardingProgress: item.onboarding_ready ? 100 : (item.onboarding_step ? item.onboarding_step * 33 : 33),
-        status: item.intern_status === 'active' ? 'Active' : (item.intern_status === 'onboarding' ? 'Pending Review' : 'Active'),
-        lastActive: item.updated_at ? new Date(item.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently',
-        avatar: item.avatar_url || null,
-      }));
+      const formattedInterns = rawItems.map((item) => {
+        const name = `${item.first_name || ''} ${item.last_name || ''}`.trim() || item.email;
+        return normalizePersonRecord({
+          id: item.user_id || item.id,
+          name,
+          email: item.email,
+          department: normalizeDepartmentForPerson({ ...item, name }, item.department_name || item.department || 'Engineering'),
+          currentTask: item.current_task || (item.onboarding_ready ? 'Onboarding Complete' : 'Completing Onboarding'),
+          performanceScore: item.performance_score || '4.8',
+          onboardingProgress: item.onboarding_ready ? 100 : (item.onboarding_step ? item.onboarding_step * 33 : 33),
+          status: item.intern_status === 'active' ? 'Active' : (item.intern_status === 'onboarding' ? 'Pending Review' : 'Active'),
+          lastActive: item.updated_at ? new Date(item.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently',
+          avatar: item.avatar_url || null,
+        });
+      });
 
       return {
         interns: formattedInterns,
@@ -164,14 +168,17 @@ export const supervisorService = {
         urgency: 'warning',
       }));
 
-      const recentlyAssigned = interns.slice(0, 5).map((i, idx) => ({
-        id: i.user_id || i.id || `intern-${idx}`,
-        name: `${i.first_name || ''} ${i.last_name || ''}`.trim() || i.email,
-        department: i.department_name || 'Department',
-        assignedDate: i.created_at ? new Date(i.created_at).toLocaleDateString() : 'recently',
-        assignedAt: i.created_at || new Date().toISOString(),
-        avatar: i.avatar_url,
-      }));
+      const recentlyAssigned = interns.slice(0, 5).map((i, idx) => {
+        const name = `${i.first_name || ''} ${i.last_name || ''}`.trim() || i.email;
+        return normalizePersonRecord({
+          id: i.user_id || i.id || `intern-${idx}`,
+          name,
+          department: normalizeDepartmentForPerson({ ...i, name }, i.department_name || 'Department'),
+          assignedDate: i.created_at ? new Date(i.created_at).toLocaleDateString() : 'recently',
+          assignedAt: i.created_at || new Date().toISOString(),
+          avatar: i.avatar_url,
+        });
+      });
 
       const totalCount = interns.length;
       const readyCount = interns.filter(i => i.onboarding_ready).length;

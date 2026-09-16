@@ -179,7 +179,7 @@ export const projectService = {
           creator_last_name: user.last_name,
           supervisor_id: 'sup-tochukwu',
           supervisor_first_name: 'Tochukwu',
-          supervisor_last_name: 'Mgbemmena',
+          supervisor_last_name: 'Mgbemena',
           department: user.department || '',
           members: [
             {

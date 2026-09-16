@@ -120,10 +120,8 @@ const InternshipInfoCard = () => {
             gap: '0.75rem',
           }}
         >
-          <InfoItem label="Employee ID"   value={internship.employeeId} />
           <InfoItem label="Department"    value={internship.department} />
           <InfoItem label="Team"          value={internship.team} />
-          <InfoItem label="Organisation"  value={internship.organization} />
           <InfoItem label="Start Date"    value={formatDate(internship.startDate)} />
           <InfoItem label="End Date"      value={formatDate(internship.endDate)} />
           <InfoItem

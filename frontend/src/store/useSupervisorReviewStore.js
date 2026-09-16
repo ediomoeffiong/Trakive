@@ -371,6 +371,35 @@ export const useSupervisorReviewStore = create((set, get) => ({
       set((s) => ({
         onboardingQueue: s.onboardingQueue.map((intern) => {
           if ((intern.internId || intern.intern_id) !== internId) return intern;
+
+          if (String(stepId).startsWith('detail:')) {
+            const section = String(stepId).slice('detail:'.length);
+            const currentDetails = intern.onboarding_details || {};
+            return {
+              ...intern,
+              onboarding_details: {
+                ...currentDetails,
+                [section]: {
+                  ...(currentDetails[section] || {}),
+                  review_status: decision,
+                  reviewed_at: now,
+                  review_notes: notes,
+                },
+              },
+              auditLog: [
+                {
+                  id: `log-${Date.now()}`,
+                  action: decision,
+                  stepTitle: section.replace(/_/g, ' '),
+                  performedBy: 'Supervisor',
+                  timestamp: now,
+                  reason: notes || undefined,
+                },
+                ...(intern.auditLog || []),
+              ],
+            };
+          }
+
           const matchStep = (step) =>
             step.id === stepId ||
             step.document?.id === stepId ||

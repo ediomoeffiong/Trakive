@@ -196,7 +196,11 @@ const ReviewManagementPage = () => {
   const pendingOnboardingCount = useMemo(
     () =>
       (onboardingQueue || []).reduce(
-        (acc, intern) => acc + (intern.documents || intern.steps || []).filter((s) => s.status === 'pending-review' || s.review_status === 'pending' || s.status === 'pending').length,
+        (acc, intern) => {
+          const pendingDocs = (intern.documents || intern.steps || []).filter((s) => s.status === 'pending-review' || s.review_status === 'pending' || s.status === 'pending').length;
+          const pendingDetails = Object.values(intern.onboarding_details || {}).filter((detail) => !detail.review_status || detail.review_status === 'pending').length;
+          return acc + pendingDocs + pendingDetails;
+        },
         0
       ),
     [onboardingQueue]

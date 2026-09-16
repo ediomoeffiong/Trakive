@@ -53,7 +53,7 @@ const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) =>
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const user = useCurrentUser();
-  const profile = useProfileStore((s) => s.profile);
+  const storedProfile = useProfileStore((s) => s.profile);
   const theme = useTheme();
   const setTheme = useAppStore((s) => s.setTheme);
   const logout = useAppStore((s) => s.logout);
@@ -66,6 +66,7 @@ const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) =>
   // Check if pathname matches task detail route regex
   const isTaskDetail = pathname.startsWith('/dashboard/tasks/');
   const pageTitle = isTaskDetail ? 'Task Details' : (PAGE_TITLES[pathname] ?? 'Trakive');
+  const profile = storedProfile?.id && storedProfile.id === user?.id ? storedProfile : null;
   const displayName = profile?.fullName || user?.name || 'User';
   const displayRole = profile?.role || user?.role || 'Intern';
   const displayDepartment = profile?.department || user?.department_name || user?.department || 'Department not set';

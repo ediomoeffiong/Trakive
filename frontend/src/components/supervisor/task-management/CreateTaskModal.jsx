@@ -21,12 +21,10 @@ import {
 import { TASK_CATEGORIES } from '../../../data/taskCategories';
 import { TASK_TAGS } from '../../../data/taskTags';
 import { mockInternProfiles } from '../../../data/internProfiles';
+import { STANDARD_DEPARTMENTS } from '../../../utils/departments';
 
 const PRIORITIES = ['urgent', 'high', 'medium', 'low'];
-const DEPARTMENTS = [
-  'Frontend Engineering', 'Backend Engineering', 'Backend Integration',
-  'UX/UI Design', 'QA & Testing', 'Design Systems', 'Program Management', 'All Departments',
-];
+const DEPARTMENTS = [...STANDARD_DEPARTMENTS.map((department) => department.name), 'All Departments'];
 
 const FormField = ({ label, required, error, children, hint }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -203,7 +201,7 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
       instructions: '',
       category: 'Engineering',
       priority: 'medium',
-      department: 'Frontend Engineering',
+      department: 'FifthLab',
       assignedInterns: [],
       estimatedHours: 8,
       dueDate: '',
@@ -228,7 +226,7 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
     } else {
       reset({
         title: '', description: '', instructions: '', category: 'Engineering', priority: 'medium',
-        department: 'Frontend Engineering', assignedInterns: [], estimatedHours: 8, dueDate: '',
+        department: 'FifthLab', assignedInterns: [], estimatedHours: 8, dueDate: '',
         tags: [], learningObjectives: [''], submissionRequirements: '', rubric: [{ criterion: '', maxScore: 10, description: '' }], status: 'assigned',
       });
     }

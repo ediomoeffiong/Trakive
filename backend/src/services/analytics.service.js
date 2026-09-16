@@ -452,6 +452,149 @@ const AnalyticsService = {
       byStatus[r.status] = r.count;
     });
 
+    const deptSql = `
+      SELECT
+        COALESCE(d.name, 'Unassigned') AS department,
+        COUNT(t.id) FILTER (WHERE t.status = 'completed')::int AS completed,
+        COUNT(t.id) FILTER (WHERE t.status = 'in_progress')::int AS in_progress,
+        COUNT(t.id) FILTER (WHERE t.status IN ('submitted', 'in_review'))::int AS pending_review
+      FROM tasks t
+      LEFT JOIN departments d ON d.id = t.department_id
+      WHERE ${whereClauses.join(' AND ')}
+      GROUP BY COALESCE(d.name, 'Unassigned')
+      ORDER BY department ASC;
+    `;
+    const deptRes = await query(deptSql, values);
+
+    const monthSql = `
+      SELECT
+        TO_CHAR(months.month, 'Mon') AS month,
+        months.month AS month_start,
+        COUNT(t.id) FILTER (WHERE t.status = 'completed')::int AS completed,
+        COUNT(t.id)::int AS total,
+        COUNT(tr.id)::int AS reviews
+      FROM generate_series(
+        DATE_TRUNC('month', NOW()) - INTERVAL '6 months',
+        DATE_TRUNC('month', NOW()),
+        INTERVAL '1 month'
+      ) months(month)
+      LEFT JOIN tasks t
+        ON DATE_TRUNC('month', COALESCE(t.updated_at, t.created_at)) = months.month
+       AND ${whereClauses.join(' AND ')}
+      LEFT JOIN task_reviews tr ON tr.task_id = t.id
+      GROUP BY months.month
+      ORDER BY months.month ASC;
+    `;
+    const monthRes = await query(monthSql, values);
+    const productivityGrowth = monthRes.rows.map((r) => {
+      const completedCount = Number(r.completed || 0);
+      const totalCount = Number(r.total || 0);
+      const reviewCount = Number(r.reviews || 0);
+      const velocity = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+      return {
+        month: r.month,
+        completed: completedCount,
+        total: totalCount,
+        reviews: reviewCount,
+        velocity,
+        velocityBenchmark: 75,
+      };
+    });
+
+    const weeklySql = `
+      SELECT
+        TO_CHAR(weeks.week_start, '"W"IW') AS period,
+        COUNT(t.id)::int AS total,
+        COUNT(t.id) FILTER (WHERE t.status = 'completed')::int AS completed,
+        ROUND(AVG(tr.rating)::numeric, 2) AS avg_rating
+      FROM generate_series(
+        DATE_TRUNC('week', NOW()) - INTERVAL '7 weeks',
+        DATE_TRUNC('week', NOW()),
+        INTERVAL '1 week'
+      ) weeks(week_start)
+      LEFT JOIN tasks t
+        ON DATE_TRUNC('week', COALESCE(t.updated_at, t.created_at)) = weeks.week_start
+       AND ${whereClauses.join(' AND ')}
+      LEFT JOIN task_reviews tr ON tr.task_id = t.id
+      GROUP BY weeks.week_start
+      ORDER BY weeks.week_start ASC;
+    `;
+    const weeklyRes = await query(weeklySql, values);
+    const weeklyPerformance = weeklyRes.rows.map((r) => {
+      const totalCount = Number(r.total || 0);
+      const completedCount = Number(r.completed || 0);
+      const completionScore = totalCount > 0 ? 3 + (completedCount / totalCount) * 2 : 0;
+      return {
+        period: r.period,
+        avgScore: r.avg_rating ? Number(r.avg_rating) : Number(completionScore.toFixed(1)),
+        targetScore: 4.2,
+        topPerformerScore: r.avg_rating ? Math.min(5, Number(r.avg_rating) + 0.3) : Number(Math.min(5, completionScore + 0.3).toFixed(1)),
+      };
+    });
+
+    const overdueSql = `
+      SELECT
+        t.id,
+        t.title,
+        t.due_date,
+        GREATEST(1, FLOOR(EXTRACT(EPOCH FROM (NOW() - t.due_date)) / 86400))::int AS days_overdue,
+        assignee.first_name,
+        assignee.last_name,
+        COALESCE(d.name, 'Unassigned') AS department
+      FROM tasks t
+      JOIN users assignee ON assignee.id = t.assignee_id
+      LEFT JOIN departments d ON d.id = assignee.department_id
+      WHERE ${whereClauses.join(' AND ')}
+        AND t.due_date < NOW()
+        AND t.status != 'completed'
+      ORDER BY t.due_date ASC
+      LIMIT 8;
+    `;
+    const overdueRes = await query(overdueSql, values);
+
+    const reviewDeadlineSql = `
+      SELECT
+        t.id,
+        t.title,
+        t.due_date,
+        assignee.first_name,
+        assignee.last_name,
+        COALESCE(d.name, 'Unassigned') AS department
+      FROM tasks t
+      JOIN users assignee ON assignee.id = t.assignee_id
+      LEFT JOIN departments d ON d.id = assignee.department_id
+      WHERE ${whereClauses.join(' AND ')}
+        AND t.status IN ('submitted', 'in_review')
+      ORDER BY COALESCE(t.due_date, t.updated_at) ASC
+      LIMIT 8;
+    `;
+    const reviewDeadlineRes = await query(reviewDeadlineSql, values);
+
+    const heatmapSql = `
+      SELECT
+        days.day::date AS date,
+        COUNT(t.id)::int AS count
+      FROM generate_series(
+        CURRENT_DATE - INTERVAL '181 days',
+        CURRENT_DATE,
+        INTERVAL '1 day'
+      ) days(day)
+      LEFT JOIN tasks t
+        ON COALESCE(t.updated_at, t.created_at)::date = days.day::date
+       AND ${whereClauses.join(' AND ')}
+      GROUP BY days.day
+      ORDER BY days.day ASC;
+    `;
+    const heatmapRes = await query(heatmapSql, values);
+    const heatmapData = heatmapRes.rows.map((r) => {
+      const count = Number(r.count || 0);
+      return {
+        date: r.date,
+        count,
+        level: count >= 4 ? 4 : count,
+      };
+    });
+
     return {
       total_tasks: total,
       completed: row.completed,
@@ -465,6 +608,24 @@ const AnalyticsService = {
       average_completion_time_hours: row.avg_completion_time_hours ? Number(row.avg_completion_time_hours) : 0,
       by_priority: byPriority,
       by_status: byStatus,
+      department_completion: deptRes.rows,
+      productivity_growth: productivityGrowth,
+      weekly_performance: weeklyPerformance,
+      overdue_tasks: overdueRes.rows.map((task) => ({
+        id: task.id,
+        title: task.title,
+        daysOverdue: task.days_overdue,
+        assignee: `${task.first_name} ${task.last_name}`.trim(),
+        dept: task.department,
+      })),
+      upcoming_review_deadlines: reviewDeadlineRes.rows.map((task) => ({
+        id: task.id,
+        internName: `${task.first_name} ${task.last_name}`.trim(),
+        dueDate: task.due_date,
+        type: task.title,
+        dept: task.department,
+      })),
+      heatmap_data: heatmapData,
     };
   },
 
@@ -634,6 +795,15 @@ const AnalyticsService = {
         -- Task metrics
         COUNT(t.id)::int AS total_tasks,
         COUNT(t.id) FILTER (WHERE t.status = 'completed')::int AS completed_tasks,
+        COUNT(t.id) FILTER (
+          WHERE t.status = 'completed'
+            AND t.updated_at >= DATE_TRUNC('month', NOW())
+        )::int AS current_month_completed,
+        COUNT(t.id) FILTER (
+          WHERE t.status = 'completed'
+            AND t.updated_at >= DATE_TRUNC('month', NOW()) - INTERVAL '1 month'
+            AND t.updated_at < DATE_TRUNC('month', NOW())
+        )::int AS previous_month_completed,
         
         -- Attendance metrics
         COUNT(a.id)::int AS total_attendance,
@@ -661,6 +831,11 @@ const AnalyticsService = {
         : 0;
       const avgRating = row.avg_review_rating ? Number(row.avg_review_rating) : null;
       const ratingScore = avgRating ? avgRating * 20 : taskCompletionRate;
+      const previousMonth = Number(row.previous_month_completed || 0);
+      const currentMonth = Number(row.current_month_completed || 0);
+      const productivityGrowthPct = previousMonth > 0
+        ? Number((((currentMonth - previousMonth) / previousMonth) * 100).toFixed(2))
+        : (currentMonth > 0 ? 100 : 0);
 
       // Weighted score: 40% task completion, 30% rating, 30% attendance
       const overallScore = Number(((taskCompletionRate * 0.4) + (ratingScore * 0.3) + (attendanceRate * 0.3)).toFixed(2));
@@ -676,6 +851,9 @@ const AnalyticsService = {
         attendance_rate: attendanceRate,
         average_task_rating: avgRating,
         overall_score: overallScore,
+        current_month_completed: currentMonth,
+        previous_month_completed: previousMonth,
+        productivity_growth_pct: productivityGrowthPct,
       };
     });
 

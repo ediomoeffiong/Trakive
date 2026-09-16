@@ -5,6 +5,7 @@
 
 import api from './api';
 import { mockUsers, DEFAULT_MOCK_PASSWORD } from '../data/mockUsers';
+import { normalizeDepartmentForPerson, normalizePersonRecord } from '../utils/people';
 
 // Helper to get all users (mock users + registered users from localStorage)
 const getRegisteredUsers = () => {
@@ -35,8 +36,8 @@ const normalizeRole = (role = '') => {
 const normalizeUser = (user, email, token, tokens = {}) => {
   if (!user || typeof user !== 'object') return null;
   const name = user.name || `${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}`.trim() || email.split('@')[0];
-  const department = user.department_name || user.department || '';
-  return {
+  const department = normalizeDepartmentForPerson({ ...user, name, email: user.email || email }, user.department_name || user.department || '');
+  return normalizePersonRecord({
     ...user,
     id: user.id || user.user_id,
     name,
@@ -55,7 +56,7 @@ const normalizeUser = (user, email, token, tokens = {}) => {
     isFirstLogin: Boolean(user.isFirstLogin),
     hasCompletedOnboarding: user.hasCompletedOnboarding ?? true,
     profileCompleted: user.profileCompleted ?? true,
-  };
+  });
 };
 
 const getMockLogin = async (email, password) => {

@@ -36,6 +36,20 @@ const submitOnboardingInfoSchema = Joi.object({
   institution: Joi.string().trim().optional(),
   field_of_study: Joi.string().trim().optional(),
   academic_year: Joi.string().trim().optional(),
+  phone: Joi.string().trim().max(30).allow('', null).optional(),
+});
+
+const submitOnboardingDetailsSchema = Joi.object({
+  section: Joi.string().valid(
+    'internship_info',
+    'welcome',
+    'company_policies',
+    'it_setup',
+    'team_intro',
+    'training'
+  ).required(),
+  status: Joi.string().valid('completed', 'submitted', 'in_progress').default('completed'),
+  details: Joi.object().unknown(true).default({}),
 });
 
 const ALLOWED_MIME_TYPES = [
@@ -77,6 +91,18 @@ const reviewDocumentSchema = Joi.object({
   }),
 });
 
+const reviewOnboardingDetailsSchema = Joi.object({
+  status: Joi.string().valid('approved', 'rejected', 'resubmission_required').required(),
+  notes: Joi.string().trim().when('status', {
+    is: Joi.valid('rejected', 'resubmission_required'),
+    then: Joi.string().trim().min(1).required().messages({
+      'string.empty': 'A comment or reason is required when rejecting or requesting changes.',
+      'any.required': 'A comment or reason is required when rejecting or requesting changes.',
+    }),
+    otherwise: Joi.string().trim().allow('', null).optional(),
+  }),
+});
+
 const assignSupervisorOnboardingSchema = Joi.object({
   application_id: Joi.string().uuid().optional(),
   intern_id: Joi.string().uuid().optional(),
@@ -94,8 +120,10 @@ module.exports = {
   reviewApplicationSchema,
   createInternAccountFromAppSchema,
   submitOnboardingInfoSchema,
+  submitOnboardingDetailsSchema,
   submitDocumentSchema,
   reviewDocumentSchema,
+  reviewOnboardingDetailsSchema,
   assignSupervisorOnboardingSchema,
   completeOnboardingSchema,
 };

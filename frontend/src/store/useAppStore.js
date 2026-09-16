@@ -6,9 +6,10 @@
 
 import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
-import { STORAGE_KEYS } from '../constants';
+import { ROUTES, STORAGE_KEYS } from '../constants';
 import { authService } from '../services';
 import { useNotificationStore } from './useNotificationStore';
+import { normalizePersonRecord } from '../utils/people';
 
 // ── UI / Shell Slice ──────────────────────────────────────────────────────────
 const createUISlice = (set) => ({
@@ -28,7 +29,7 @@ const createAuthSlice = (set, get) => ({
   isLoading: false,
   error: null,
 
-  setUser: (user) => set({ user, isAuthenticated: !!user, error: null }),
+  setUser: (user) => set({ user: normalizePersonRecord(user), isAuthenticated: !!user, error: null }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
   clearError: () => set({ error: null }),
@@ -37,7 +38,7 @@ const createAuthSlice = (set, get) => ({
   dismissFirstLoginPrompt: () => {
     const { user } = get();
     if (!user) return;
-    const updatedUser = { ...user, isFirstLogin: false };
+    const updatedUser = normalizePersonRecord({ ...user, isFirstLogin: false });
     const userMetaKey = `trakive_user_meta_${user.id}`;
     const storedMetaJson = localStorage.getItem(userMetaKey);
     const userMeta = storedMetaJson ? JSON.parse(storedMetaJson) : {};
@@ -49,7 +50,7 @@ const createAuthSlice = (set, get) => ({
   updateUserMeta: (updates) => {
     const { user } = get();
     if (!user) return;
-    const updatedUser = { ...user, ...updates };
+    const updatedUser = normalizePersonRecord({ ...user, ...updates });
     const userMetaKey = `trakive_user_meta_${user.id}`;
     const storedMetaJson = localStorage.getItem(userMetaKey);
     const userMeta = storedMetaJson ? JSON.parse(storedMetaJson) : {};
@@ -62,10 +63,11 @@ const createAuthSlice = (set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await authService.login(credentials);
-      set({ user: response.user, isAuthenticated: true, isLoading: false });
+      const user = normalizePersonRecord(response.user);
+      set({ user, isAuthenticated: true, isLoading: false });
 
       // Dispatch security notification
-      const userRole = response.user?.role;
+      const userRole = user?.role;
       const settingsRoute =
         userRole === 'Supervisor' ? ROUTES.SUPERVISOR_SETTINGS || '/supervisor/settings'
         : userRole === 'HR Administrator' ? ROUTES.ADMIN_SETTINGS || '/admin/settings'
@@ -81,7 +83,7 @@ const createAuthSlice = (set, get) => ({
         actionRoute: settingsRoute,
       }, userRole);
 
-      return response;
+      return { ...response, user };
     } catch (err) {
       set({ error: err.message, isLoading: false });
       throw err;
@@ -169,6 +171,11 @@ export const useAppStore = create(
           theme: state.theme,
           user: state.user,
           isAuthenticated: state.isAuthenticated,
+        }),
+        merge: (persistedState, currentState) => ({
+          ...currentState,
+          ...persistedState,
+          user: normalizePersonRecord(persistedState?.user),
         }),
       },
     ),

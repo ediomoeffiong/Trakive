@@ -14,6 +14,7 @@ import {
   RiRefreshLine,
 } from 'react-icons/ri';
 import { TASK_CATEGORIES } from '../../../data/taskCategories';
+import { STANDARD_DEPARTMENTS } from '../../../utils/departments';
 
 const STATUSES = [
   { value: 'all', label: 'All Statuses' },
@@ -37,13 +38,7 @@ const PRIORITIES = [
 
 const DEPARTMENTS = [
   { value: 'all', label: 'All Departments' },
-  { value: 'Frontend Engineering', label: 'Frontend Eng' },
-  { value: 'Backend Engineering', label: 'Backend Eng' },
-  { value: 'Backend Integration', label: 'Backend Integration' },
-  { value: 'UX/UI Design', label: 'UX/UI Design' },
-  { value: 'QA & Testing', label: 'QA & Testing' },
-  { value: 'Design Systems', label: 'Design Systems' },
-  { value: 'Program Management', label: 'Program Mgmt' },
+  ...STANDARD_DEPARTMENTS.map((department) => ({ value: department.name, label: department.name })),
 ];
 
 const SORT_OPTIONS = [

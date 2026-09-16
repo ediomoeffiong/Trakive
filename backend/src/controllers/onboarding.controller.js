@@ -10,6 +10,14 @@ const submitOnboardingInfo = asyncHandler(async (req, res) => {
   });
 });
 
+const submitOnboardingDetails = asyncHandler(async (req, res) => {
+  const result = await OnboardingService.submitOnboardingDetails(req.body, req.user, req.ip, req.headers['user-agent']);
+  return sendSuccess(res, {
+    message: 'Onboarding details submitted to supervisor successfully',
+    data: result,
+  });
+});
+
 const submitOnboardingDocument = asyncHandler(async (req, res) => {
   const result = await OnboardingService.submitOnboardingDocument(req.body, req.user, req.ip, req.headers['user-agent']);
   return sendSuccess(res, {
@@ -53,6 +61,15 @@ const reviewOnboardingDocument = asyncHandler(async (req, res) => {
   });
 });
 
+const reviewOnboardingDetails = asyncHandler(async (req, res) => {
+  const { internId, section } = req.params;
+  const result = await OnboardingService.reviewOnboardingDetails(internId, section, req.body, req.user, req.ip, req.headers['user-agent']);
+  return sendSuccess(res, {
+    message: 'Onboarding details review status updated successfully',
+    data: result,
+  });
+});
+
 const getSupervisorQueue = asyncHandler(async (req, res) => {
   const result = await OnboardingService.getSupervisorOnboardingQueue(req.user);
   return sendSuccess(res, {
@@ -63,9 +80,11 @@ const getSupervisorQueue = asyncHandler(async (req, res) => {
 
 module.exports = {
   submitOnboardingInfo,
+  submitOnboardingDetails,
   submitOnboardingDocument,
   getRequiredDocuments,
   reviewOnboardingDocument,
+  reviewOnboardingDetails,
   getSupervisorQueue,
   assignSupervisorOnboarding,
   completeOnboarding,

@@ -26,7 +26,7 @@ export const mockInternshipInfo = {
 
   supervisor: {
     id: 'sup-tochukwu',
-    name: 'Tochukwu Mgbemmena',
+    name: 'Tochukwu Mgbemena',
     title: 'Lead Supervisor & Managing Partner',
     email: 'tochukwu@fifthlab.com',
     phone: '+234 803 123 4567',

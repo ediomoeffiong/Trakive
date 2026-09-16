@@ -4,7 +4,6 @@ import {
   FiBriefcase,
   FiCamera,
   FiChevronDown,
-  FiCopy,
   FiEdit2,
   FiMapPin,
   FiMoreHorizontal,
@@ -121,13 +120,6 @@ const ProfileHeader = ({ completion, isSupervisorOverride = false }) => {
     .filter(Boolean)
     .join(', ');
 
-  const handleCopyId = async () => {
-    if (profile?.employeeId) {
-      await navigator.clipboard?.writeText(profile.employeeId);
-    }
-    setMoreOpen(false);
-  };
-
   const menuItems = [
     {
       label: 'Change Photo',
@@ -137,12 +129,6 @@ const ProfileHeader = ({ completion, isSupervisorOverride = false }) => {
         setMoreOpen(false);
       },
       show: true,
-    },
-    {
-      label: 'Copy Employee ID',
-      icon: FiCopy,
-      action: handleCopyId,
-      show: Boolean(profile?.employeeId),
     },
     {
       label: 'Security Settings',
@@ -194,7 +180,6 @@ const ProfileHeader = ({ completion, isSupervisorOverride = false }) => {
             <div className="profile-header-title-copy">
               <p className="profile-header-eyebrow">
                 {profile?.organization || 'Trakive'}
-                {profile?.employeeId ? ` / ${profile.employeeId}` : ''}
               </p>
               <h2 id="profile-heading">{profile?.fullName || 'New User'}</h2>
             </div>

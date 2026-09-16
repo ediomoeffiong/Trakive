@@ -15,7 +15,10 @@ import {
   mockInsights,
 } from '../data';
 import { useAppStore } from '../store/useAppStore';
+import { STANDARD_DEPARTMENTS } from '../utils/departments';
 import api from './api';
+
+const departmentFilterOptions = ['All Departments', ...STANDARD_DEPARTMENTS.map((department) => department.name)];
 
 const isDemoUser = () => {
   try {
@@ -44,6 +47,17 @@ const onboardingRateFromStatus = (status, completionRate) => {
   if (completionRate != null && completionRate !== '') return `${Math.round(Number(completionRate) || 0)}%`;
   if (status === 'onboarding') return '33%';
   return '0%';
+};
+
+const currentUserName = (user) =>
+  user?.name || [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Current User';
+
+const calcTrend = (current, previous, suffix = '%') => {
+  const c = Number(current || 0);
+  const p = Number(previous || 0);
+  if (p === 0) return c > 0 ? `+100${suffix}` : `0${suffix}`;
+  const delta = ((c - p) / p) * 100;
+  return `${delta >= 0 ? '+' : ''}${Math.round(delta)}${suffix}`;
 };
 
 const fetchLiveDashboardMetrics = async () => {
@@ -77,17 +91,62 @@ const fetchLiveDashboardMetrics = async () => {
     ? onboardingRateFromStatus(data.internship_progress?.profile_status, completionRate)
     : `${Math.round(Number(completionRate) || 0)}%`;
 
-  const bestIntern = internPerf && data.role !== 'intern'
+  const interns = Array.isArray(performance.interns) ? performance.interns : [];
+  const topIntern = interns.length
+    ? [...interns].sort((a, b) => Number(b.overall_score || 0) - Number(a.overall_score || 0))[0]
+    : internPerf;
+  const improvedIntern = interns.length
+    ? [...interns].sort((a, b) => Number(b.productivity_growth_pct || 0) - Number(a.productivity_growth_pct || 0))[0]
+    : internPerf;
+  const currentMonthProductivity = tasks.productivity_growth?.at?.(-1)?.velocity ?? completionRate;
+  const previousMonthProductivity = tasks.productivity_growth?.at?.(-2)?.velocity ?? 0;
+
+  const bestIntern = topIntern
     ? {
-        badge: 'Top Performer',
-        name: internPerf.name || 'Active Intern',
-        role: 'Intern',
-        department: internPerf.department_name || user?.department || 'FifthLab',
+        badge: data.role === 'intern' ? 'Your Performance' : 'Top Performer',
+        name: topIntern.name || currentUserName(user),
+        role: data.role === 'intern' ? 'Intern' : 'Intern',
+        department: topIntern.department_name || user?.department || user?.department_name || 'FifthLab',
         avatar: user?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
         metricLabel: 'Overall Score',
-        metricValue: `${internPerf.overall_score ?? internPerf.task_completion_rate ?? 0}`,
+        metricValue: `${Math.round(Number(topIntern.overall_score ?? completionRate ?? 0))}%`,
       }
-    : null;
+    : {
+        badge: data.role === 'intern' ? 'Your Performance' : 'Top Performer',
+        name: currentUserName(user),
+        role: data.role === 'intern' ? 'Intern' : 'Workspace',
+        department: user?.department || user?.department_name || 'FifthLab',
+        avatar: user?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+        metricLabel: 'Overall Score',
+        metricValue: `${Math.round(Number(completionRate || 0))}%`,
+      };
+
+  const mostImprovedIntern = improvedIntern
+    ? {
+        badge: data.role === 'intern' ? 'Productivity Growth' : 'Most Improved',
+        name: improvedIntern.name || currentUserName(user),
+        role: improvedIntern.department_name || user?.department || user?.department_name || 'Intern',
+        avatar: user?.avatar_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+        metricLabel: 'Month-over-month completed task growth',
+        metricValue: `${Number(improvedIntern.productivity_growth_pct || 0) >= 0 ? '+' : ''}${Math.round(Number(improvedIntern.productivity_growth_pct || 0))}%`,
+      }
+    : {
+        badge: 'Productivity Growth',
+        name: currentUserName(user),
+        role: user?.department || user?.department_name || 'Intern',
+        avatar: user?.avatar_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+        metricLabel: 'Productivity index change',
+        metricValue: calcTrend(currentMonthProductivity, previousMonthProductivity),
+      };
+
+  const supervisorPerformance = {
+    badge: data.role === 'supervisor' ? 'Your Review Load' : 'Review Throughput',
+    name: currentUserName(user),
+    role: user?.role_name || user?.role || 'Supervisor',
+    avatar: user?.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+    assignedCount: activeInterns,
+    reviewVelocity: `${pendingReviews} pending review${pendingReviews === 1 ? '' : 's'}`,
+  };
 
   return {
     metrics: {
@@ -98,7 +157,7 @@ const fetchLiveDashboardMetrics = async () => {
       activeInternsTrend: '0',
       activeInternsPositive: true,
       completedTasks,
-      completedTasksTrend: '0%',
+      completedTasksTrend: calcTrend(currentMonthProductivity, previousMonthProductivity),
       completedTasksPositive: true,
       tasksInProgress,
       tasksInProgressTrend: '0',
@@ -121,8 +180,8 @@ const fetchLiveDashboardMetrics = async () => {
     },
     summaryCards: {
       bestPerformingIntern: bestIntern,
-      mostImprovedIntern: null,
-      supervisorPerformance: null,
+      mostImprovedIntern,
+      supervisorPerformance,
       highestPerformingDept: {
         badge: 'Lead Department',
         name: data.department_statistics?.[0]?.department_name || user?.department || user?.department_name || 'FifthLab',
@@ -131,14 +190,14 @@ const fetchLiveDashboardMetrics = async () => {
         metricLabel: 'Completion Rate',
         metricValue: `${Math.round(Number(completionRate) || 0)}%`,
       },
-      upcomingReviewDeadlines: [],
-      overdueTasks: overdueCount > 0
-        ? [{ id: 'overdue-summary', title: `${overdueCount} overdue task${overdueCount === 1 ? '' : 's'}`, daysOverdue: 1, assignee: user?.name || 'You', dept: user?.department || 'FifthLab' }]
-        : [],
+      upcomingReviewDeadlines: tasks.upcoming_review_deadlines || [],
+      overdueTasks: tasks.overdue_tasks || (overdueCount > 0
+        ? [{ id: 'overdue-summary', title: `${overdueCount} overdue task${overdueCount === 1 ? '' : 's'}`, daysOverdue: 1, assignee: currentUserName(user), dept: user?.department || 'FifthLab' }]
+        : []),
     },
     filterOptions: {
       ...mockFilterOptions,
-      departments: ['All Departments', user?.department || user?.department_name || 'FifthLab'],
+      departments: departmentFilterOptions,
       supervisors: ['All Supervisors', user?.name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Supervisor'],
     },
   };
@@ -169,7 +228,14 @@ const fetchLiveChartData = async () => {
   ];
 
   let deptTaskCompletion = [];
-  if (Array.isArray(data.department_statistics) && data.department_statistics.length > 0) {
+  if (Array.isArray(tasks.department_completion) && tasks.department_completion.length > 0) {
+    deptTaskCompletion = tasks.department_completion.map((d) => ({
+      department: d.department || 'Department',
+      completed: Number(d.completed || 0),
+      inProgress: Number(d.in_progress || d.inProgress || 0),
+      pendingReview: Number(d.pending_review || d.pendingReview || 0),
+    }));
+  } else if (Array.isArray(data.department_statistics) && data.department_statistics.length > 0) {
     deptTaskCompletion = data.department_statistics.map((d) => ({
       department: d.department_name || 'Department',
       completed: d.task_count || 0,
@@ -185,29 +251,20 @@ const fetchLiveChartData = async () => {
     }];
   }
 
-  const weeklyTrend = [1, 2, 3, 4, 5, 6, 7, 8].map((wk) => ({
-    period: `Week ${wk}`,
-    avgScore: score,
-    targetScore: 4.2,
-    topPerformerScore: Math.min(5, Number((score + 0.3).toFixed(1))),
-  }));
+  const weeklyTrend = Array.isArray(tasks.weekly_performance) && tasks.weekly_performance.length > 0
+    ? tasks.weekly_performance
+    : [{ period: 'Current', avgScore: score, targetScore: 4.2, topPerformerScore: Math.min(5, Number((score + 0.3).toFixed(1))) }];
 
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const currentMonthIdx = new Date().getMonth();
-  const recentMonths = [];
-  for (let i = 6; i >= 0; i--) {
-    recentMonths.push(monthNames[(currentMonthIdx - i + 12) % 12]);
-  }
-
-  const productivityGrowth = recentMonths.map((m, idx) => {
-    const progressFactor = (idx + 1) / recentMonths.length;
-    return {
-      month: m,
-      velocity: Math.round((completedTasks + 5) * 15 * progressFactor),
-      velocityBenchmark: 100 + idx * 10,
-      commits: Math.round((completedTasks + tasksInProgress + 10) * 25 * progressFactor),
-    };
-  });
+  const productivityGrowth = Array.isArray(tasks.productivity_growth) && tasks.productivity_growth.length > 0
+    ? tasks.productivity_growth.map((p) => ({
+        month: p.month,
+        velocity: Number(p.velocity || 0),
+        velocityBenchmark: Number(p.velocityBenchmark || p.velocity_benchmark || 75),
+        completed: Number(p.completed || 0),
+        total: Number(p.total || 0),
+        reviews: Number(p.reviews || 0),
+      }))
+    : [{ month: 'Current', velocity: Math.round(completionRate), velocityBenchmark: 75, completed: completedTasks, total: completedTasks + tasksInProgress + pendingReviews + overdueTasks, reviews: pendingReviews }];
 
   const ratio = Math.min(1, (completionRate || 0) / 100);
   const skillMatrix = [
@@ -220,12 +277,7 @@ const fetchLiveChartData = async () => {
     { subject: 'Punctuality', internScore: Number((4.5 + ratio * 0.4).toFixed(1)), deptAverage: Number((4.2 + ratio * 0.4).toFixed(1)), maxMark: 5.0 },
   ];
 
-  const now = new Date();
-  const heatmapData = [];
-  for (let i = 181; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-    heatmapData.push({ date: d.toISOString().split('T')[0], count: 0, level: 0 });
-  }
+  const heatmapData = Array.isArray(tasks.heatmap_data) ? tasks.heatmap_data : [];
 
   return {
     weeklyTrend,
@@ -429,7 +481,7 @@ export const analyticsService = {
       },
       filterOptions: {
         ...mockFilterOptions,
-        departments: ['All Departments', user?.department || 'FifthLab'],
+        departments: departmentFilterOptions,
         supervisors: ['All Supervisors', user?.name || 'Supervisor'],
       },
     };

@@ -46,7 +46,7 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const user = useCurrentUser();
-  const profile = useProfileStore((s) => s.profile);
+  const storedProfile = useProfileStore((s) => s.profile);
   const theme = useTheme();
   const setTheme = useAppStore((s) => s.setTheme);
   const logout = useAppStore((s) => s.logout);
@@ -61,6 +61,7 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
     : (SUPERVISOR_PAGE_TITLES[pathname] ?? 'Supervisor Portal');
 
   // Fallback supervisor user display
+  const profile = storedProfile?.id && storedProfile.id === user?.id ? storedProfile : null;
   const supervisorName = profile?.fullName || user?.name || 'Supervisor';
   const supervisorDepartment = profile?.department || user?.department_name || user?.department || 'Department not set';
 

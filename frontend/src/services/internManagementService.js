@@ -12,6 +12,7 @@ import { mockInternDocuments } from '../data/internDocuments';
 import { mockSupervisorNotes } from '../data/supervisorNotes';
 import { mockInternActivity } from '../data/internActivity';
 import { mockInternPerformance } from '../data/internPerformance';
+import { normalizeDepartmentForPerson, normalizePersonRecord } from '../utils/people';
 
 // ── Simulated network delay ──────────────────────────────────────────────────
 const DELAY_MS = 600;
@@ -110,28 +111,31 @@ export const internManagementService = {
     try {
       const res = await api.get('/interns', { params: { limit: 100 } });
       const rawItems = res.data?.data?.items || res.data?.items || res.data?.data || [];
-      rawResult = rawItems.map((item) => ({
-        id: item.user_id || item.id,
-        internId: item.user_id || item.id,
-        name: `${item.first_name || ''} ${item.last_name || ''}`.trim() || item.email,
-        email: item.email,
-        department: item.department_name || item.department || 'Engineering',
-        role: 'Intern',
-        status: item.intern_status === 'active' ? 'Active' : (item.intern_status === 'onboarding' ? 'Pending Review' : 'Active'),
-        performanceScore: Number(item.performance_score || 4.5),
-        onboardingProgress: item.onboarding_ready ? 100 : (item.onboarding_step ? item.onboarding_step * 25 : 50),
-        currentTask: item.current_task || (item.onboarding_ready ? 'Active Internship' : 'Completing Onboarding'),
-        startDate: item.created_at ? item.created_at.split('T')[0] : '2026-06-01',
-        endDate: '2026-12-31',
-        batch: 'Batch 2026-A',
-        avatar: item.avatar_url || null,
-      }));
+      rawResult = rawItems.map((item) => {
+        const name = `${item.first_name || ''} ${item.last_name || ''}`.trim() || item.email;
+        return normalizePersonRecord({
+          id: item.user_id || item.id,
+          internId: item.user_id || item.id,
+          name,
+          email: item.email,
+          department: normalizeDepartmentForPerson({ ...item, name }, item.department_name || item.department || 'Engineering'),
+          role: 'Intern',
+          status: item.intern_status === 'active' ? 'Active' : (item.intern_status === 'onboarding' ? 'Pending Review' : 'Active'),
+          performanceScore: Number(item.performance_score || 4.5),
+          onboardingProgress: item.onboarding_ready ? 100 : (item.onboarding_step ? item.onboarding_step * 25 : 50),
+          currentTask: item.current_task || (item.onboarding_ready ? 'Active Internship' : 'Completing Onboarding'),
+          startDate: item.created_at ? item.created_at.split('T')[0] : '2026-06-01',
+          endDate: '2026-12-31',
+          batch: 'Batch 2026-A',
+          avatar: item.avatar_url || null,
+        });
+      });
     } catch (err) {
       console.warn('Failed to fetch real interns from backend API:', err);
     }
 
     if (rawResult.length === 0 && mockInternProfiles.length > 0) {
-      rawResult = [...mockInternProfiles];
+      rawResult = mockInternProfiles.map((profile) => normalizePersonRecord(profile));
     }
 
     let result = rawResult;
@@ -215,13 +219,13 @@ export const internManagementService = {
       const data = res.data?.data || res.data;
       if (data) {
         return {
-          profile: {
+          profile: normalizePersonRecord({
             id: data.user_id || data.id || internId,
             internId: data.user_id || data.id || internId,
             name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.email,
             email: data.email,
             phone: data.phone || 'N/A',
-            department: data.department_name || 'Engineering',
+            department: normalizeDepartmentForPerson(data, data.department_name || 'Engineering'),
             role: 'Intern',
             status: data.intern_status === 'active' ? 'Active' : 'Pending Review',
             performanceScore: Number(data.performance_score || 4.8),
@@ -234,13 +238,13 @@ export const internManagementService = {
             internships: [
               { id: `${internId}-p1`, title: 'Current Internship (2026)', startDate: data.user_created_at?.split('T')[0] || '2026-06-01', endDate: '2026-12-31', status: 'active' },
             ],
-          }
+          })
         };
       }
     } catch (e) {
       console.warn('Failed to fetch real intern profile:', e);
     }
-    const profile = mockInternProfiles.find((i) => i.id === internId) || null;
+    const profile = normalizePersonRecord(mockInternProfiles.find((i) => i.id === internId) || null);
     return { profile };
   },
 

@@ -4,6 +4,7 @@ const UserModel = require('../models/user.model');
 const ProfileModel = require('../models/profile.model');
 const AuditLogModel = require('../models/auditLog.model');
 const { getPaginationParams, formatPaginatedResponse } = require('../utils/pagination');
+const { sanitizeDepartmentRows } = require('../utils/departments');
 
 const DepartmentService = {
   async getEffectiveOrgId(requestingUser) {
@@ -181,19 +182,21 @@ const DepartmentService = {
     const reqRole = requestingUser.role_name ? requestingUser.role_name.toLowerCase() : '';
     const orgId = reqRole === 'super_admin' ? null : (requestingUser.organization_id || (await this.getEffectiveOrgId(requestingUser)));
 
+    if (orgId) {
+      await DepartmentModel.ensureStandardDepartments(orgId);
+    }
+
     const items = await DepartmentModel.findPaginated({
       organization_id: orgId,
       search: query.search || '',
-      limit,
-      offset,
+      limit: 100,
+      offset: 0,
     });
 
-    const totalItems = await DepartmentModel.count({
-      organization_id: orgId,
-      search: query.search || '',
-    });
+    const standardItems = sanitizeDepartmentRows(items).slice(offset, offset + limit);
+    const totalItems = sanitizeDepartmentRows(items).length;
 
-    return formatPaginatedResponse(items, totalItems, page, limit);
+    return formatPaginatedResponse(standardItems, totalItems, page, limit);
   },
 
   async getDepartmentWithStaff(departmentId, requestingUser) {

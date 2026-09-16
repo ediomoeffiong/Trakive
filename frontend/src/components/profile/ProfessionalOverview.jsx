@@ -181,11 +181,9 @@ const ProfessionalOverview = ({ completion, setActiveTab }) => {
             <div className="profile-info-list">
               <InfoRow label="Role" value={profile?.jobTitle || profile?.role} />
               <InfoRow label="Department" value={profile?.department} />
-              <InfoRow label="Organization" value={profile?.organization} />
               <InfoRow label="Location" value={locationStr} />
               <InfoRow label="Supervisor" value={profile?.supervisorName} />
               <InfoRow label="Status" value={profile?.status} />
-              <InfoRow label="Employee ID" value={profile?.employeeId} />
             </div>
 
             <div className="profile-card-divider" />
@@ -201,8 +199,8 @@ const ProfessionalOverview = ({ completion, setActiveTab }) => {
             </div>
 
             <p className="profile-locked-note">
-              Role, department, supervisor and employee ID are controlled by HR. Contact HR
-              Administration to request changes.
+              Role, department and supervisor are controlled by HR. Contact HR Administration
+              to request changes.
             </p>
           </OverviewCard>
 

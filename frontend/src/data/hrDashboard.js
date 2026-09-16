@@ -67,14 +67,12 @@ export const hrKPICards = [
 ];
 
 export const hrDeptDistribution = [
-  { department: 'Engineering', interns: 38, color: '#6366f1' },
-  { department: 'Product', interns: 22, color: '#8b5cf6' },
-  { department: 'Design', interns: 18, color: '#ec4899' },
-  { department: 'Marketing', interns: 20, color: '#f59e0b' },
-  { department: 'Data Science', interns: 16, color: '#10b981' },
-  { department: 'Finance', interns: 14, color: '#06b6d4' },
-  { department: 'HR', interns: 12, color: '#f97316' },
-  { department: 'Operations', interns: 8, color: '#84cc16' },
+  { department: 'FifthLab', interns: 38, color: '#0284c7' },
+  { department: 'Human Resources (HR)', interns: 12, color: '#f97316' },
+  { department: 'IT Department', interns: 16, color: '#2563eb' },
+  { department: 'IT Infrastructure', interns: 14, color: '#6366f1' },
+  { department: 'Networking', interns: 10, color: '#10b981' },
+  { department: 'Data Centre', interns: 8, color: '#06b6d4' },
 ];
 
 export const hrBatchTrend = [

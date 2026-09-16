@@ -19,8 +19,9 @@ import {
 } from 'react-icons/ri';
 import Avatar from '../ui/Avatar';
 import EmptyStates from './EmptyStates';
+import { STANDARD_DEPARTMENTS } from '../../utils/departments';
 
-const DEPARTMENTS = ['All', 'Frontend Engineering', 'Backend Engineering', 'UI/UX Design', 'DevOps', 'Product Management', 'Data Science'];
+const DEPARTMENTS = ['All', ...STANDARD_DEPARTMENTS.map((department) => department.name)];
 const STATUSES = ['All', 'Active', 'Pending Review', 'Needs Help', 'On Leave'];
 
 const STATUS_STYLING = {

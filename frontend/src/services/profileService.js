@@ -6,6 +6,12 @@
 
 import api from './api';
 import { useAppStore } from '../store/useAppStore';
+import {
+  DEFAULT_FIFTHLAB_SUPERVISOR,
+  isFifthLabDisplayPerson,
+  normalizeDepartmentForPerson,
+  normalizePersonRecord,
+} from '../utils/people';
 
 const delay = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -45,26 +51,24 @@ const normalizeStatus = (status = '') => {
 
 const apiData = (response) => response?.data?.data ?? response?.data;
 
-const isFifthLabUser = (user = {}) =>
-  /@thefifthlab\.com$/i.test(user.email || '') ||
-  /fifthlab/i.test(user.organization || user.organization_name || '');
+const isPendingSupervisorValue = (value) => /^(pending assignment|not assigned|none assigned)?$/i.test(String(value || '').trim());
 
 const getApprovedDepartmentName = (user = {}, roleProfile = null, fallback = '') => {
   const storedInfo = safeJson(localStorage.getItem(`trakive_onboarding_info_${user.id || 'default'}`), {});
   const savedProfile = safeJson(localStorage.getItem(`trakive_user_profile_${user.id || 'default'}`), {});
   const selectedDepartment =
-    storedInfo.department_name ||
-    savedProfile.department ||
     user.department_name ||
     user.department ||
     roleProfile?.department_name ||
+    storedInfo.department_name ||
+    savedProfile.department ||
     fallback;
 
-  if (isFifthLabUser(user) && /^(it department|engineering)$/i.test(String(selectedDepartment || '').trim())) {
+  if (isFifthLabDisplayPerson(user) && /^(it department|engineering|information technology)$/i.test(String(selectedDepartment || '').trim())) {
     return 'FifthLab';
   }
 
-  return selectedDepartment || fallback;
+  return normalizeDepartmentForPerson(user, selectedDepartment || fallback);
 };
 
 const safeJson = (value, fallback) => {
@@ -99,8 +103,10 @@ const mapBackendProfile = ({ user, role_profile: roleProfile } = {}) => {
   const supervisorName = [roleProfile?.supervisor_first_name, roleProfile?.supervisor_last_name]
     .filter(Boolean)
     .join(' ');
+  const department = getApprovedDepartmentName(user, roleProfile, '');
+  const defaultSupervisor = department === 'FifthLab' ? DEFAULT_FIFTHLAB_SUPERVISOR : null;
 
-  return {
+  return normalizePersonRecord({
     id: user.id,
     firstName: user.first_name ?? '',
     lastName: user.last_name ?? '',
@@ -116,19 +122,19 @@ const mapBackendProfile = ({ user, role_profile: roleProfile } = {}) => {
     avatarUrl: user.avatar_url ?? null,
     role,
     jobTitle: roleProfile?.title ?? (role === 'Intern' ? 'Intern' : role),
-    department: getApprovedDepartmentName(user, roleProfile, ''),
+    department,
     organization: user.organization_name || roleProfile?.organization_name || '',
-    employeeId: roleProfile?.intern_profile_id ?? roleProfile?.id ?? user.id ?? '',
-    supervisorId: roleProfile?.supervisor_id ?? '',
-    supervisorName,
-    supervisorEmail: roleProfile?.supervisor_email ?? '',
+    employeeId: '',
+    supervisorId: roleProfile?.supervisor_id ?? defaultSupervisor?.id ?? '',
+    supervisorName: supervisorName || defaultSupervisor?.name || '',
+    supervisorEmail: roleProfile?.supervisor_email ?? defaultSupervisor?.email ?? '',
     status: normalizeStatus(roleProfile?.intern_status ?? user.status),
     bio: user.bio ?? roleProfile?.bio ?? roleProfile?.specialization ?? '',
     lastLogin: user.last_login_at ?? '',
     emailVerified: Boolean(user.is_email_verified),
     createdAt: user.created_at ?? '',
     updatedAt: user.updated_at ?? '',
-  };
+  });
 };
 
 const mapBackendInternship = (roleProfile) => {
@@ -136,11 +142,12 @@ const mapBackendInternship = (roleProfile) => {
   const storedInfo = safeJson(localStorage.getItem(`trakive_onboarding_info_${currentUser.id || 'default'}`), {});
   if (!roleProfile) {
     const department = getApprovedDepartmentName(currentUser, null, storedInfo.department_name || currentUser.department || '');
+    const defaultSupervisor = department === 'FifthLab' ? DEFAULT_FIFTHLAB_SUPERVISOR : null;
     const startDate = storedInfo.start_date || currentUser.startDate || '';
     const endDate = storedInfo.end_date || currentUser.endDate || '';
     const weeks = calculateWeeks(startDate, endDate);
-    return {
-      employeeId: currentUser.id || '',
+    return normalizePersonRecord({
+      employeeId: '',
       department,
       team: '',
       organization: currentUser.organization_name || currentUser.organization || '',
@@ -151,9 +158,9 @@ const mapBackendInternship = (roleProfile) => {
       daysPerWeek: storedInfo.days_per_week || '',
       status: currentUser.status || 'Pending',
       supervisor: {
-        name: currentUser.supervisorName || '',
-        email: currentUser.supervisorEmail || '',
-        title: '',
+        name: isPendingSupervisorValue(currentUser.supervisorName) ? (defaultSupervisor?.name || '') : currentUser.supervisorName,
+        email: currentUser.supervisorEmail || defaultSupervisor?.email || '',
+        title: defaultSupervisor?.title || '',
       },
       ...weeks,
       records: startDate || endDate ? [{
@@ -164,7 +171,7 @@ const mapBackendInternship = (roleProfile) => {
         endDate,
         status: currentUser.status || 'Pending',
       }] : [],
-    };
+    });
   }
 
   const department = getApprovedDepartmentName(
@@ -178,6 +185,7 @@ const mapBackendInternship = (roleProfile) => {
   const supervisorName = [roleProfile.supervisor_first_name, roleProfile.supervisor_last_name]
     .filter(Boolean)
     .join(' ');
+  const defaultSupervisor = department === 'FifthLab' ? DEFAULT_FIFTHLAB_SUPERVISOR : null;
   const record = startDate || endDate ? {
     id: roleProfile.internship_record_id || roleProfile.intern_profile_id || 'current',
     title: roleProfile.internship_title || 'Current Internship',
@@ -185,11 +193,11 @@ const mapBackendInternship = (roleProfile) => {
     startDate,
     endDate,
     status: normalizeStatus(roleProfile.internship_record_status || roleProfile.intern_status),
-    supervisor: supervisorName,
+    supervisor: supervisorName || defaultSupervisor?.name || '',
   } : null;
 
-  return {
-    employeeId: roleProfile.intern_profile_id ?? '',
+  return normalizePersonRecord({
+    employeeId: '',
     department,
     team: roleProfile.department_code ?? '',
     organization: currentUser.organization_name || currentUser.organization || roleProfile.organization_name || '',
@@ -200,13 +208,13 @@ const mapBackendInternship = (roleProfile) => {
     daysPerWeek: roleProfile.record_days_per_week ?? roleProfile.days_per_week ?? '',
     status: normalizeStatus(roleProfile.internship_record_status || roleProfile.intern_status),
     supervisor: {
-      name: supervisorName,
-      email: roleProfile.supervisor_email ?? '',
-      title: '',
+      name: supervisorName || defaultSupervisor?.name || '',
+      email: roleProfile.supervisor_email ?? defaultSupervisor?.email ?? '',
+      title: defaultSupervisor?.title || '',
     },
     ...weeks,
     records: record ? [record] : [],
-  };
+  });
 };
 
 const mapBackendDocument = (doc) => ({
@@ -329,8 +337,9 @@ const getCurrentUserProfile = (explicitRole) => {
     const saved = localStorage.getItem(userProfileKey);
     const savedData = safeJson(saved, {});
     const department = getApprovedDepartmentName(currentUser, null, savedData.department ?? 'General');
+    const defaultSupervisor = department === 'FifthLab' ? DEFAULT_FIFTHLAB_SUPERVISOR : null;
 
-    return {
+    return normalizePersonRecord({
       id: currentUser.id,
       firstName: savedData.firstName ?? currentUser.firstName ?? firstName ?? '',
       lastName: savedData.lastName ?? currentUser.lastName ?? lastName ?? '',
@@ -348,10 +357,12 @@ const getCurrentUserProfile = (explicitRole) => {
       jobTitle: savedData.jobTitle ?? role,
       department,
       organization: savedData.organization ?? currentUser.organization_name ?? currentUser.organization ?? '',
-      employeeId: savedData.employeeId ?? `EMP-${currentUser.id.replace('custom-', '').slice(-6)}`,
-      supervisorId: savedData.supervisorId ?? '',
-      supervisorName: savedData.supervisorName ?? 'Pending Assignment',
-      supervisorEmail: savedData.supervisorEmail ?? '',
+      employeeId: '',
+      supervisorId: savedData.supervisorId ?? defaultSupervisor?.id ?? '',
+      supervisorName: isPendingSupervisorValue(savedData.supervisorName)
+        ? (defaultSupervisor?.name ?? 'Pending Assignment')
+        : savedData.supervisorName,
+      supervisorEmail: savedData.supervisorEmail ?? defaultSupervisor?.email ?? '',
       status: savedData.status ?? 'Pending',
       bio: savedData.bio ?? currentUser.bio ?? '',
       institution: savedData.institution ?? '',
@@ -363,11 +374,11 @@ const getCurrentUserProfile = (explicitRole) => {
       emailVerified: true,
       createdAt: currentUser.createdAt ?? new Date().toISOString(),
       updatedAt: savedData.updatedAt ?? new Date().toISOString(),
-    };
+    });
   }
 
   const defaults = getRoleDefaults(role);
-  return {
+  return normalizePersonRecord({
     ...defaults,
     id: currentUser?.id ?? defaults.id ?? '',
     firstName: currentUser?.firstName ?? firstName ?? '',
@@ -381,7 +392,7 @@ const getCurrentUserProfile = (explicitRole) => {
     avatarUrl: currentUser?.avatarUrl ?? currentUser?.avatar ?? defaults.avatarUrl ?? null,
     bio: currentUser?.bio ?? defaults.bio ?? '',
     role,
-  };
+  });
 };
 
 const getEffectiveRole = (explicitRole) => {

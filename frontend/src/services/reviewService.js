@@ -264,6 +264,15 @@ export const reviewService = {
    * @param {string} notes
    */
   updateOnboardingStep: async (internId, documentId, decision, notes = '') => {
+    if (String(documentId).startsWith('detail:')) {
+      const section = String(documentId).slice('detail:'.length);
+      const response = await api.patch(`/onboarding/details/${internId}/${section}/review`, {
+        status: decision,
+        notes,
+      });
+      return response.data || { success: true };
+    }
+
     const response = await api.patch(`/onboarding/documents/${documentId}/review`, {
       status: decision,
       notes,

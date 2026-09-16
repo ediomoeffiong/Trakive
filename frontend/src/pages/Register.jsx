@@ -6,6 +6,7 @@ import { RiBuildingLine } from 'react-icons/ri';
 import toast from 'react-hot-toast';
 
 import { useAppStore } from '../store/useAppStore';
+import { STANDARD_DEPARTMENTS } from '../utils/departments';
 import { ROUTES } from '../constants';
 import {
   AuthCard,
@@ -41,7 +42,7 @@ const Register = () => {
       email: '',
       phone: '',
       dateOfBirth: '',
-      department: 'Fifthlab',
+      department: 'FifthLab',
       startDate: '',
       endDate: '',
       password: '',
@@ -78,7 +79,7 @@ const Register = () => {
       const response = await registerFn({
         name: data.name,
         email: data.email,
-        department: data.department || 'Fifthlab',
+        department: data.department || 'FifthLab',
         phone: data.phone,
         dateOfBirth: data.dateOfBirth,
         date_of_birth: data.dateOfBirth,
@@ -249,13 +250,9 @@ const Register = () => {
                   {...register('department', { required: 'Please select a department' })}
                 >
                   <option value="">Select your department...</option>
-                  <option value="Fifthlab">Fifthlab</option>
-                  <option value="HR">HR</option>
-                  <option value="IT Support">IT Support</option>
-                  <option value="Finacle">Finacle</option>
-                  <option value="Product & Design">Product & Design</option>
-                  <option value="Marketing & Sales">Marketing & Sales</option>
-                  <option value="Finance">Finance</option>
+                  {STANDARD_DEPARTMENTS.map((department) => (
+                    <option key={department.id} value={department.name}>{department.name}</option>
+                  ))}
                 </select>
                 <span
                   style={{

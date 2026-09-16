@@ -86,7 +86,7 @@ const InternProfileHeader = ({ profile, performance }) => {
 
   const handleVerifyDates = () => {
     setDatesVerified(true);
-    toast.success(`Internship start and end dates verified by Supervisor Tochukwu Mgbemmena!`);
+    toast.success(`Internship start and end dates verified by Supervisor Tochukwu Mgbemena!`);
   };
 
   const handleAssignSecondary = (sup) => {
@@ -388,7 +388,7 @@ const InternProfileHeader = ({ profile, performance }) => {
             />
           ) : (
             <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: '#ecfdf5', borderRadius: '0.625rem' }}>
-              ✓ Dates Verified by Tochukwu Mgbemmena
+              ✓ Dates Verified by Tochukwu Mgbemena
             </span>
           )}
 
@@ -437,7 +437,7 @@ const InternProfileHeader = ({ profile, performance }) => {
                 Select Extra / Secondary Supervisor
               </h3>
               <p style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)', marginBottom: '1.25rem' }}>
-                Primary Supervisor: <strong>Tochukwu Mgbemmena</strong>. Select a co-supervisor for {profile.name}.
+                Primary Supervisor: <strong>Tochukwu Mgbemena</strong>. Select a co-supervisor for {profile.name}.
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
