@@ -255,6 +255,18 @@ const ProfileModel = {
     return res.rows;
   },
 
+  async findActiveSupervisorAssignment(internProfileId) {
+    const res = await query(
+      `SELECT *
+       FROM supervisor_assignments
+       WHERE intern_profile_id = $1 AND status = 'active'
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [internProfileId]
+    );
+    return res.rows[0] || null;
+  },
+
   async markSupervisorAssignmentsReassignmentRequired(supervisorProfileId) {
     const affectedRes = await query(
       `UPDATE supervisor_assignments

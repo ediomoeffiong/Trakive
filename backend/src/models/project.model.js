@@ -86,17 +86,38 @@ const ProjectModel = {
       values.push(supervisor_id);
     }
     if (supervisor_scope_id) {
+      // Match assigned projects/interns, plus unassigned same-department interns
+      // (same visibility rule supervisors use for intern management).
       whereClauses.push(`(
         p.supervisor_id = $${idx}
         OR EXISTS (
-          SELECT 1 FROM intern_profiles cip
-          WHERE cip.user_id = p.creator_id AND cip.supervisor_id = $${idx}
+          SELECT 1
+          FROM intern_profiles cip
+          JOIN supervisor_profiles sp_scope ON sp_scope.id = $${idx}
+          WHERE cip.user_id = p.creator_id
+            AND (
+              cip.supervisor_id = $${idx}
+              OR (
+                cip.supervisor_id IS NULL
+                AND cip.department_id IS NOT NULL
+                AND cip.department_id = sp_scope.department_id
+              )
+            )
         )
         OR EXISTS (
           SELECT 1
           FROM project_members pm_scope
           JOIN intern_profiles mip ON mip.user_id = pm_scope.intern_id
-          WHERE pm_scope.project_id = p.id AND mip.supervisor_id = $${idx}
+          JOIN supervisor_profiles sp_scope ON sp_scope.id = $${idx}
+          WHERE pm_scope.project_id = p.id
+            AND (
+              mip.supervisor_id = $${idx}
+              OR (
+                mip.supervisor_id IS NULL
+                AND mip.department_id IS NOT NULL
+                AND mip.department_id = sp_scope.department_id
+              )
+            )
         )
       )`);
       values.push(supervisor_scope_id);
@@ -202,14 +223,33 @@ const ProjectModel = {
       whereClauses.push(`(
         p.supervisor_id = $${idx}
         OR EXISTS (
-          SELECT 1 FROM intern_profiles cip
-          WHERE cip.user_id = p.creator_id AND cip.supervisor_id = $${idx}
+          SELECT 1
+          FROM intern_profiles cip
+          JOIN supervisor_profiles sp_scope ON sp_scope.id = $${idx}
+          WHERE cip.user_id = p.creator_id
+            AND (
+              cip.supervisor_id = $${idx}
+              OR (
+                cip.supervisor_id IS NULL
+                AND cip.department_id IS NOT NULL
+                AND cip.department_id = sp_scope.department_id
+              )
+            )
         )
         OR EXISTS (
           SELECT 1
           FROM project_members pm_scope
           JOIN intern_profiles mip ON mip.user_id = pm_scope.intern_id
-          WHERE pm_scope.project_id = p.id AND mip.supervisor_id = $${idx}
+          JOIN supervisor_profiles sp_scope ON sp_scope.id = $${idx}
+          WHERE pm_scope.project_id = p.id
+            AND (
+              mip.supervisor_id = $${idx}
+              OR (
+                mip.supervisor_id IS NULL
+                AND mip.department_id IS NOT NULL
+                AND mip.department_id = sp_scope.department_id
+              )
+            )
         )
       )`);
       values.push(supervisor_scope_id);

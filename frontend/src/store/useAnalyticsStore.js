@@ -74,8 +74,8 @@ export const useAnalyticsStore = create(
           const [dashboardRes, chartsRes, reportsRes, insightsRes] = await Promise.all([
             analyticsService.getDashboardMetrics(filters),
             analyticsService.getChartData(filters),
-            analyticsService.getSavedReports(),
-            analyticsService.getAIInsights(filters),
+            analyticsService.getSavedReports().catch(() => ({ savedReports: [], exportHistory: [] })),
+            analyticsService.getAIInsights(filters).catch(() => []),
           ]);
 
           set({

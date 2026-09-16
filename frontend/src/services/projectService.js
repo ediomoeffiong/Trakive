@@ -6,14 +6,12 @@ import api from './api';
 
 const STORAGE_KEY = 'trakive_projects_store';
 
-// Helper to check if error is network/offline or unauthenticated (401/403)
+// Helper to check if error is a true network/offline failure (not auth/permission)
 const isNetworkError = (err) => {
   return (
     !err?.response ||
     err?.code === 'ERR_NETWORK' ||
-    err?.code === 'ECONNREFUSED' ||
-    err?.response?.status === 401 ||
-    err?.response?.status === 403
+    err?.code === 'ECONNREFUSED'
   );
 };
 

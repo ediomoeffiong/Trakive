@@ -63,7 +63,7 @@ const DocumentReviewPanel = ({ intern, docItem, actionLoading, onReviewComplete,
       return;
     }
 
-    onReviewComplete?.(intern.internId || intern.intern_id, doc.id || docItem.category, decision, notes);
+    onReviewComplete?.(intern.internId || intern.intern_id, doc?.id || docItem.document?.id, decision, notes);
   };
 
   return (
@@ -289,7 +289,7 @@ export default function OnboardingApprovalsView({ queue = [], isLoading = false,
         actionLoading={actionLoading}
         onReviewComplete={(internId, categoryOrDocId, decision, notes) => {
           if (decision === 'approved') onApprove?.(internId, categoryOrDocId, notes);
-          else onReject?.(internId, categoryOrDocId, notes);
+          else onReject?.(internId, categoryOrDocId, notes, decision);
           setSelectedDocItem(null);
         }}
         onBack={() => setSelectedDocItem(null)}
@@ -320,13 +320,22 @@ export default function OnboardingApprovalsView({ queue = [], isLoading = false,
             { category: 'acceptance_letter', title: 'Acceptance Letter' },
           ].map((item) => {
             const doc = steps.find((s) => s.category === item.category) || steps.find((s) => s.title?.toLowerCase().includes(item.category));
-            const status = doc ? doc.review_status || doc.status || 'pending' : 'not_submitted';
+            const status = doc
+              ? (doc.submitted === false ? 'not_submitted' : (doc.review_status || doc.status || 'pending'))
+              : 'not_submitted';
             const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.not_submitted;
+            const fileName = doc?.document?.file_name || doc?.file_name;
 
             return (
               <div
                 key={item.category}
-                onClick={() => setSelectedDocItem(doc || { category: item.category, title: item.title, status: 'pending' })}
+                onClick={() => {
+                  if (!doc || doc.submitted === false || !doc.document) {
+                    toast.error('Intern has not submitted this document yet.');
+                    return;
+                  }
+                  setSelectedDocItem(doc);
+                }}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '1rem 1.25rem', background: '#fff', borderRadius: '0.875rem',
@@ -336,7 +345,7 @@ export default function OnboardingApprovalsView({ queue = [], isLoading = false,
                 <div>
                   <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>{item.title}</div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--color-neutral-500)', marginTop: '0.15rem' }}>
-                    {doc ? `File: ${doc.file_name || `${item.title}.pdf`}` : 'Awaiting intern upload'}
+                    {fileName ? `File: ${fileName}` : 'Awaiting intern upload'}
                   </div>
                 </div>
 

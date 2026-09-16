@@ -31,6 +31,81 @@ const OnboardingService = {
     throw ApiError.badRequest('User must be assigned to an organization before managing onboarding');
   },
 
+  /**
+   * Ensure the intern has a department + supervisor so submissions appear in the supervisor queue.
+   * Uses existing profile values when present; otherwise auto-assigns from department/org.
+   */
+  async ensureInternSupervisorLink(requestingUser, preferredDepartmentId = null) {
+    const orgId = await this.getEffectiveOrgId(requestingUser);
+    let internProfile = await ProfileModel.findInternProfileByUserId(requestingUser.id);
+
+    if (internProfile?.supervisor_id) {
+      return internProfile;
+    }
+
+    const targetDeptId =
+      preferredDepartmentId ||
+      internProfile?.department_id ||
+      requestingUser.department_id ||
+      null;
+
+    let assignedSupervisorProfile = null;
+    if (targetDeptId) {
+      const supRes = await query(
+        `SELECT sp.* FROM supervisor_profiles sp
+         JOIN users u ON u.id = sp.user_id
+         WHERE (sp.department_id = $1 OR sp.department_id IS NULL)
+           AND u.organization_id = $2
+           AND u.status = 'active'
+           AND u.deleted_at IS NULL
+         ORDER BY (sp.department_id IS NOT NULL) DESC, sp.created_at ASC
+         LIMIT 1`,
+        [targetDeptId, orgId]
+      );
+      assignedSupervisorProfile = supRes.rows[0] || null;
+    }
+
+    if (!assignedSupervisorProfile) {
+      const anySupRes = await query(
+        `SELECT sp.* FROM supervisor_profiles sp
+         JOIN users u ON u.id = sp.user_id
+         WHERE u.organization_id = $1
+           AND u.status = 'active'
+           AND u.deleted_at IS NULL
+         ORDER BY (sp.department_id IS NOT NULL) DESC, sp.created_at ASC
+         LIMIT 1`,
+        [orgId]
+      );
+      assignedSupervisorProfile = anySupRes.rows[0] || null;
+    }
+
+    const departmentId = targetDeptId || assignedSupervisorProfile?.department_id || null;
+
+    if (departmentId) {
+      await UserModel.update(requestingUser.id, { department_id: departmentId });
+    }
+
+    internProfile = await ProfileModel.upsertInternProfile({
+      user_id: requestingUser.id,
+      organization_id: orgId,
+      department_id: departmentId,
+      supervisor_id: assignedSupervisorProfile ? assignedSupervisorProfile.id : null,
+      status: internProfile?.status || 'onboarding',
+    });
+
+    if (assignedSupervisorProfile && internProfile?.id) {
+      await ProfileModel.recordSupervisorAssignment(
+        internProfile.id,
+        assignedSupervisorProfile.id,
+        requestingUser.id,
+        'active',
+        'Auto-assigned supervisor for onboarding document visibility'
+      );
+    }
+
+    return internProfile;
+  },
+
   validateStateTransition(currentStatus, newStatus) {
     const allowed = VALID_TRANSITIONS[currentStatus] || [];
     if (!allowed.includes(newStatus)) {
@@ -293,6 +368,9 @@ const OnboardingService = {
   async submitOnboardingDocument(data, requestingUser, ipAddress = null, userAgent = null) {
     const orgId = await this.getEffectiveOrgId(requestingUser);
 
+    // Link intern to a supervisor before persisting so the supervisor queue can see them
+    await this.ensureInternSupervisorLink(requestingUser);
+
     const category = data.category || 'general';
     const existingDoc = await OnboardingModel.findDocumentByOwnerAndCategory(requestingUser.id, category);
 
@@ -510,15 +588,25 @@ const OnboardingService = {
         const fullProfile = await ProfileModel.getCompleteInternProfile(user.id);
         if (!fullProfile) return null;
 
+        const docTracking = await this.trackDocuments(user.id, requestingUser);
+        const hasSubmittedDocs = docTracking.checklist.some((d) => d.submitted);
+
         if (supProfile) {
           const isAssigned = fullProfile.supervisor_id === supProfile.id;
-          const isSameDepartmentUnassigned = !fullProfile.supervisor_id && fullProfile.department_id && fullProfile.department_id === supProfile.department_id;
-          if (!isAssigned && !isSameDepartmentUnassigned) {
+          const isSameDepartmentUnassigned =
+            !fullProfile.supervisor_id &&
+            fullProfile.department_id &&
+            fullProfile.department_id === supProfile.department_id;
+          // Catch submissions that landed before a department/supervisor was set
+          const orphanWithSubmittedDocs =
+            hasSubmittedDocs &&
+            !fullProfile.supervisor_id &&
+            (!fullProfile.department_id || fullProfile.department_id === supProfile.department_id);
+
+          if (!isAssigned && !isSameDepartmentUnassigned && !orphanWithSubmittedDocs) {
             return null;
           }
         }
-
-        const docTracking = await this.trackDocuments(user.id, requestingUser);
 
         return {
           intern_id: user.id,

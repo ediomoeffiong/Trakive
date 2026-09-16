@@ -270,10 +270,10 @@ const ReviewManagementPage = () => {
     }
   };
 
-  const handleRejectOnboarding = async (internId, stepId, notes) => {
+  const handleRejectOnboarding = async (internId, stepId, notes, decision = 'rejected') => {
     try {
-      await updateOnboardingStep(internId, stepId, 'rejected', notes);
-      toast.success('Step rejected.');
+      await updateOnboardingStep(internId, stepId, decision === 'resubmission_required' ? 'resubmission_required' : 'rejected', notes);
+      toast.success(decision === 'resubmission_required' ? 'Resubmission requested.' : 'Step rejected.');
     } catch {
       toast.error('Failed to reject step.');
     }

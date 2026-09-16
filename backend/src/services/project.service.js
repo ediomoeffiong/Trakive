@@ -39,19 +39,23 @@ const ProjectService = {
     if (role === 'admin' || role === 'super_admin' || role === 'hr') return;
 
     if (role === 'supervisor') {
-      const spId = await this._getSupervisorProfileId(requestingUser.id);
+      const spProfile = await ProfileModel.findSupervisorProfileByUserId(requestingUser.id);
+      if (!spProfile) throw ApiError.forbidden('Supervisor profile not found');
+
       const creatorProfile = project.creator_id ? await this._getInternProfile(project.creator_id) : null;
       let memberBelongsToSupervisor = false;
       const members = Array.isArray(project.members) ? project.members : [];
       for (const member of members) {
         const memberProfile = member.intern_id ? await this._getInternProfile(member.intern_id) : null;
-        if (memberProfile?.supervisor_id === spId) {
+        if (this._internBelongsToSupervisor(memberProfile, spProfile)) {
           memberBelongsToSupervisor = true;
           break;
         }
       }
 
-      if (project.supervisor_id !== spId && creatorProfile?.supervisor_id !== spId && !memberBelongsToSupervisor) {
+      const assignedDirectly = project.supervisor_id === spProfile.id;
+      const creatorBelongs = this._internBelongsToSupervisor(creatorProfile, spProfile);
+      if (!assignedDirectly && !creatorBelongs && !memberBelongsToSupervisor) {
         throw ApiError.forbidden('You are not the supervisor of this project');
       }
       return;
@@ -68,6 +72,30 @@ const ProjectService = {
     }
 
     throw ApiError.forbidden('Access denied');
+  },
+
+  /**
+   * Whether an intern profile is in this supervisor's scope
+   * (directly assigned, or unassigned in the same department).
+   */
+  _internBelongsToSupervisor(internProfile, supervisorProfile) {
+    if (!internProfile || !supervisorProfile) return false;
+    if (internProfile.supervisor_id === supervisorProfile.id) return true;
+    return (
+      !internProfile.supervisor_id &&
+      Boolean(internProfile.department_id) &&
+      internProfile.department_id === supervisorProfile.department_id
+    );
+  },
+
+  /**
+   * Resolve the supervisor profile id for an intern (profile, then active assignment).
+   */
+  async _resolveInternSupervisorId(internProfile) {
+    if (!internProfile) return null;
+    if (internProfile.supervisor_id) return internProfile.supervisor_id;
+    const active = await ProfileModel.findActiveSupervisorAssignment(internProfile.id);
+    return active?.supervisor_id || null;
   },
 
   /**
@@ -173,13 +201,16 @@ const ProjectService = {
 
     const orgId = this._getOrgId(requestingUser);
 
-    // Get intern's supervisor
+    // Get intern's supervisor (profile first, then active assignment history)
     const internProfile = await this._getInternProfile(requestingUser.id);
-    const supervisorProfileId = internProfile ? internProfile.supervisor_id : null;
+    if (!internProfile) {
+      throw ApiError.badRequest('Intern profile not found. Complete onboarding before proposing a project.');
+    }
+    const supervisorProfileId = await this._resolveInternSupervisorId(internProfile);
 
     const project = await ProjectModel.create({
       organization_id: orgId,
-      department_id: requestingUser.department_id || null,
+      department_id: internProfile.department_id || requestingUser.department_id || null,
       title: data.title,
       description: data.description || null,
       creator_id: requestingUser.id,
@@ -231,9 +262,12 @@ const ProjectService = {
 
     await this._authorizeProjectAccess(project, requestingUser);
 
+    const spId = await this._getSupervisorProfileId(requestingUser.id);
     const updated = await ProjectModel.update(projectId, {
       status: 'active',
       supervisor_feedback: null,
+      // Stamp owning supervisor when proposal had none (e.g. department-unassigned intern)
+      ...(project.supervisor_id ? {} : { supervisor_id: spId }),
     });
 
     await ProjectModel.addApprovalHistory(projectId, 'approved', requestingUser.id);
@@ -399,6 +433,9 @@ const ProjectService = {
       scopedFilters.intern_id = requestingUser.id;
     } else if (role === 'supervisor') {
       const spId = await this._getSupervisorProfileId(requestingUser.id);
+      if (!spId) {
+        return formatPaginatedResponse([], 0, page, limit);
+      }
       scopedFilters.supervisor_scope_id = spId;
     }
     // admin/head/hr sees all in org (no extra scoping)
@@ -436,10 +473,18 @@ const ProjectService = {
       if (allowed.includes(key)) updates[key] = value;
     }
 
+    let notifySpId = null;
     if (role === 'intern') {
       updates.status = 'pending_approval';
       updates.supervisor_feedback = null;
       updates.rejection_reason = null;
+
+      notifySpId =
+        project.supervisor_id ||
+        (await this._resolveInternSupervisorId(await this._getInternProfile(project.creator_id)));
+      if (!project.supervisor_id && notifySpId) {
+        updates.supervisor_id = notifySpId;
+      }
     }
 
     await ProjectModel.update(projectId, updates);
@@ -451,8 +496,8 @@ const ProjectService = {
         requestingUser.id
       );
 
-      if (project.supervisor_id) {
-        const spProfile = await ProfileModel.findSupervisorById(project.supervisor_id);
+      if (notifySpId) {
+        const spProfile = await ProfileModel.findSupervisorById(notifySpId);
         if (spProfile) {
           await NotificationModel.create({
             userId: spProfile.user_id,

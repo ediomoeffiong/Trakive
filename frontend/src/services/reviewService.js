@@ -195,7 +195,7 @@ export const reviewService = {
     try {
       const response = await api.get('/onboarding/supervisor/queue');
       const list = response?.data?.data || response?.data;
-      if (Array.isArray(list) && list.length > 0) {
+      if (Array.isArray(list)) {
         return list.map((item) => ({
           ...item,
           internId: item.internId || item.intern_id || item.user_id,

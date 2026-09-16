@@ -145,18 +145,30 @@ export const supervisorService = {
       const interns = internsRes.data?.data?.items || internsRes.data?.items || internsRes.data?.data || [];
       const weekly = weeklyRes.data?.data || weeklyRes.data || [];
 
-      const reviewReminders = weekly.filter(w => w.status === 'submitted').map(w => ({
-        id: w.id,
+      const queueItems = Array.isArray(queue) ? queue : [];
+      const pendingApprovals = queueItems.map((item, idx) => ({
+        id: item.id || item.intern_id || item.internId || item.user_id || `approval-${idx}`,
+        intern: item.internName || item.intern || item.name
+          || `${item.first_name || ''} ${item.last_name || ''}`.trim()
+          || 'Intern',
+        type: item.progress_label || item.type || (item.onboarding_ready ? 'Onboarding Complete' : 'Onboarding Review'),
+      }));
+
+      const reviewReminders = weekly.filter(w => w.status === 'submitted').map((w, idx) => ({
+        id: w.id || `weekly-${idx}`,
+        intern: w.intern_name || w.internName || 'Intern',
+        internName: w.intern_name || w.internName || 'Intern',
+        reviewType: w.title || 'Weekly Report',
         title: `Review Weekly Plan: ${w.title || 'Weekly Report'}`,
-        internName: w.intern_name || 'Intern',
-        dueDate: w.created_at,
+        dueDate: w.created_at ? new Date(w.created_at).toLocaleDateString() : '—',
         urgency: 'warning',
       }));
 
-      const recentlyAssigned = interns.slice(0, 5).map(i => ({
-        id: i.user_id || i.id,
+      const recentlyAssigned = interns.slice(0, 5).map((i, idx) => ({
+        id: i.user_id || i.id || `intern-${idx}`,
         name: `${i.first_name || ''} ${i.last_name || ''}`.trim() || i.email,
         department: i.department_name || 'Department',
+        assignedDate: i.created_at ? new Date(i.created_at).toLocaleDateString() : 'recently',
         assignedAt: i.created_at || new Date().toISOString(),
         avatar: i.avatar_url,
       }));
@@ -167,7 +179,7 @@ export const supervisorService = {
       const topPerformer = interns[0] ? `${interns[0].first_name} ${interns[0].last_name}`.trim() : '—';
 
       return {
-        pendingApprovals: queue,
+        pendingApprovals,
         reviewReminders,
         recentlyAssigned,
         announcements: [],

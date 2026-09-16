@@ -52,8 +52,6 @@ import {
 
 import api from '../services/api';
 import { useAppStore } from '../store/useAppStore';
-import { mockDepartments } from '../data/departments';
-import { mockSupervisors } from '../data/supervisors';
 
 const REQUIRED_DOCUMENTS = [
   {
@@ -99,24 +97,117 @@ export default function OnboardingDashboard() {
   const organizationName = 'CWG PLC';
 
   const [activeCategory, setActiveCategory] = useState('required_docs');
+  const [submittingDocs, setSubmittingDocs] = useState(false);
+  const [savingInfo, setSavingInfo] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [departments, setDepartments] = useState([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
 
   // 2. Internship Information State
   const [info, setInfo] = useState({
-    department_id: isFifthLabDomain ? 'dept-fifthlab' : user?.department_id || 'dept-001',
-    department_name: isFifthLabDomain ? 'FifthLab' : user?.department_name || 'Engineering',
+    department_id: user?.department_id || '',
+    department_name: user?.department_name || '',
     start_date: user?.start_date || new Date().toISOString().split('T')[0],
     end_date: user?.end_date || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    institution: user?.institution || 'University of Lagos',
-    field_of_study: user?.field_of_study || 'Computer Science',
-    phone: user?.phone || '+234 800 000 0001',
+    institution: user?.institution || '',
+    field_of_study: user?.field_of_study || '',
+    phone: user?.phone || '',
     is_saved: false,
     duration_verified_by_supervisor: false,
   });
 
-  const [assignedSupervisor, setAssignedSupervisor] = useState(() => {
-    return mockSupervisors[0] || { name: 'Tochukwu Mgbemena', title: 'Lead Supervisor', email: 'tochukwu.mgbemena@thefifthlab.com' };
+  const [assignedSupervisor, setAssignedSupervisor] = useState({
+    name: 'Pending assignment',
+    title: 'Department Supervisor',
+    email: '',
   });
+
+  // Load real departments from backend
+  useEffect(() => {
+    let mounted = true;
+    const loadDepartments = async () => {
+      setLoadingDepartments(true);
+      try {
+        const res = await api.get('/departments', { params: { limit: 100 } });
+        const list = res?.data?.data || [];
+        if (!mounted) return;
+        setDepartments(Array.isArray(list) ? list : []);
+
+        if (!info.department_id && list.length > 0) {
+          const preferred =
+            list.find((d) => /fifthlab/i.test(d.name || '') && isFifthLabDomain) ||
+            list.find((d) => d.id === user?.department_id) ||
+            list[0];
+          if (preferred) {
+            setInfo((prev) => ({
+              ...prev,
+              department_id: preferred.id,
+              department_name: preferred.name,
+            }));
+          }
+        } else if (info.department_id) {
+          const match = list.find((d) => d.id === info.department_id);
+          if (match) {
+            setInfo((prev) => ({ ...prev, department_name: match.name }));
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load departments for onboarding', err);
+        if (mounted) toast.error('Could not load departments. Refresh and try again.');
+      } finally {
+        if (mounted) setLoadingDepartments(false);
+      }
+    };
+    loadDepartments();
+    return () => { mounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.department_id, isFifthLabDomain]);
+
+  // Sync submitted documents + review status from backend
+  useEffect(() => {
+    let mounted = true;
+    const syncDocuments = async () => {
+      try {
+        const res = await api.get('/onboarding/documents');
+        const payload = res?.data?.data || res?.data || {};
+        const checklist = payload.documents || payload.checklist || [];
+        if (!mounted || !Array.isArray(checklist) || checklist.length === 0) return;
+
+        const next = {
+          resume: null,
+          placement_letter: null,
+          acceptance_letter: null,
+        };
+        let submittedCount = 0;
+        checklist.forEach((item) => {
+          if (!item?.category || !REQUIRED_DOCUMENTS.some((d) => d.category === item.category)) return;
+          if (!item.submitted || !item.document) return;
+          submittedCount += 1;
+          next[item.category] = {
+            id: item.document.id,
+            file_name: item.document.file_name,
+            file_size: item.document.file_size,
+            mime_type: item.document.mime_type || 'application/pdf',
+            uploaded_at: item.document.created_at || item.document.uploaded_at || new Date().toISOString(),
+            review_status: item.review_status || item.document.review_status || 'pending',
+            reviewer_notes: item.document.review_notes || null,
+            history: item.history || [],
+            file_path: item.document.file_path,
+          };
+        });
+        if (submittedCount === 0) return;
+        setDocuments(next);
+        if (submittedCount === 3) {
+          setCompletedSteps((prev) => ({ ...prev, required_docs: true }));
+        }
+      } catch (err) {
+        // Keep local draft if backend unavailable
+        console.warn('Could not sync onboarding documents from API', err);
+      }
+    };
+    syncDocuments();
+    return () => { mounted = false; };
+  }, [user?.id]);
 
   // 3. Real Team Members State (Loaded dynamically from database)
   const [teamMembers, setTeamMembers] = useState([]);
@@ -246,19 +337,24 @@ export default function OnboardingDashboard() {
     }
   };
 
-  // Handle department selection -> Auto-assign supervisor
+  // Handle department selection -> update local selection (supervisor assigned on Save)
   const handleDepartmentChange = (deptId) => {
-    const foundDept = mockDepartments.find((d) => d.id === deptId || d.name === deptId);
+    const foundDept = departments.find((d) => d.id === deptId);
     const deptName = foundDept ? foundDept.name : deptId;
     setInfo((prev) => ({ ...prev, department_id: deptId, department_name: deptName }));
-
-    const supervisor = mockSupervisors[0] || { name: 'Tochukwu Mgbemena', title: 'Lead Supervisor', email: 'tochukwu.mgbemena@thefifthlab.com' };
-    setAssignedSupervisor(supervisor);
-    toast.success(`Department set to ${deptName}. Auto-assigned Supervisor: ${supervisor.name}`);
+    setAssignedSupervisor({
+      name: 'Will be assigned on save',
+      title: 'Department Supervisor',
+      email: '',
+    });
   };
 
-  const handleInfoSubmit = (e) => {
+  const handleInfoSubmit = async (e) => {
     e.preventDefault();
+    if (!info.department_id) {
+      toast.error('Please select a department.');
+      return;
+    }
     if (!info.start_date || !info.end_date) {
       toast.error('Both start date and end date are required.');
       return;
@@ -283,10 +379,43 @@ export default function OnboardingDashboard() {
       return;
     }
 
-    setInfo((prev) => ({ ...prev, is_saved: true }));
-    setCompletedSteps((prev) => ({ ...prev, internship_info: true }));
-    toast.success('Internship Information saved. Duration pending supervisor verification.');
-    setActiveCategory('required_docs');
+    setSavingInfo(true);
+    try {
+      const res = await api.post('/onboarding/info', {
+        department_id: info.department_id,
+        institution: info.institution || undefined,
+        field_of_study: info.field_of_study || undefined,
+        start_date: info.start_date,
+        end_date: info.end_date,
+      });
+      const profile = res?.data?.data?.intern_profile || res?.data?.intern_profile || {};
+      const supervisorName = profile.supervisor_first_name
+        ? `${profile.supervisor_first_name} ${profile.supervisor_last_name || ''}`.trim()
+        : null;
+
+      setAssignedSupervisor({
+        name: supervisorName || 'Pending HR assignment',
+        title: profile.supervisor_title || 'Department Supervisor',
+        email: profile.supervisor_email || '',
+      });
+      setInfo((prev) => ({
+        ...prev,
+        is_saved: true,
+        department_name: profile.department_name || prev.department_name,
+      }));
+      setCompletedSteps((prev) => ({ ...prev, internship_info: true }));
+      toast.success(
+        supervisorName
+          ? `Internship info saved. Assigned supervisor: ${supervisorName}.`
+          : 'Internship info saved. A supervisor will be assigned for document review.'
+      );
+      setActiveCategory('required_docs');
+    } catch (err) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to save internship information.';
+      toast.error(message);
+    } finally {
+      setSavingInfo(false);
+    }
   };
 
   // STRICT Document Upload Validation (PDF ONLY)
@@ -342,7 +471,12 @@ export default function OnboardingDashboard() {
       [category]: docObj,
     }));
 
-    toast.success(`PDF Document ${category.replace('_', ' ').toUpperCase()} uploaded successfully!`);
+    // Selecting a new file after submit means docs need to be re-submitted
+    if (completedSteps.required_docs) {
+      setCompletedSteps((prev) => ({ ...prev, required_docs: false }));
+    }
+
+    toast.success(`PDF selected for ${category.replace(/_/g, ' ')}. Submit when all 3 are ready.`);
   };
 
   const handleRemoveDoc = (category) => {
@@ -350,7 +484,82 @@ export default function OnboardingDashboard() {
       ...prev,
       [category]: null,
     }));
-    toast.info('PDF Document removed.');
+    if (completedSteps.required_docs) {
+      setCompletedSteps((prev) => ({ ...prev, required_docs: false }));
+    }
+    toast.success('PDF Document removed.');
+  };
+
+  const handleSubmitDocuments = async () => {
+    const missing = REQUIRED_DOCUMENTS.filter((d) => !documents[d.category]);
+    if (missing.length > 0) {
+      toast.error(`Please upload all 3 required PDFs before submitting. Missing: ${missing.map((m) => m.title.replace(' (PDF)', '')).join(', ')}`);
+      return;
+    }
+
+    // Internship info must be saved to the API so the supervisor queue can see this intern
+    if (!info.is_saved && !completedSteps.internship_info) {
+      toast.error('Please save Internship Info first so a supervisor can be assigned.');
+      setActiveCategory('internship_info');
+      return;
+    }
+
+    setSubmittingDocs(true);
+    try {
+      // Ensure department/supervisor link exists even if info was only partially saved earlier
+      if (info.department_id) {
+        try {
+          await api.post('/onboarding/info', {
+            department_id: info.department_id,
+            institution: info.institution || undefined,
+            field_of_study: info.field_of_study || undefined,
+            start_date: info.start_date || undefined,
+            end_date: info.end_date || undefined,
+          });
+        } catch (infoErr) {
+          console.warn('Could not refresh internship info before document submit', infoErr);
+        }
+      }
+
+      const results = await Promise.all(
+        REQUIRED_DOCUMENTS.map(async (reqDoc) => {
+          const doc = documents[reqDoc.category];
+          const res = await api.post('/onboarding/documents', {
+            title: reqDoc.title.replace(' (PDF)', ''),
+            file_name: doc.file_name,
+            file_path: doc.file_path || `/uploads/onboarding/${user?.id || 'user'}/${reqDoc.category}/${encodeURIComponent(doc.file_name)}`,
+            file_size: doc.file_size,
+            mime_type: 'application/pdf',
+            category: reqDoc.category,
+          });
+          return { category: reqDoc.category, data: res?.data?.data || res?.data };
+        })
+      );
+
+      setDocuments((prev) => {
+        const next = { ...prev };
+        results.forEach(({ category, data }) => {
+          if (!data) return;
+          next[category] = {
+            ...next[category],
+            id: data.id || next[category]?.id,
+            review_status: data.review_status || 'pending',
+            file_path: data.file_path || next[category]?.file_path,
+          };
+        });
+        return next;
+      });
+
+      setCompletedSteps((prev) => ({ ...prev, required_docs: true, internship_info: true }));
+      setInfo((prev) => ({ ...prev, is_saved: true }));
+      toast.success('Documents submitted for supervisor review!');
+      setActiveCategory('welcome');
+    } catch (err) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to submit documents to supervisor.';
+      toast.error(message);
+    } finally {
+      setSubmittingDocs(false);
+    }
   };
 
   // Metrics
@@ -384,7 +593,7 @@ export default function OnboardingDashboard() {
 
   const getCategoryCount = (catId) => {
     if (catId === 'internship_info') return { done: (info.is_saved || completedSteps.internship_info) ? 1 : 0, total: 1 };
-    if (catId === 'required_docs') return { done: (approvedDocsCount === 3 || completedSteps.required_docs) ? 3 : approvedDocsCount, total: 3 };
+    if (catId === 'required_docs') return { done: (approvedDocsCount === 3 || completedSteps.required_docs) ? 3 : submittedDocsCount, total: 3 };
     if (catId === 'welcome') return { done: completedSteps.welcome ? 1 : 0, total: 1 };
     if (catId === 'company_policies') return { done: completedSteps.company_policies ? 1 : 0, total: 1 };
     if (catId === 'it_setup') return { done: isItSetupComplete ? 1 : (itSetupState.wifiConfirmed || itSetupState.securityGuideRead ? 1 : 0), total: 1 };
@@ -796,6 +1005,8 @@ export default function OnboardingDashboard() {
                   <select
                     value={info.department_id}
                     onChange={(e) => handleDepartmentChange(e.target.value)}
+                    disabled={loadingDepartments || departments.length === 0}
+                    required
                     style={{
                       width: '100%',
                       padding: '10px 14px',
@@ -806,9 +1017,12 @@ export default function OnboardingDashboard() {
                       color: '#0f172a'
                     }}
                   >
-                    {mockDepartments.map((dept) => (
+                    <option value="" disabled>
+                      {loadingDepartments ? 'Loading departments…' : 'Select a department'}
+                    </option>
+                    {departments.map((dept) => (
                       <option key={dept.id} value={dept.id}>
-                        {dept.name} ({dept.code || 'DEPT'})
+                        {dept.name}{dept.code ? ` (${dept.code})` : ''}
                       </option>
                     ))}
                   </select>
@@ -911,22 +1125,23 @@ export default function OnboardingDashboard() {
                 <div style={{ gridColumn: '1 / -1', marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
                   <button
                     type="submit"
+                    disabled={savingInfo || loadingDepartments || !info.department_id}
                     style={{
-                      background: '#10b981',
+                      background: savingInfo || !info.department_id ? '#94a3b8' : '#10b981',
                       color: '#ffffff',
                       border: 'none',
                       borderRadius: '10px',
                       padding: '12px 24px',
                       fontWeight: 700,
                       fontSize: '14px',
-                      cursor: 'pointer',
+                      cursor: savingInfo || !info.department_id ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                      boxShadow: savingInfo || !info.department_id ? 'none' : '0 4px 14px rgba(16, 185, 129, 0.3)'
                     }}
                   >
-                    <RiCheckLine /> Save & Proceed to Documents
+                    <RiCheckLine /> {savingInfo ? 'Saving…' : 'Save & Proceed to Documents'}
                   </button>
                 </div>
 
@@ -1126,6 +1341,61 @@ export default function OnboardingDashboard() {
                   </div>
                 );
               })}
+
+              <div style={{
+                marginTop: '4px',
+                padding: '16px 20px',
+                background: '#ffffff',
+                borderRadius: '16px',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+                flexWrap: 'wrap',
+              }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                    {completedSteps.required_docs
+                      ? 'Documents submitted for supervisor review'
+                      : `${submittedDocsCount}/3 PDFs ready to submit`}
+                  </p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                    {completedSteps.required_docs
+                      ? 'You can replace a file and submit again if your supervisor requests changes.'
+                      : 'Upload all three required PDFs, then submit them for supervisor approval.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSubmitDocuments}
+                  disabled={submittingDocs || submittedDocsCount < 3}
+                  style={{
+                    background: submittedDocsCount < 3 ? '#94a3b8' : '#10b981',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '12px 24px',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    cursor: submittedDocsCount < 3 || submittingDocs ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: submittedDocsCount < 3 ? 'none' : '0 4px 14px rgba(16, 185, 129, 0.3)',
+                    opacity: submittingDocs ? 0.75 : 1,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {submittingDocs ? (
+                    <>Submitting…</>
+                  ) : completedSteps.required_docs ? (
+                    <><RiCheckLine /> Submit Again & Proceed <RiArrowRightLine /></>
+                  ) : (
+                    <><RiUploadCloudLine /> Submit Documents & Proceed to Welcome <RiArrowRightLine /></>
+                  )}
+                </button>
+              </div>
             </motion.div>
           )}
 
