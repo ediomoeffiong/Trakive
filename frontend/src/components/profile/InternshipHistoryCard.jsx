@@ -26,52 +26,14 @@ const InternshipHistoryCard = ({
   onCreateNewRecord,
   isSupervisor = false,
 }) => {
-  // Default mock records if internships list is empty
-  const records = internships.length > 0 ? internships : [
-    {
-      id: 'rec-1',
-      internshipNumber: 1,
-      title: 'Internship #1',
-      department: 'Product & Engineering',
-      startDate: '2025-06-01',
-      endDate: '2025-11-30',
-      status: 'completed',
-      workLocation: 'Lagos Office (Hybrid)',
-      workHours: '9:00 AM - 5:00 PM',
-      daysPerWeek: 5,
-      supervisorName: 'Tochukwu Mgbemmena',
-      supervisorEmail: 'tochukwu@fifthlab.com',
-      finalSummary: {
-        overallScore: 92.5,
-        tasksCompleted: 48,
-        totalTasks: 50,
-        attendanceRate: 98,
-        feedback: 'Demonstrated outstanding technical initiative and project delivery during Internship #1.',
-      },
-    },
-    {
-      id: 'rec-2',
-      internshipNumber: 2,
-      title: 'Internship #2',
-      department: 'Product & Engineering',
-      startDate: '2026-03-01',
-      endDate: '2026-09-01',
-      status: 'active',
-      workLocation: 'Lagos Office (Onsite)',
-      workHours: '9:00 AM - 5:00 PM',
-      daysPerWeek: 5,
-      supervisorName: 'Tochukwu Mgbemmena',
-      supervisorEmail: 'tochukwu@fifthlab.com',
-      completionPercentage: 75,
-    },
-  ];
+  const records = internships;
 
   const [selectedId, setSelectedId] = useState(activeRecordId || records[records.length - 1]?.id || records[0]?.id);
   const [showModal, setShowModal] = useState(false);
   const [newStart, setNewStart] = useState('');
   const [newEnd, setNewEnd] = useState('');
 
-  const selectedRecord = records.find((r) => r.id === selectedId) || records[0];
+  const selectedRecord = records.find((r) => r.id === selectedId) || records[0] || null;
 
   const handleStartNewInternship = (e) => {
     e.preventDefault();
@@ -121,7 +83,7 @@ const InternshipHistoryCard = ({
             <h2 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, color: 'var(--color-neutral-900)' }}>
               Internship History & Records
             </h2>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: 99, background: '#eef2ff', color: '#4f46e5' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: 99, background: '#e6faff', color: '#0077b6' }}>
               {records.length} Period{records.length !== 1 ? 's' : ''}
             </span>
           </div>
@@ -137,7 +99,7 @@ const InternshipHistoryCard = ({
             onClick={() => setShowModal(true)}
             style={{ fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: '0.5rem', padding: '0.4rem 0.75rem' }}
           >
-            <FiPlusCircle style={{ color: '#4f46e5' }} />
+            <FiPlusCircle style={{ color: '#00b4d8' }} />
             Start New Internship
           </button>
         )}
@@ -145,7 +107,11 @@ const InternshipHistoryCard = ({
 
       {/* ── Chronological Internship Selector ──────────────────────── */}
       <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', marginBottom: '1.25rem' }}>
-        {records.map((rec) => {
+        {records.length === 0 ? (
+          <div style={{ width: '100%', padding: '1rem', border: '1px dashed var(--color-neutral-300)', borderRadius: '0.75rem', background: 'var(--color-neutral-50)', color: 'var(--color-neutral-500)', fontSize: '0.875rem' }}>
+            No internship records found yet.
+          </div>
+        ) : records.map((rec) => {
           const isSelected = rec.id === selectedId;
           const isActive = rec.status === 'active' || rec.status === 'onboarding';
 
@@ -165,9 +131,9 @@ const InternshipHistoryCard = ({
                 borderRadius: '0.625rem',
                 fontSize: '0.8125rem',
                 fontWeight: isSelected ? 700 : 500,
-                border: isSelected ? '2px solid #4f46e5' : '1px solid var(--color-neutral-200)',
-                background: isSelected ? '#eef2ff' : '#f9fafb',
-                color: isSelected ? '#3730a3' : 'var(--color-neutral-700)',
+                border: isSelected ? '2px solid #00b4d8' : '1px solid var(--color-neutral-200)',
+                background: isSelected ? '#e6faff' : '#f9fafb',
+                color: isSelected ? '#0077b6' : 'var(--color-neutral-700)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.15s ease',
@@ -193,7 +159,7 @@ const InternshipHistoryCard = ({
 
       {/* ── Selected Internship Details ──────────────────────── */}
       <AnimatePresence mode="wait">
-        <motion.div
+        {selectedRecord && <motion.div
           key={selectedRecord.id}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
@@ -218,14 +184,14 @@ const InternshipHistoryCard = ({
             <div style={{ background: 'var(--color-neutral-50)', padding: '0.75rem 1rem', borderRadius: '0.625rem', border: '1px solid var(--color-neutral-200)' }}>
               <span style={{ fontSize: '0.7rem', color: 'var(--color-neutral-500)', fontWeight: 600, textTransform: 'uppercase' }}>Department</span>
               <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
-                {selectedRecord.department || 'Fifthlab'}
+                {selectedRecord.department || '—'}
               </p>
             </div>
 
             <div style={{ background: 'var(--color-neutral-50)', padding: '0.75rem 1rem', borderRadius: '0.625rem', border: '1px solid var(--color-neutral-200)' }}>
               <span style={{ fontSize: '0.7rem', color: 'var(--color-neutral-500)', fontWeight: 600, textTransform: 'uppercase' }}>Supervisor</span>
               <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
-                {selectedRecord.supervisorName || 'Tochukwu Mgbemmena'}
+                {selectedRecord.supervisorName || selectedRecord.supervisor || '—'}
               </p>
             </div>
 
@@ -258,21 +224,21 @@ const InternshipHistoryCard = ({
                 <div style={{ background: '#ffffff', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #a7f3d0' }}>
                   <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 600 }}>Overall Score</span>
                   <p style={{ margin: '0.1rem 0 0 0', fontSize: '1.25rem', fontWeight: 900, color: '#065f46' }}>
-                    {selectedRecord.finalSummary.overallScore || 90}%
+                    {selectedRecord.finalSummary.overallScore ?? '—'}%
                   </p>
                 </div>
 
                 <div style={{ background: '#ffffff', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #a7f3d0' }}>
                   <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 600 }}>Tasks Completed</span>
                   <p style={{ margin: '0.1rem 0 0 0', fontSize: '1.25rem', fontWeight: 900, color: '#065f46' }}>
-                    {selectedRecord.finalSummary.tasksCompleted || 48} / {selectedRecord.finalSummary.totalTasks || 50}
+                    {selectedRecord.finalSummary.tasksCompleted ?? '—'} / {selectedRecord.finalSummary.totalTasks ?? '—'}
                   </p>
                 </div>
 
                 <div style={{ background: '#ffffff', padding: '0.625rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #a7f3d0' }}>
                   <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 600 }}>Attendance Rate</span>
                   <p style={{ margin: '0.1rem 0 0 0', fontSize: '1.25rem', fontWeight: 900, color: '#065f46' }}>
-                    {selectedRecord.finalSummary.attendanceRate || 98}%
+                    {selectedRecord.finalSummary.attendanceRate ?? '—'}%
                   </p>
                 </div>
               </div>
@@ -287,7 +253,7 @@ const InternshipHistoryCard = ({
               )}
             </div>
           )}
-        </motion.div>
+        </motion.div>}
       </AnimatePresence>
 
       {/* ── Modal for Starting New Internship ──────────────── */}

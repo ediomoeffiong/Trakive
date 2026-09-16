@@ -203,7 +203,7 @@ const SubmissionCard = ({ submission }) => {
               padding: '0.5rem 1rem',
               borderRadius: '0.625rem',
               border: 'none',
-              background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+              background: '#00b4d8',
               color: '#fff',
               fontSize: '0.8125rem',
               fontWeight: 700,
@@ -276,7 +276,7 @@ const SubmissionMonitoringView = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             onClick={() => setActiveFilter(null)}
-            style={{ marginTop: '0.625rem', background: 'none', border: 'none', color: '#4f46e5', fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer', padding: '0.25rem 0' }}
+            style={{ marginTop: '0.625rem', background: 'none', border: 'none', color: '#00b4d8', fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer', padding: '0.25rem 0' }}
           >
             ✕ Clear filter
           </motion.button>
@@ -320,4 +320,3 @@ const SubmissionMonitoringView = () => {
 };
 
 export default SubmissionMonitoringView;
-

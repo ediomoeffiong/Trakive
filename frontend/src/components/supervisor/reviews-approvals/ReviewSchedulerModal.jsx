@@ -30,6 +30,8 @@ const LOCATIONS = [
 ];
 
 const DURATIONS = [15, 30, 45, 60, 90, 120];
+const ACCENT_COLOR = '#00b4d8';
+const ACCENT_SOFT = '#e6faff';
 
 // ── Field Wrapper ─────────────────────────────────────────────────────────────
 const Field = ({ label, required, children }) => (
@@ -64,7 +66,7 @@ const ReviewSchedulerModal = ({
   onChange,
   onSubmit,
 }) => {
-  const handleFieldFocus = (e) => (e.target.style.borderColor = '#4f46e5');
+  const handleFieldFocus = (e) => (e.target.style.borderColor = ACCENT_COLOR);
   const handleFieldBlur = (e) => (e.target.style.borderColor = 'var(--color-neutral-200)');
 
   const handleSubmit = () => {
@@ -78,6 +80,9 @@ const ReviewSchedulerModal = ({
   const handleInternChange = (e) => {
     onChange?.('internId', e.target.value);
     const intern = interns.find((i) => i.internId === e.target.value || i.id === e.target.value);
+    onChange?.('internName', intern?.internName || intern?.name || '');
+    onChange?.('internDepartment', intern?.department || intern?.internDepartment || '');
+    onChange?.('internEmail', intern?.email || intern?.internEmail || '');
     if (intern && !formData.title) {
       const typeLbl = REVIEW_TYPES.find((t) => t.value === (formData.type || 'one-on-one'))?.label || '1-on-1 Check-in';
       onChange?.('title', `${typeLbl} — ${intern.internName || intern.name}`);
@@ -102,10 +107,10 @@ const ReviewSchedulerModal = ({
             transition={{ type: 'spring', stiffness: 380, damping: 28 }}
             style={{
               position: 'fixed',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
+              inset: '1rem',
+              margin: 'auto',
               width: 'min(560px, calc(100vw - 2rem))',
+              height: 'fit-content',
               maxHeight: 'calc(100vh - 4rem)',
               background: '#fff',
               borderRadius: '1.25rem',
@@ -119,7 +124,7 @@ const ReviewSchedulerModal = ({
             {/* Header */}
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-neutral-100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, background: 'linear-gradient(135deg, #f8faff, #fff)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.1rem' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '0.75rem', background: ACCENT_COLOR, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.1rem' }}>
                   <RiCalendarCheckLine />
                 </div>
                 <div>
@@ -167,9 +172,9 @@ const ReviewSchedulerModal = ({
                       style={{
                         padding: '0.5rem 0.875rem',
                         borderRadius: '9999px',
-                        border: `1.5px solid ${formData.type === value ? '#4f46e5' : 'var(--color-neutral-200)'}`,
-                        background: formData.type === value ? '#eef2ff' : '#fff',
-                        color: formData.type === value ? '#4338ca' : 'var(--color-neutral-600)',
+                        border: `1.5px solid ${formData.type === value ? ACCENT_COLOR : 'var(--color-neutral-200)'}`,
+                        background: formData.type === value ? ACCENT_SOFT : '#fff',
+                        color: formData.type === value ? '#0077b6' : 'var(--color-neutral-600)',
                         fontSize: '0.8125rem',
                         fontWeight: formData.type === value ? 700 : 500,
                         cursor: 'pointer',
@@ -281,11 +286,11 @@ const ReviewSchedulerModal = ({
                 Cancel
               </button>
               <motion.button
-                whileHover={{ scale: 1.03, boxShadow: '0 8px 24px rgba(79,70,229,0.35)' }}
+                whileHover={{ scale: 1.03, boxShadow: '0 8px 24px rgba(0,180,216,0.35)' }}
                 whileTap={{ scale: 0.97 }}
                 onClick={handleSubmit}
                 disabled={isLoading}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.625rem 1.25rem', borderRadius: '0.75rem', border: 'none', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.7 : 1, boxShadow: '0 4px 16px rgba(79,70,229,0.28)' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.625rem 1.25rem', borderRadius: '0.75rem', border: 'none', background: ACCENT_COLOR, color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.7 : 1, boxShadow: '0 4px 16px rgba(0,180,216,0.28)' }}
               >
                 {isLoading ? (
                   <span style={{ display: 'inline-block', width: '14px', height: '14px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', animation: 'spin 0.8s linear infinite' }} />

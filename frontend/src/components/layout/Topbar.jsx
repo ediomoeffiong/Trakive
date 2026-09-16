@@ -20,6 +20,7 @@ import {
 } from 'react-icons/ri';
 import Avatar from '../ui/Avatar';
 import { useCurrentUser, useTheme, useAppStore } from '../../store';
+import { useProfileStore } from '../../store/useProfileStore';
 import { NotificationDrawer } from '../notifications';
 import { ROUTES } from '../../constants';
 import { formatRole } from '../../utils';
@@ -52,6 +53,7 @@ const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) =>
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const user = useCurrentUser();
+  const profile = useProfileStore((s) => s.profile);
   const theme = useTheme();
   const setTheme = useAppStore((s) => s.setTheme);
   const logout = useAppStore((s) => s.logout);
@@ -64,6 +66,9 @@ const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) =>
   // Check if pathname matches task detail route regex
   const isTaskDetail = pathname.startsWith('/dashboard/tasks/');
   const pageTitle = isTaskDetail ? 'Task Details' : (PAGE_TITLES[pathname] ?? 'Trakive');
+  const displayName = profile?.fullName || user?.name || 'User';
+  const displayRole = profile?.role || user?.role || 'Intern';
+  const displayDepartment = profile?.department || user?.department_name || user?.department || 'Department not set';
 
   return (
     <header className="app-topbar" role="banner" id="app-topbar" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0 1.5rem', background: '#fff', borderBottom: '1px solid var(--color-neutral-200)', height: 'var(--topbar-height)', sticky: 'top', zIndex: 40 }}>
@@ -175,18 +180,18 @@ const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) =>
           id="user-menu-btn"
         >
           <Avatar
-            name={user?.name ?? 'Demo User'}
-            src={user?.avatarUrl || user?.avatar_url || user?.avatar}
+            name={displayName}
+            src={profile?.avatarUrl || user?.avatarUrl || user?.avatar_url || user?.avatar}
             size="sm"
             online
           />
           {/* User Role & Name (Desktop only) */}
           <div className="lg-only" style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.1, marginBottom: '2px' }}>
-              {formatRole(user?.role)}
+              {formatRole(displayRole)}
             </span>
             <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-800)', lineHeight: 1.1 }}>
-              {user?.name ?? 'Demo User'}
+              {displayName}
             </span>
           </div>
         </button>
@@ -220,10 +225,10 @@ const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) =>
               >
                 <div style={{ padding: '0.5rem 0.75rem' }}>
                   <p style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--color-neutral-900)', margin: 0 }}>
-                    {user?.name ?? 'Demo User'}
+                    {displayName}
                   </p>
                   <p style={{ fontSize: '0.75rem', color: 'var(--color-neutral-500)', margin: 0 }}>
-                    {formatRole(user?.role)} • {user?.department ?? 'Engineering'}
+                    {formatRole(displayRole)} • {displayDepartment}
                   </p>
                 </div>
                 <div style={{ height: '1px', backgroundColor: 'var(--color-neutral-200)', margin: '0.5rem 0' }} />

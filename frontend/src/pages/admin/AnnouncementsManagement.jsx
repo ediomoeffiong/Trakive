@@ -140,7 +140,7 @@ function AnnouncementFormModal({ announcement, onClose, onSave }) {
               disabled={loading}
               style={{
                 padding: '0.5rem 1.5rem', borderRadius: '0.625rem', border: 'none',
-                background: 'linear-gradient(135deg, #6366f1, #0ea5e9)', color: '#fff',
+                background: '#00b4d8', color: '#fff',
                 fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
               }}
             >
@@ -393,7 +393,7 @@ const AnnouncementsManagement = () => {
             style={{
               display: 'flex', alignItems: 'center', gap: '0.5rem',
               padding: '0.6rem 1.125rem', borderRadius: '0.75rem', border: 'none',
-              background: 'linear-gradient(135deg, #6366f1, #0ea5e9)', color: '#fff',
+              background: '#00b4d8', color: '#fff',
               fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem',
               boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
             }}
@@ -424,9 +424,9 @@ const AnnouncementsManagement = () => {
               onClick={() => setAnnouncementFilter(tab.key)}
               style={{
                 padding: '0.45rem 0.875rem', borderRadius: '0.5rem',
-                border: `1px solid ${announcementFilter === tab.key ? '#6366f1' : 'var(--color-neutral-200)'}`,
+                border: `1px solid ${announcementFilter === tab.key ? '#00b4d8' : 'var(--color-neutral-200)'}`,
                 background: announcementFilter === tab.key ? '#eef2ff' : 'var(--color-neutral-50)',
-                color: announcementFilter === tab.key ? '#4338ca' : 'var(--color-neutral-600)',
+                color: announcementFilter === tab.key ? '#0077b6' : 'var(--color-neutral-600)',
                 cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600,
               }}
             >

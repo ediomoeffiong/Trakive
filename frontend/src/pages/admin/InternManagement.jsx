@@ -91,7 +91,7 @@ function AssignSupervisorModal({ intern, onClose, onAssign }) {
               disabled={loading}
               style={{
                 padding: '0.5rem 1.25rem', borderRadius: '0.625rem', border: 'none',
-                background: 'linear-gradient(135deg, #6366f1, #0ea5e9)', color: '#fff',
+                background: '#00b4d8', color: '#fff',
                 fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
               }}
             >
@@ -149,7 +149,7 @@ function UpdateStatusModal({ intern, onClose, onUpdate }) {
               style={{
                 display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
                 padding: '0.875rem', borderRadius: '0.75rem', cursor: 'pointer',
-                border: `2px solid ${selected === s.value ? '#6366f1' : 'var(--color-neutral-200)'}`,
+                border: `2px solid ${selected === s.value ? '#00b4d8' : 'var(--color-neutral-200)'}`,
                 background: selected === s.value ? '#eef2ff' : '#fff',
                 transition: 'all 0.15s',
               }}
@@ -170,7 +170,7 @@ function UpdateStatusModal({ intern, onClose, onUpdate }) {
             disabled={loading}
             style={{
               padding: '0.5rem 1.25rem', borderRadius: '0.625rem', border: 'none',
-              background: 'linear-gradient(135deg, #6366f1, #0ea5e9)', color: '#fff',
+              background: '#00b4d8', color: '#fff',
               fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
             }}
           >
@@ -251,7 +251,7 @@ function InternProfileDrawer({ intern, onClose, onAssign, onUpdateStatus }) {
             style={{
               display: 'flex', alignItems: 'center', gap: '0.625rem',
               padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1px solid #c7d2fe',
-              background: '#eef2ff', color: '#4338ca', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem',
+              background: '#e6faff', color: '#0077b6', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem',
             }}
           >
             <RiExchangeLine style={{ fontSize: '1.125rem' }} />
@@ -508,7 +508,7 @@ const InternManagement = () => {
                             </button>
                             <button
                               onClick={() => setAssignTarget(intern)}
-                              style={{ padding: '0.35rem 0.7rem', borderRadius: '0.5rem', border: '1px solid #c7d2fe', background: '#eef2ff', cursor: 'pointer', color: '#4338ca', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 600 }}
+                              style={{ padding: '0.35rem 0.7rem', borderRadius: '0.5rem', border: '1px solid #67e8f9', background: '#e6faff', cursor: 'pointer', color: '#0077b6', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 600 }}
                               title="Assign supervisor"
                             >
                               <RiExchangeLine />

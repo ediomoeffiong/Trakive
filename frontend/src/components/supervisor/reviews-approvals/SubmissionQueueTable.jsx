@@ -24,6 +24,9 @@ import {
 } from 'react-icons/ri';
 import { SubmissionTableSkeleton } from './ReviewSkeletonLoaders';
 
+const ACCENT_COLOR = '#00b4d8';
+const ACCENT_SOFT = '#e6faff';
+
 // ── Status config ─────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
   'pending-review': { label: 'Pending Review', bg: '#fffbeb', color: '#92400e', dot: '#f59e0b' },
@@ -55,8 +58,8 @@ const getInitialsBg = (initials = 'XX') => {
 const SortIcon = ({ col, activeSort }) => {
   if (activeSort.key !== col) return <RiArrowUpDownLine style={{ opacity: 0.3, fontSize: '0.75rem' }} />;
   return activeSort.dir === 'asc'
-    ? <RiArrowUpLine style={{ color: '#4f46e5', fontSize: '0.75rem' }} />
-    : <RiArrowDownLine style={{ color: '#4f46e5', fontSize: '0.75rem' }} />;
+    ? <RiArrowUpLine style={{ color: ACCENT_COLOR, fontSize: '0.75rem' }} />
+    : <RiArrowDownLine style={{ color: ACCENT_COLOR, fontSize: '0.75rem' }} />;
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -134,7 +137,7 @@ const SubmissionQueueTable = ({
                 boxSizing: 'border-box',
                 transition: 'border-color 0.15s',
               }}
-              onFocus={(e) => (e.target.style.borderColor = '#4f46e5')}
+              onFocus={(e) => (e.target.style.borderColor = ACCENT_COLOR)}
               onBlur={(e) => (e.target.style.borderColor = 'var(--color-neutral-200)')}
             />
           </div>
@@ -205,11 +208,11 @@ const SubmissionQueueTable = ({
               exit={{ height: 0, opacity: 0 }}
               style={{ overflow: 'hidden' }}
             >
-              <div style={{ padding: '0.625rem 1.25rem', background: '#eef2ff', display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid #e0e7ff' }}>
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#4338ca' }}>
+              <div style={{ padding: '0.625rem 1.25rem', background: ACCENT_SOFT, display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid #90e0ef' }}>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#0077b6' }}>
                   {selectedIds.length} submission{selectedIds.length !== 1 ? 's' : ''} selected
                 </span>
-                <button onClick={onClearSelection} style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4338ca', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                <button onClick={onClearSelection} style={{ fontSize: '0.75rem', fontWeight: 600, color: '#0077b6', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
                   Clear
                 </button>
               </div>
@@ -229,7 +232,7 @@ const SubmissionQueueTable = ({
                     checked={allSelected}
                     ref={(el) => { if (el) el.indeterminate = someSelected; }}
                     onChange={() => allSelected ? onClearSelection?.() : onSelectAll?.()}
-                    style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#4f46e5' }}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: ACCENT_COLOR }}
                   />
                 </th>
                 {[
@@ -287,7 +290,7 @@ const SubmissionQueueTable = ({
                       animate={{ opacity: 1 }}
                       style={{
                         borderBottom: '1px solid var(--color-neutral-100)',
-                        background: isSelected ? '#eef2ff' : '#fff',
+                        background: isSelected ? ACCENT_SOFT : '#fff',
                         transition: 'background 0.15s ease',
                       }}
                       onMouseEnter={(e) => !isSelected && (e.currentTarget.style.background = '#fafafa')}
@@ -299,7 +302,7 @@ const SubmissionQueueTable = ({
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => onToggleSelect?.(sub.id)}
-                          style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#4f46e5' }}
+                          style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: ACCENT_COLOR }}
                         />
                       </td>
 
@@ -375,7 +378,7 @@ const SubmissionQueueTable = ({
                             style={{
                               fontSize: '0.9375rem',
                               fontWeight: 800,
-                              color: sub.score >= 90 ? '#059669' : sub.score >= 70 ? '#4f46e5' : '#d97706',
+                              color: sub.score >= 90 ? '#059669' : sub.score >= 70 ? ACCENT_COLOR : '#d97706',
                             }}
                           >
                             {sub.score}
@@ -394,11 +397,11 @@ const SubmissionQueueTable = ({
                       <td style={{ padding: '0.875rem 1rem' }}>
                         <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
                           <motion.button
-                            whileHover={{ scale: 1.1, background: '#eef2ff' }}
+                            whileHover={{ scale: 1.1, background: ACCENT_SOFT }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => onView?.(sub)}
                             title="View details"
-                            style={{ width: '30px', height: '30px', borderRadius: '0.5rem', border: '1px solid var(--color-neutral-200)', background: '#fff', color: '#4f46e5', fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            style={{ width: '30px', height: '30px', borderRadius: '0.5rem', border: '1px solid var(--color-neutral-200)', background: '#fff', color: ACCENT_COLOR, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           >
                             <RiEyeLine />
                           </motion.button>
@@ -463,7 +466,7 @@ const SubmissionQueueTable = ({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => onPageChange?.(page)}
-                    style={{ width: '32px', height: '32px', borderRadius: '0.5rem', border: isActive ? 'none' : '1px solid var(--color-neutral-200)', background: isActive ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : '#fff', color: isActive ? '#fff' : 'var(--color-neutral-600)', fontSize: '0.8125rem', fontWeight: isActive ? 800 : 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ width: '32px', height: '32px', borderRadius: '0.5rem', border: isActive ? 'none' : '1px solid var(--color-neutral-200)', background: isActive ? ACCENT_COLOR : '#fff', color: isActive ? '#fff' : 'var(--color-neutral-600)', fontSize: '0.8125rem', fontWeight: isActive ? 800 : 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     {page}
                   </motion.button>

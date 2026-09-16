@@ -23,6 +23,57 @@ const saveCustomUser = (user) => {
 
 const delay = (ms = 1000) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const normalizeRole = (role = '') => {
+  const value = String(role || '').toLowerCase();
+  if (value === 'supervisor') return 'Supervisor';
+  if (value === 'intern') return 'Intern';
+  if (value === 'hr' || value === 'hr_admin' || value === 'hr administrator') return 'HR Administrator';
+  if (value === 'head' || value === 'department_head' || value === 'department head') return 'Department Head';
+  return role || 'Intern';
+};
+
+const normalizeUser = (user, email, token, tokens = {}) => {
+  if (!user || typeof user !== 'object') return null;
+  const name = user.name || `${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}`.trim() || email.split('@')[0];
+  const department = user.department_name || user.department || '';
+  return {
+    ...user,
+    id: user.id || user.user_id,
+    name,
+    firstName: user.firstName || user.first_name || name.split(/\s+/)[0] || '',
+    lastName: user.lastName || user.last_name || name.split(/\s+/).slice(1).join(' ') || '',
+    email: user.email || email,
+    avatarUrl: user.avatarUrl || user.avatar_url || user.avatar || null,
+    department,
+    department_name: user.department_name || department,
+    organization: user.organization_name || user.organization || '',
+    organization_name: user.organization_name || user.organization || '',
+    role: normalizeRole(user.role || user.role_name),
+    token,
+    accessToken: token,
+    refreshToken: tokens.refreshToken,
+    isFirstLogin: Boolean(user.isFirstLogin),
+    hasCompletedOnboarding: user.hasCompletedOnboarding ?? true,
+    profileCompleted: user.profileCompleted ?? true,
+  };
+};
+
+const getMockLogin = async (email, password) => {
+  await delay(800);
+  const users = getRegisteredUsers();
+  const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+
+  if (!user || password !== DEFAULT_MOCK_PASSWORD) {
+    throw new Error('Invalid email or password. Please try again.');
+  }
+
+  const token = `mock-jwt-token-for-${user.id}`;
+  return {
+    user: normalizeUser(user, email, token),
+    token,
+  };
+};
+
 export const authService = {
   /**
    * Login validating email and password via backend API with fallback.
@@ -34,27 +85,9 @@ export const authService = {
       const user = payload.user || payload;
       const tokens = payload.tokens || {};
       const token = tokens.accessToken || payload.token || user.token;
+      const safeUser = normalizeUser(user, email, token, tokens);
 
-      let role = user.role || user.role_name || 'Intern';
-      if (role.toLowerCase() === 'supervisor') role = 'Supervisor';
-      if (role.toLowerCase() === 'intern') role = 'Intern';
-      if (role.toLowerCase() === 'hr' || role.toLowerCase() === 'hr_admin') role = 'HR Administrator';
-      if (role.toLowerCase() === 'head' || role.toLowerCase() === 'department_head') role = 'Department Head';
-
-      const safeUser = {
-        ...user,
-        id: user.id || user.user_id,
-        name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || email.split('@')[0],
-        email: user.email || email,
-        avatarUrl: user.avatarUrl || user.avatar_url || user.avatar || null,
-        role,
-        token,
-        accessToken: token,
-        refreshToken: tokens.refreshToken,
-        isFirstLogin: false,
-        hasCompletedOnboarding: true,
-        profileCompleted: true,
-      };
+      if (!safeUser?.id || !token) throw new Error('Invalid login response from server');
 
       return {
         user: safeUser,
@@ -64,29 +97,15 @@ export const authService = {
       // If backend responded with explicit auth failure message
       const backendMsg = err.response?.data?.message || err.response?.data?.error;
       if (backendMsg) {
+        const isDemoAccount = mockUsers.some((u) => u.email.toLowerCase() === email.toLowerCase());
+        if (isDemoAccount && password === DEFAULT_MOCK_PASSWORD) {
+          return getMockLogin(email, password);
+        }
         throw new Error(backendMsg);
       }
 
       // Fallback for offline/mock development
-      await delay(800);
-      const users = getRegisteredUsers();
-      const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-
-      if (!user) {
-        throw new Error('Invalid email or password. Please try again.');
-      }
-
-      const safeUser = {
-        ...user,
-        role: user.role === 'supervisor' ? 'Supervisor' : user.role,
-        avatarUrl: user.avatarUrl || user.avatar_url || user.avatar || null,
-        token: `mock-jwt-token-for-${user.id}`,
-      };
-
-      return {
-        user: safeUser,
-        token: safeUser.token,
-      };
+      return getMockLogin(email, password);
     }
   },
 
@@ -113,6 +132,7 @@ export const authService = {
       role: role,
       department: data.department || '',
       phone: data.phone || '',
+      dateOfBirth: data.dateOfBirth || data.date_of_birth || '',
       startDate: isSupervisor ? '' : (data.startDate || ''),
       endDate: isSupervisor ? '' : (data.endDate || ''),
       datesVerified: isSupervisor ? true : false,

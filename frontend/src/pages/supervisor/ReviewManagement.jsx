@@ -33,7 +33,7 @@ import {
   ReviewBulkActionToolbar,
 } from '../../components/supervisor/reviews-approvals';
 
-import { mockSupervisorSubmissions, mockOnboardingApprovals } from '../../data';
+const ACCENT_COLOR = '#00b4d8';
 
 // ── Page transition ───────────────────────────────────────────────────────────
 const pageVariants = {
@@ -45,7 +45,7 @@ const pageVariants = {
 // ── Quick-stats mini widget (Dashboard tab) ───────────────────────────────────
 const QuickStatsRow = ({ upcoming, history }) => {
   const items = [
-    { label: 'Reviews This Week', value: upcoming.filter((r) => { const d = new Date(r.scheduledAt); const now = new Date(); const diff = (d - now) / (1000 * 60 * 60 * 24); return diff >= 0 && diff <= 7; }).length, color: '#4f46e5' },
+    { label: 'Reviews This Week', value: upcoming.filter((r) => { const d = new Date(r.scheduledAt); const now = new Date(); const diff = (d - now) / (1000 * 60 * 60 * 24); return diff >= 0 && diff <= 7; }).length, color: ACCENT_COLOR },
     { label: 'Completed Reviews', value: history.length, color: '#10b981' },
     { label: 'Avg Score', value: history.filter((r) => r.score).length > 0 ? Math.round(history.filter((r) => r.score).reduce((a, b) => a + b.score, 0) / history.filter((r) => r.score).length) : '—', color: '#f59e0b' },
     { label: 'Approval Rate', value: history.length > 0 ? `${Math.round((history.filter((r) => r.decision === 'approved').length / history.length) * 100)}%` : '—', color: '#06b6d4' },
@@ -70,7 +70,7 @@ const RecentReviewsActivity = ({ submissions, history }) => {
     })),
     ...history.slice(0, 3).map((r) => ({
       id: r.id, type: r.decision, name: r.internName, task: r.taskTitle, time: r.reviewedAt,
-      color: r.decision === 'approved' ? '#10b981' : r.decision === 'needs-revision' ? '#4f46e5' : '#ef4444',
+      color: r.decision === 'approved' ? '#10b981' : r.decision === 'needs-revision' ? ACCENT_COLOR : '#ef4444',
       bg: r.decision === 'approved' ? '#ecfdf5' : r.decision === 'needs-revision' ? '#eef2ff' : '#fef2f2',
     })),
   ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 6);
@@ -141,7 +141,6 @@ const ReviewManagementPage = () => {
     isReviewModalOpen,
     isSchedulerModalOpen,
     loading,
-    errors,
 
     // Actions
     setActiveTab,
@@ -226,14 +225,23 @@ const ReviewManagementPage = () => {
   // Interns list for scheduler (derived from onboarding queue or submissions)
   const internsList = useMemo(() => {
     const seen = new Set();
-    return mockSupervisorSubmissions.reduce((acc, s) => {
-      if (!seen.has(s.internId)) {
-        seen.add(s.internId);
-        acc.push({ internId: s.internId, internName: s.internName, department: s.internDepartment });
-      }
-      return acc;
-    }, []);
-  }, []);
+    const acc = [];
+    const addIntern = (intern) => {
+      const internId = intern.internId || intern.intern_id || intern.id;
+      if (!internId || seen.has(internId)) return;
+      seen.add(internId);
+      const internName = intern.internName || intern.intern_name || intern.name || [intern.firstName, intern.lastName].filter(Boolean).join(' ');
+      acc.push({
+        internId,
+        internName: internName || 'Intern',
+        department: intern.department || intern.internDepartment || intern.department_name || '',
+        email: intern.email || intern.internEmail || intern.intern_email || '',
+      });
+    };
+    (submissions || []).forEach((s) => addIntern(s));
+    (onboardingQueue || []).forEach((intern) => addIntern(intern));
+    return acc;
+  }, [submissions, onboardingQueue]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -358,7 +366,7 @@ const ReviewManagementPage = () => {
             <RiRefreshLine style={{ fontSize: '1rem' }} />
           </motion.button>
           <motion.button
-            whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(79,70,229,0.35)' }}
+            whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(0,180,216,0.35)' }}
             whileTap={{ scale: 0.97 }}
             onClick={() => openSchedulerModal()}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5625rem 1.125rem', borderRadius: '0.875rem', border: 'none', background: '#00b4d8', color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,180,216,0.28)' }}
@@ -422,7 +430,7 @@ const ReviewManagementPage = () => {
               <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', padding: '1.25rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h3 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-800)' }}>Upcoming Reviews</h3>
-                  <button onClick={() => setActiveTab('schedule')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4f46e5', fontSize: '0.8125rem', fontWeight: 700 }}>View all →</button>
+                  <button onClick={() => setActiveTab('schedule')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: ACCENT_COLOR, fontSize: '0.8125rem', fontWeight: 700 }}>View all →</button>
                 </div>
                 {upcomingReviews.length === 0 ? (
                   <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-400)' }}>No upcoming reviews scheduled.</p>
@@ -430,7 +438,7 @@ const ReviewManagementPage = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
                     {upcomingReviews.slice(0, 4).map((r) => (
                       <div key={r.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', padding: '0.625rem', background: '#f8fafc', borderRadius: '0.75rem', border: '1px solid var(--color-neutral-100)' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(79,70,229,0.2)' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '0.75rem', background: ACCENT_COLOR, color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,180,216,0.2)' }}>
                           <span style={{ fontSize: '0.75rem', fontWeight: 900, lineHeight: 1 }}>{new Date(r.scheduledAt).getDate()}</span>
                           <span style={{ fontSize: '0.5rem', fontWeight: 700, opacity: 0.8, textTransform: 'uppercase' }}>{new Date(r.scheduledAt).toLocaleString('default', { month: 'short' })}</span>
                         </div>

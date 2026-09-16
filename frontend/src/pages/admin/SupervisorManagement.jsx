@@ -122,7 +122,7 @@ function SupervisorFormModal({ supervisor, onClose, onSave }) {
               disabled={loading}
               style={{
                 padding: '0.5rem 1.5rem', borderRadius: '0.625rem', border: 'none',
-                background: 'linear-gradient(135deg, #0ea5e9, #6366f1)', color: '#fff',
+                background: '#00b4d8', color: '#fff',
                 fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
               }}
             >
@@ -329,7 +329,7 @@ const SupervisorManagement = () => {
             style={{
               display: 'flex', alignItems: 'center', gap: '0.5rem',
               padding: '0.6rem 1.125rem', borderRadius: '0.75rem', border: 'none',
-              background: 'linear-gradient(135deg, #0ea5e9, #6366f1)', color: '#fff',
+              background: '#00b4d8', color: '#fff',
               fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem',
               boxShadow: '0 4px 12px rgba(14,165,233,0.3)',
             }}

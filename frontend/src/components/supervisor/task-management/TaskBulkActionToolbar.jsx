@@ -82,7 +82,7 @@ const TaskBulkActionToolbar = ({
           >
             <span
               style={{
-                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                background: '#00b4d8',
                 color: '#fff',
                 borderRadius: '50%',
                 width: '26px',

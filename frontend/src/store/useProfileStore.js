@@ -16,7 +16,8 @@ import { useNotificationStore } from './useNotificationStore';
  * Calculate profile completion based on filled sections.
  * Returns { percentage, completedItems, missingItems }
  */
-const calculateCompletion = (profile, skills, documents) => {
+const calculateCompletion = (profile, skills = [], documents = [], internship = null) => {
+  const isIntern = (profile?.role || '').toLowerCase() === 'intern';
   const items = [
     {
       key: 'avatar',
@@ -27,9 +28,27 @@ const calculateCompletion = (profile, skills, documents) => {
     {
       key: 'personal_info',
       label: 'Complete personal information',
-      done: !!(profile?.phone && profile?.address && profile?.city),
+      done: !!(profile?.phone && profile?.dateOfBirth && profile?.address && profile?.city),
       priority: 'high',
     },
+    {
+      key: 'date_of_birth',
+      label: 'Add date of birth',
+      done: !!profile?.dateOfBirth,
+      priority: 'high',
+    },
+    ...(isIntern ? [{
+      key: 'internship_dates',
+      label: 'Confirm internship start and end dates',
+      done: !!(internship?.startDate && internship?.endDate),
+      priority: 'high',
+    },
+    {
+      key: 'supervisor',
+      label: 'Have an assigned supervisor',
+      done: !!(internship?.supervisor?.name || profile?.supervisorName),
+      priority: 'high',
+    }] : []),
     {
       key: 'bio',
       label: 'Write a short bio',
@@ -45,13 +64,13 @@ const calculateCompletion = (profile, skills, documents) => {
     {
       key: 'documents',
       label: 'Upload CV/Resume',
-      done: documents.some((d) => d.type === 'CV/Resume'),
+      done: documents.some((d) => d.type === 'CV/Resume' || d.category === 'resume'),
       priority: 'high',
     },
     {
       key: 'id_document',
       label: 'Upload ID document',
-      done: documents.some((d) => d.type === 'ID Card'),
+      done: documents.some((d) => d.type === 'ID Card' || d.category === 'id_proof'),
       priority: 'medium',
     },
   ];
@@ -227,8 +246,8 @@ export const useProfileStore = create((set, get) => ({
     set({ loadingProfile: true, error: null });
     try {
       const profile = await profileService.getProfile(role);
-      const { skills, documents } = get();
-      const completion = calculateCompletion(profile, skills, documents);
+      const { skills, documents, internship } = get();
+      const completion = calculateCompletion(profile, skills, documents, internship);
       set({ profile, completion, loadingProfile: false });
     } catch (err) {
       set({ error: err.message, loadingProfile: false });
@@ -249,7 +268,9 @@ export const useProfileStore = create((set, get) => ({
     set({ loadingInternship: true });
     try {
       const internship = await profileService.getInternshipInfo();
-      set({ internship, loadingInternship: false });
+      const { profile, skills, documents } = get();
+      const completion = calculateCompletion(profile, skills, documents, internship);
+      set({ internship, completion, loadingInternship: false });
     } catch (err) {
       set({ error: err.message, loadingInternship: false });
     }
@@ -259,8 +280,8 @@ export const useProfileStore = create((set, get) => ({
     set({ loadingSkills: true });
     try {
       const skills = await profileService.getSkills();
-      const { profile, documents } = get();
-      const completion = calculateCompletion(profile, skills, documents);
+      const { profile, documents, internship } = get();
+      const completion = calculateCompletion(profile, skills, documents, internship);
       set({ skills, completion, loadingSkills: false });
     } catch (err) {
       set({ error: err.message, loadingSkills: false });
@@ -281,8 +302,8 @@ export const useProfileStore = create((set, get) => ({
     set({ loadingDocuments: true });
     try {
       const documents = await profileService.getDocuments(role);
-      const { profile, skills } = get();
-      const completion = calculateCompletion(profile, skills, documents);
+      const { profile, skills, internship } = get();
+      const completion = calculateCompletion(profile, skills, documents, internship);
       set({ documents, completion, loadingDocuments: false });
     } catch (err) {
       set({ error: err.message, loadingDocuments: false });
@@ -305,8 +326,8 @@ export const useProfileStore = create((set, get) => ({
     set({ savingProfile: true });
     try {
       const profile = await profileService.updateProfile(updates);
-      const { skills, documents } = get();
-      const completion = calculateCompletion(profile, skills, documents);
+      const { skills, documents, internship } = get();
+      const completion = calculateCompletion(profile, skills, documents, internship);
       set({ profile, completion, savingProfile: false });
 
       // Dispatch real notification
@@ -340,9 +361,9 @@ export const useProfileStore = create((set, get) => ({
         avatarProgress: 100,
       }));
       // Recalculate completion
-      const { skills, documents } = get();
+      const { skills, documents, internship } = get();
       const profile = get().profile;
-      const completion = calculateCompletion(profile, skills, documents);
+      const completion = calculateCompletion(profile, skills, documents, internship);
       set({ completion });
 
       // Dispatch real notification
@@ -368,9 +389,9 @@ export const useProfileStore = create((set, get) => ({
       set((state) => ({
         profile: { ...state.profile, avatarUrl: null },
       }));
-      const { skills, documents } = get();
+      const { skills, documents, internship } = get();
       const profile = get().profile;
-      const completion = calculateCompletion(profile, skills, documents);
+      const completion = calculateCompletion(profile, skills, documents, internship);
       set({ completion });
     } catch (err) {
       set({ error: err.message });
@@ -385,7 +406,7 @@ export const useProfileStore = create((set, get) => ({
       const skill = await profileService.addSkill(skillData);
       set((state) => {
         const skills = [...state.skills, skill];
-        const completion = calculateCompletion(state.profile, skills, state.documents);
+        const completion = calculateCompletion(state.profile, skills, state.documents, state.internship);
         return { skills, completion };
       });
       return skill;
@@ -414,9 +435,9 @@ export const useProfileStore = create((set, get) => ({
     }));
     try {
       await profileService.removeSkill(skillId);
-      const { profile, documents } = get();
+      const { profile, documents, internship } = get();
       const skills = get().skills;
-      const completion = calculateCompletion(profile, skills, documents);
+      const completion = calculateCompletion(profile, skills, documents, internship);
       set({ completion });
     } catch (err) {
       set({ skills: prev, error: err.message });
@@ -433,7 +454,7 @@ export const useProfileStore = create((set, get) => ({
       });
       set((state) => {
         const documents = [...state.documents, doc];
-        const completion = calculateCompletion(state.profile, state.skills, documents);
+        const completion = calculateCompletion(state.profile, state.skills, documents, state.internship);
         return { documents, completion, uploadingDocument: false, documentProgress: 100 };
       });
       return doc;
@@ -450,9 +471,9 @@ export const useProfileStore = create((set, get) => ({
     }));
     try {
       await profileService.removeDocument(docId);
-      const { profile, skills } = get();
+      const { profile, skills, internship } = get();
       const documents = get().documents;
-      const completion = calculateCompletion(profile, skills, documents);
+      const completion = calculateCompletion(profile, skills, documents, internship);
       set({ completion });
     } catch (err) {
       set({ documents: prev, error: err.message });

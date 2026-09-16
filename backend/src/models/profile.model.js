@@ -8,7 +8,14 @@ const ProfileModel = {
   },
 
   async findSupervisorProfileByUserId(userId) {
-    const res = await query('SELECT * FROM supervisor_profiles WHERE user_id = $1', [userId]);
+    const res = await query(
+      `SELECT sp.*, d.name AS department_name, d.code AS department_code, o.name AS organization_name
+       FROM supervisor_profiles sp
+       LEFT JOIN departments d ON d.id = sp.department_id
+       LEFT JOIN organizations o ON o.id = sp.organization_id
+       WHERE sp.user_id = $1`,
+      [userId]
+    );
     return res.rows[0] || null;
   },
 
@@ -179,7 +186,11 @@ const ProfileModel = {
         sup_u.id AS supervisor_user_id, sup_u.first_name AS supervisor_first_name,
         sup_u.last_name AS supervisor_last_name, sup_u.email AS supervisor_email,
         head_u.id AS head_user_id, head_u.first_name AS head_first_name,
-        head_u.last_name AS head_last_name, head_u.email AS head_email
+        head_u.last_name AS head_last_name, head_u.email AS head_email,
+        ir.id AS internship_record_id, ir.title AS internship_title,
+        ir.start_date, ir.end_date, ir.status AS internship_record_status,
+        ir.work_location AS record_work_location, ir.work_hours AS record_work_hours,
+        ir.days_per_week AS record_days_per_week
       FROM users u
       JOIN roles r ON r.id = u.role_id
       LEFT JOIN departments d ON d.id = u.department_id
@@ -187,6 +198,13 @@ const ProfileModel = {
       LEFT JOIN supervisor_profiles sp ON sp.id = ip.supervisor_id
       LEFT JOIN users sup_u ON sup_u.id = sp.user_id
       LEFT JOIN users head_u ON head_u.id = d.head_user_id
+      LEFT JOIN LATERAL (
+        SELECT *
+        FROM internship_records
+        WHERE user_id = u.id AND status IN ('active', 'onboarding')
+        ORDER BY internship_number DESC
+        LIMIT 1
+      ) ir ON true
       WHERE u.id = $1 AND u.deleted_at IS NULL;
     `;
     const res = await query(sql, [userId]);

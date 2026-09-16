@@ -1,20 +1,11 @@
 /**
  * @file reviewService.js
- * @description Mock service layer for both the intern Performance Reviews module
+ * @description Service layer for both the intern Performance Reviews module
  * and the Supervisor Reviews & Approvals module.
- * Simulates network requests with Promises and artificial delays.
- * Structured for easy replacement with real API calls.
  */
 
 import api from './api';
 import {
-  mockReviews,
-  mockReviewDetails,
-  mockPerformanceTrends,
-  mockRadarData,
-  mockPerformanceSummary,
-  mockDevelopmentGoals,
-  mockReviewTimelines,
   mockSupervisorSubmissions,
   mockOnboardingApprovals,
   mockReviewHistory,
@@ -22,20 +13,50 @@ import {
 } from '../data';
 import { useAppStore } from '../store/useAppStore';
 
-const isDemoUser = () => {
+// Helper to simulate API delay
+const delay = (ms = 600) => new Promise((resolve) => setTimeout(resolve, ms));
+const SCHEDULED_REVIEWS_KEY = 'trakive_scheduled_reviews';
+
+const safeParse = (value, fallback) => {
   try {
-    const user = useAppStore.getState()?.user;
-    if (!user) return false;
-    const demoIds = ['u-1', 'u-2', 'u-3', 'u-4'];
-    const demoEmails = ['intern@thefifthlab.com', 'supervisor@thefifthlab.com', 'hr@thefifthlab.com', 'head@thefifthlab.com'];
-    return demoIds.includes(user.id) || demoEmails.includes(user.email?.toLowerCase());
+    return value ? JSON.parse(value) : fallback;
   } catch {
-    return false;
+    return fallback;
   }
 };
 
-// Helper to simulate API delay
-const delay = (ms = 600) => new Promise((resolve) => setTimeout(resolve, ms));
+const getStoredScheduledReviews = () =>
+  safeParse(localStorage.getItem(SCHEDULED_REVIEWS_KEY), []);
+
+const saveStoredScheduledReviews = (reviews) => {
+  localStorage.setItem(SCHEDULED_REVIEWS_KEY, JSON.stringify(reviews));
+};
+
+const getCurrentUser = () => {
+  try {
+    return useAppStore.getState()?.user || null;
+  } catch {
+    return null;
+  }
+};
+
+const sameUser = (left, right) =>
+  Boolean(left && right && String(left).toLowerCase() === String(right).toLowerCase());
+
+const toInternReview = (schedule) => ({
+  id: schedule.id,
+  period: schedule.type === 'formal-review' ? 'Performance Review' : 'Check-in',
+  title: schedule.title || 'Scheduled Review',
+  status: schedule.status === 'completed' ? 'published' : 'scheduled',
+  overallScore: schedule.score ?? null,
+  reviewerName: schedule.reviewerName || schedule.scheduledByName || 'Supervisor',
+  reviewerRole: 'Supervisor',
+  reviewDate: schedule.scheduledAt,
+  summary: schedule.notes || '',
+  strengths: [],
+  scheduledAt: schedule.scheduledAt,
+  nextReviewDate: schedule.status === 'upcoming' ? schedule.scheduledAt : null,
+});
 
 // ── Intern-side review methods ─────────────────────────────────────────────────
 
@@ -44,60 +65,83 @@ export const reviewService = {
    * Fetch all reviews for the current intern.
    */
   getReviews: async () => {
-    await delay(350);
-    if (!isDemoUser()) {
-      return [];
+    const currentUser = getCurrentUser();
+    try {
+      const response = await api.get('/reviews');
+      const data = response?.data?.data || response?.data;
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.items)) return data.items;
+    } catch (e) {
+      console.warn('Backend API call for intern reviews failed', e);
     }
-    return JSON.parse(JSON.stringify(mockReviews));
+    return getStoredScheduledReviews()
+      .filter((review) =>
+        sameUser(review.internId, currentUser?.id) ||
+        sameUser(review.internEmail, currentUser?.email) ||
+        sameUser(review.internName, currentUser?.name)
+      )
+      .map(toInternReview)
+      .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
   },
 
   /**
    * Fetch detailed data for a single review by ID.
    */
   getReviewById: async (reviewId) => {
-    await delay(800);
-    const detail = mockReviewDetails[reviewId];
-    if (!detail) {
-      throw new Error(`Review with ID "${reviewId}" not found.`);
+    try {
+      const response = await api.get(`/reviews/${reviewId}`);
+      const detail = response?.data?.data || response?.data;
+      if (detail) return detail;
+    } catch (e) {
+      console.warn('Backend API call for review detail failed', e);
     }
-    const timeline = mockReviewTimelines[reviewId] ?? [];
-    return {
-      ...JSON.parse(JSON.stringify(detail)),
-      timeline: JSON.parse(JSON.stringify(timeline)),
-    };
+    throw new Error(`Review with ID "${reviewId}" not found.`);
   },
 
   /**
    * Submit the intern's self-assessment form.
    */
   submitSelfAssessment: async (reviewId, formData) => {
-    await delay(1000);
-    return {
-      success: true,
-      reviewId,
-      submittedAt: new Date().toISOString(),
-      data: formData,
-    };
+    try {
+      const response = await api.post(`/reviews/${reviewId}/self-assessment`, formData);
+      return response?.data?.data || response?.data;
+    } catch (e) {
+      console.warn('Backend API call for self-assessment failed', e);
+      throw new Error(`Review with ID "${reviewId}" not found.`);
+    }
   },
 
   /**
    * Fetch performance trend data for charts.
    */
   getPerformanceTrends: async () => {
-    await delay(600);
-    return {
-      trends: JSON.parse(JSON.stringify(mockPerformanceTrends)),
-      radarData: JSON.parse(JSON.stringify(mockRadarData)),
-      summary: JSON.parse(JSON.stringify(mockPerformanceSummary)),
-    };
+    try {
+      const response = await api.get('/reviews/performance-trends');
+      const data = response?.data?.data || response?.data;
+      return {
+        trends: Array.isArray(data?.trends) ? data.trends : [],
+        radarData: Array.isArray(data?.radarData) ? data.radarData : [],
+        summary: data?.summary || null,
+      };
+    } catch (e) {
+      console.warn('Backend API call for review performance trends failed', e);
+      return { trends: [], radarData: [], summary: null };
+    }
   },
 
   /**
    * Fetch the intern's development goals.
    */
   getDevelopmentGoals: async () => {
-    await delay(500);
-    return JSON.parse(JSON.stringify(mockDevelopmentGoals));
+    try {
+      const response = await api.get('/reviews/development-goals');
+      const data = response?.data?.data || response?.data;
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.items)) return data.items;
+    } catch (e) {
+      console.warn('Backend API call for development goals failed', e);
+    }
+    return [];
   },
 
   // ── Supervisor Reviews & Approvals methods ───────────────────────────────────
@@ -233,14 +277,19 @@ export const reviewService = {
    */
   scheduleReview: async (scheduleData) => {
     await delay(800);
-    return {
+    const currentUser = getCurrentUser();
+    const newReview = {
       success: true,
       id: `sched-${Date.now()}`,
       status: 'upcoming',
       reminderSent: false,
       createdAt: new Date().toISOString(),
+      scheduledById: currentUser?.id,
+      scheduledByName: currentUser?.name,
       ...scheduleData,
     };
+    saveStoredScheduledReviews([newReview, ...getStoredScheduledReviews()]);
+    return newReview;
   },
 
   /**
@@ -256,6 +305,7 @@ export const reviewService = {
    */
   cancelScheduledReview: async (scheduleId) => {
     await delay(500);
+    saveStoredScheduledReviews(getStoredScheduledReviews().filter((review) => review.id !== scheduleId));
     return { success: true, scheduleId, cancelledAt: new Date().toISOString() };
   },
 
@@ -264,7 +314,10 @@ export const reviewService = {
    */
   fetchScheduledReviews: async () => {
     await delay(600);
-    return JSON.parse(JSON.stringify(mockReviewSchedule));
+    return [
+      ...getStoredScheduledReviews(),
+      ...JSON.parse(JSON.stringify(mockReviewSchedule)),
+    ];
   },
 
   /**

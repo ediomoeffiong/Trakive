@@ -18,6 +18,7 @@ const registerSchema = {
       .optional()
       .default('intern'),
     phone: Joi.string().max(30).optional().allow('', null),
+    date_of_birth: Joi.date().iso().optional().allow('', null),
     organization_id: Joi.string().uuid().optional().allow(null),
     department_id: Joi.string().uuid().optional().allow(null),
   }),

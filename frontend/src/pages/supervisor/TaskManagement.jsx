@@ -523,7 +523,7 @@ const TaskManagementPage = () => {
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={() => setActiveTab('directory')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4f46e5', fontSize: '0.875rem', fontWeight: 700 }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#00b4d8', fontSize: '0.875rem', fontWeight: 700 }}
                 >
                   View All →
                 </motion.button>

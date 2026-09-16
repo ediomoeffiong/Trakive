@@ -31,7 +31,7 @@ const ROLE_ICONS = {
 
 const ROLE_COLORS = {
   'Intern':              { bg: '#eff6ff', color: '#1d4ed8' },
-  'Supervisor':          { bg: '#eef2ff', color: '#4338ca' },
+  'Supervisor':          { bg: '#e6faff', color: '#0077b6' },
   'HR Administrator':    { bg: '#ecfeff', color: '#0e7490' },
   'Department Head':     { bg: '#f5f3ff', color: '#6d28d9' },
 };
@@ -67,7 +67,7 @@ function ConfirmModal({ title, description, confirmLabel, onClose, onConfirm, da
             disabled={loading}
             style={{
               padding: '0.5rem 1.25rem', borderRadius: '0.625rem', border: 'none',
-              background: danger ? '#dc2626' : 'linear-gradient(135deg, #6366f1, #0ea5e9)',
+              background: danger ? '#dc2626' : '#00b4d8',
               color: '#fff', fontWeight: 700,
               cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
             }}
@@ -141,9 +141,9 @@ const UserManagement = () => {
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.4rem',
                   padding: '0.5rem 0.875rem', borderRadius: '0.625rem',
-                  border: `1px solid ${isActive ? '#6366f1' : 'var(--color-neutral-200)'}`,
+                  border: `1px solid ${isActive ? '#00b4d8' : 'var(--color-neutral-200)'}`,
                   background: isActive ? '#eef2ff' : 'var(--color-neutral-50)',
-                  color: isActive ? '#4338ca' : 'var(--color-neutral-600)',
+                  color: isActive ? '#0077b6' : 'var(--color-neutral-600)',
                   cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600,
                   transition: 'all 0.15s',
                 }}
@@ -152,8 +152,8 @@ const UserManagement = () => {
                 {tab.label}
                 <span style={{
                   padding: '0.1rem 0.4rem', borderRadius: '99px', fontSize: '0.6875rem', fontWeight: 700,
-                  background: isActive ? '#c7d2fe' : 'var(--color-neutral-200)',
-                  color: isActive ? '#4338ca' : 'var(--color-neutral-600)',
+                  background: isActive ? '#cffafe' : 'var(--color-neutral-200)',
+                  color: isActive ? '#0077b6' : 'var(--color-neutral-600)',
                 }}>
                   {roleCounts[tab.key] ?? 0}
                 </span>

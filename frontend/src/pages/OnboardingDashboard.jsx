@@ -86,8 +86,17 @@ const CATEGORIES = [
   { id: 'training', name: 'Training', icon: RiGraduationCapLine, color: '#6366f1' },
 ];
 
+const safeJson = (value, fallback) => {
+  try {
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 export default function OnboardingDashboard() {
   const user = useAppStore((state) => state.user);
+  const updateUserMeta = useAppStore((state) => state.updateUserMeta);
 
   // 1. Detect Organisation & Department Context
   const emailDomain = (user?.email || '').split('@')[1]?.toLowerCase() || '';
@@ -104,16 +113,20 @@ export default function OnboardingDashboard() {
   const [loadingDepartments, setLoadingDepartments] = useState(true);
 
   // 2. Internship Information State
-  const [info, setInfo] = useState({
-    department_id: user?.department_id || '',
-    department_name: user?.department_name || '',
-    start_date: user?.start_date || new Date().toISOString().split('T')[0],
-    end_date: user?.end_date || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    institution: user?.institution || '',
-    field_of_study: user?.field_of_study || '',
-    phone: user?.phone || '',
-    is_saved: false,
-    duration_verified_by_supervisor: false,
+  const [info, setInfo] = useState(() => {
+    const savedInfo = safeJson(localStorage.getItem(`trakive_onboarding_info_${user?.id || 'default'}`), {});
+    return {
+      department_id: savedInfo.department_id || user?.department_id || '',
+      department_name: savedInfo.department_name || user?.department_name || '',
+      start_date: savedInfo.start_date || user?.start_date || new Date().toISOString().split('T')[0],
+      end_date: savedInfo.end_date || user?.end_date || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      institution: savedInfo.institution || user?.institution || '',
+      field_of_study: savedInfo.field_of_study || user?.field_of_study || '',
+      phone: savedInfo.phone || user?.phone || '',
+      date_of_birth: savedInfo.date_of_birth || user?.dateOfBirth || user?.date_of_birth || '',
+      is_saved: Boolean(savedInfo.is_saved),
+      duration_verified_by_supervisor: Boolean(savedInfo.duration_verified_by_supervisor),
+    };
   });
 
   const [assignedSupervisor, setAssignedSupervisor] = useState({
@@ -359,6 +372,10 @@ export default function OnboardingDashboard() {
       toast.error('Both start date and end date are required.');
       return;
     }
+    if (!info.date_of_birth) {
+      toast.error('Date of birth is required.');
+      return;
+    }
 
     const start = new Date(info.start_date);
     const end = new Date(info.end_date);
@@ -385,6 +402,7 @@ export default function OnboardingDashboard() {
         department_id: info.department_id,
         institution: info.institution || undefined,
         field_of_study: info.field_of_study || undefined,
+        date_of_birth: info.date_of_birth,
         start_date: info.start_date,
         end_date: info.end_date,
       });
@@ -398,10 +416,44 @@ export default function OnboardingDashboard() {
         title: profile.supervisor_title || 'Department Supervisor',
         email: profile.supervisor_email || '',
       });
+      const departmentName = profile.department_name || info.department_name;
+      const savedInfo = {
+        ...info,
+        department_name: departmentName,
+        is_saved: true,
+      };
+      localStorage.setItem(`trakive_onboarding_info_${user?.id || 'default'}`, JSON.stringify(savedInfo));
+      localStorage.setItem(
+        `trakive_user_profile_${user?.id || 'default'}`,
+        JSON.stringify({
+          ...safeJson(localStorage.getItem(`trakive_user_profile_${user?.id || 'default'}`), {}),
+          department: departmentName,
+          department_name: departmentName,
+          department_id: info.department_id,
+          institution: info.institution,
+          fieldOfStudy: info.field_of_study,
+          field_of_study: info.field_of_study,
+          phone: info.phone,
+          dateOfBirth: info.date_of_birth,
+          date_of_birth: info.date_of_birth,
+          startDate: info.start_date,
+          endDate: info.end_date,
+          updatedAt: new Date().toISOString(),
+        }),
+      );
+      updateUserMeta?.({
+        department: departmentName,
+        department_name: departmentName,
+        department_id: info.department_id,
+        startDate: info.start_date,
+        endDate: info.end_date,
+        dateOfBirth: info.date_of_birth,
+        date_of_birth: info.date_of_birth,
+      });
       setInfo((prev) => ({
         ...prev,
         is_saved: true,
-        department_name: profile.department_name || prev.department_name,
+        department_name: departmentName || prev.department_name,
       }));
       setCompletedSteps((prev) => ({ ...prev, internship_info: true }));
       toast.success(
@@ -1118,6 +1170,19 @@ export default function OnboardingDashboard() {
                     required
                     value={info.phone}
                     onChange={(e) => setInfo({ ...info, phone: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                    Date of Birth
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={info.date_of_birth}
+                    onChange={(e) => setInfo({ ...info, date_of_birth: e.target.value })}
                     style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}
                   />
                 </div>

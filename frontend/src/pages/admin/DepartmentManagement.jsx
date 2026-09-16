@@ -108,7 +108,7 @@ function DepartmentFormModal({ department, onClose, onSave }) {
               disabled={loading}
               style={{
                 padding: '0.5rem 1.5rem', borderRadius: '0.625rem', border: 'none',
-                background: 'linear-gradient(135deg, #6366f1, #0ea5e9)', color: '#fff',
+                background: '#00b4d8', color: '#fff',
                 fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
               }}
             >
@@ -217,7 +217,7 @@ function DepartmentDetailsDrawer({ dept, onClose, onEdit }) {
           style={{
             display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center',
             padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #c7d2fe',
-            background: '#eef2ff', color: '#4338ca', cursor: 'pointer', fontWeight: 700,
+            background: '#e6faff', color: '#0077b6', cursor: 'pointer', fontWeight: 700,
           }}
         >
           <RiEdit2Line /> Edit Department
@@ -345,7 +345,7 @@ const DepartmentManagement = () => {
             style={{
               display: 'flex', alignItems: 'center', gap: '0.5rem',
               padding: '0.6rem 1.125rem', borderRadius: '0.75rem', border: 'none',
-              background: 'linear-gradient(135deg, #6366f1, #0ea5e9)', color: '#fff',
+              background: '#00b4d8', color: '#fff',
               fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem',
               boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
             }}

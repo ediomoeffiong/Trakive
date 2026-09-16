@@ -1,37 +1,22 @@
 /**
  * @file profileService.js
- * @description Role-aware mock service abstraction for Trakive User Profile & Account Management.
+ * @description Role-aware profile service abstraction for Trakive User Profile & Account Management.
  * Supports both Intern and Supervisor profiles.
  */
 
-import { mockProfile } from '../data/profile';
-import { mockSkills } from '../data/skills';
-import { mockAchievements } from '../data/achievements';
-import { mockDocuments } from '../data/documents';
-import { mockAccountActivity } from '../data/accountActivity';
-import { mockInternshipInfo } from '../data/internshipInfo';
 import api from './api';
-import {
-  mockSupervisorProfile,
-  mockSupervisorAssignedInterns,
-  mockSupervisorActivity,
-  mockSupervisorDocuments,
-} from '../data/supervisorProfile';
 import { useAppStore } from '../store/useAppStore';
 
 const delay = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// In-memory state
-let _internProfile = { ...mockProfile };
-let _supervisorProfile = { ...mockSupervisorProfile };
-let _skills = [...mockSkills];
-let _achievements = [...mockAchievements];
-let _internDocuments = [...mockDocuments];
-let _supervisorDocuments = [...mockSupervisorDocuments];
-let _internActivities = [...mockAccountActivity];
-let _supervisorActivities = [...mockSupervisorActivity];
-let _assignedInterns = { ...mockSupervisorAssignedInterns };
-let _internship = { ...mockInternshipInfo };
+// In-memory state for current-session uploads/edits when the API is unavailable.
+let _internProfile = { activeSessions: [] };
+let _supervisorProfile = { activeSessions: [] };
+let _skills = [];
+let _internDocuments = [];
+let _supervisorDocuments = [];
+let _internActivities = [];
+let _supervisorActivities = [];
 let _backendProfile = null;
 let _backendRoleProfile = null;
 
@@ -60,6 +45,52 @@ const normalizeStatus = (status = '') => {
 
 const apiData = (response) => response?.data?.data ?? response?.data;
 
+const isFifthLabUser = (user = {}) =>
+  /@thefifthlab\.com$/i.test(user.email || '') ||
+  /fifthlab/i.test(user.organization || user.organization_name || '');
+
+const getApprovedDepartmentName = (user = {}, roleProfile = null, fallback = '') => {
+  const storedInfo = safeJson(localStorage.getItem(`trakive_onboarding_info_${user.id || 'default'}`), {});
+  const savedProfile = safeJson(localStorage.getItem(`trakive_user_profile_${user.id || 'default'}`), {});
+  const selectedDepartment =
+    storedInfo.department_name ||
+    savedProfile.department ||
+    user.department_name ||
+    user.department ||
+    roleProfile?.department_name ||
+    fallback;
+
+  if (isFifthLabUser(user) && /^(it department|engineering)$/i.test(String(selectedDepartment || '').trim())) {
+    return 'FifthLab';
+  }
+
+  return selectedDepartment || fallback;
+};
+
+const safeJson = (value, fallback) => {
+  try {
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const calculateWeeks = (startDate, endDate) => {
+  if (!startDate || !endDate) return { durationWeeks: null, weeksCompleted: null, weeksRemaining: null, completionPercentage: 0 };
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+    return { durationWeeks: null, weeksCompleted: null, weeksRemaining: null, completionPercentage: 0 };
+  }
+  const weekMs = 7 * 24 * 60 * 60 * 1000;
+  const durationWeeks = Math.max(1, Math.ceil((end - start) / weekMs));
+  const elapsedWeeks = Math.max(0, Math.floor((Date.now() - start.getTime()) / weekMs));
+  const weeksCompleted = Math.min(durationWeeks, elapsedWeeks);
+  const weeksRemaining = Math.max(0, durationWeeks - weeksCompleted);
+  const completionPercentage = Math.min(100, Math.max(0, Math.round((weeksCompleted / durationWeeks) * 100)));
+  return { durationWeeks, weeksCompleted, weeksRemaining, completionPercentage };
+};
+
 const mapBackendProfile = ({ user, role_profile: roleProfile } = {}) => {
   if (!user) return null;
 
@@ -70,7 +101,6 @@ const mapBackendProfile = ({ user, role_profile: roleProfile } = {}) => {
     .join(' ');
 
   return {
-    ...mockProfile,
     id: user.id,
     firstName: user.first_name ?? '',
     lastName: user.last_name ?? '',
@@ -86,8 +116,8 @@ const mapBackendProfile = ({ user, role_profile: roleProfile } = {}) => {
     avatarUrl: user.avatar_url ?? null,
     role,
     jobTitle: roleProfile?.title ?? (role === 'Intern' ? 'Intern' : role),
-    department: roleProfile?.department_name ?? user.department_name ?? '',
-    organization: 'Trakive',
+    department: getApprovedDepartmentName(user, roleProfile, ''),
+    organization: user.organization_name || roleProfile?.organization_name || '',
     employeeId: roleProfile?.intern_profile_id ?? roleProfile?.id ?? user.id ?? '',
     supervisorId: roleProfile?.supervisor_id ?? '',
     supervisorName,
@@ -102,28 +132,80 @@ const mapBackendProfile = ({ user, role_profile: roleProfile } = {}) => {
 };
 
 const mapBackendInternship = (roleProfile) => {
-  if (!roleProfile) return _internship;
+  const currentUser = useAppStore.getState()?.user || {};
+  const storedInfo = safeJson(localStorage.getItem(`trakive_onboarding_info_${currentUser.id || 'default'}`), {});
+  if (!roleProfile) {
+    const department = getApprovedDepartmentName(currentUser, null, storedInfo.department_name || currentUser.department || '');
+    const startDate = storedInfo.start_date || currentUser.startDate || '';
+    const endDate = storedInfo.end_date || currentUser.endDate || '';
+    const weeks = calculateWeeks(startDate, endDate);
+    return {
+      employeeId: currentUser.id || '',
+      department,
+      team: '',
+      organization: currentUser.organization_name || currentUser.organization || '',
+      startDate,
+      endDate,
+      workLocation: storedInfo.work_location || '',
+      workHours: storedInfo.work_hours || '',
+      daysPerWeek: storedInfo.days_per_week || '',
+      status: currentUser.status || 'Pending',
+      supervisor: {
+        name: currentUser.supervisorName || '',
+        email: currentUser.supervisorEmail || '',
+        title: '',
+      },
+      ...weeks,
+      records: startDate || endDate ? [{
+        id: 'current',
+        title: 'Current Internship',
+        department,
+        startDate,
+        endDate,
+        status: currentUser.status || 'Pending',
+      }] : [],
+    };
+  }
+
+  const department = getApprovedDepartmentName(
+    { ...currentUser, id: roleProfile.user_id || currentUser.id, email: roleProfile.email || currentUser.email },
+    roleProfile,
+    storedInfo.department_name || currentUser.department || ''
+  );
+  const startDate = roleProfile.start_date ?? storedInfo.start_date ?? currentUser.startDate ?? '';
+  const endDate = roleProfile.end_date ?? storedInfo.end_date ?? currentUser.endDate ?? '';
+  const weeks = calculateWeeks(startDate, endDate);
+  const supervisorName = [roleProfile.supervisor_first_name, roleProfile.supervisor_last_name]
+    .filter(Boolean)
+    .join(' ');
+  const record = startDate || endDate ? {
+    id: roleProfile.internship_record_id || roleProfile.intern_profile_id || 'current',
+    title: roleProfile.internship_title || 'Current Internship',
+    department,
+    startDate,
+    endDate,
+    status: normalizeStatus(roleProfile.internship_record_status || roleProfile.intern_status),
+    supervisor: supervisorName,
+  } : null;
 
   return {
-    ..._internship,
     employeeId: roleProfile.intern_profile_id ?? '',
-    department: roleProfile.department_name ?? '',
+    department,
     team: roleProfile.department_code ?? '',
-    organization: 'Trakive',
-    startDate: roleProfile.start_date ?? _internship.startDate,
-    endDate: roleProfile.end_date ?? _internship.endDate,
-    workLocation: roleProfile.work_location ?? _internship.workLocation,
-    workHours: roleProfile.work_hours ?? _internship.workHours,
-    daysPerWeek: roleProfile.days_per_week ?? _internship.daysPerWeek,
-    status: normalizeStatus(roleProfile.intern_status),
+    organization: currentUser.organization_name || currentUser.organization || roleProfile.organization_name || '',
+    startDate,
+    endDate,
+    workLocation: roleProfile.record_work_location ?? roleProfile.work_location ?? '',
+    workHours: roleProfile.record_work_hours ?? roleProfile.work_hours ?? '',
+    daysPerWeek: roleProfile.record_days_per_week ?? roleProfile.days_per_week ?? '',
+    status: normalizeStatus(roleProfile.internship_record_status || roleProfile.intern_status),
     supervisor: {
-      ..._internship.supervisor,
-      name: [roleProfile.supervisor_first_name, roleProfile.supervisor_last_name]
-        .filter(Boolean)
-        .join(' '),
+      name: supervisorName,
       email: roleProfile.supervisor_email ?? '',
+      title: '',
     },
-    completionPercentage: roleProfile.intern_status === 'active' ? _internship.completionPercentage : 0,
+    ...weeks,
+    records: record ? [record] : [],
   };
 };
 
@@ -184,40 +266,35 @@ const stripUndefined = (obj) =>
 
 const getRoleDefaults = (role) => {
   const normalizedRole = normalizeRole(role);
+  const base = {
+    role: normalizedRole,
+    jobTitle: normalizedRole,
+    status: 'Pending',
+    organization: '',
+    twoFactorEnabled: false,
+    activeSessions: [],
+    emailVerified: false,
+  };
+
   if (normalizedRole === 'Supervisor') {
     return {
-      role: 'Supervisor',
+      ...base,
       jobTitle: 'Supervisor',
-      status: 'Pending',
-      organization: 'Trakive',
-      twoFactorEnabled: false,
-      activeSessions: [],
-      emailVerified: false,
     };
   }
   if (normalizedRole === 'HR Administrator') {
     return {
-      role: 'HR Administrator',
+      ...base,
       jobTitle: 'HR Administrator',
-      status: 'Pending',
-      organization: 'Trakive',
-      twoFactorEnabled: false,
-      activeSessions: [],
-      emailVerified: false,
     };
   }
   if (normalizedRole === 'Department Head') {
     return {
-      role: 'Department Head',
+      ...base,
       jobTitle: 'Department Head',
-      status: 'Pending',
-      organization: 'Trakive',
-      twoFactorEnabled: false,
-      activeSessions: [],
-      emailVerified: false,
     };
   }
-  return { ...mockProfile, role: normalizedRole };
+  return base;
 };
 
 const hasRealBackendToken = () => {
@@ -250,7 +327,8 @@ const getCurrentUserProfile = (explicitRole) => {
   if (!isDemoUser() && currentUser) {
     const userProfileKey = `trakive_user_profile_${currentUser.id}`;
     const saved = localStorage.getItem(userProfileKey);
-    const savedData = saved ? JSON.parse(saved) : {};
+    const savedData = safeJson(saved, {});
+    const department = getApprovedDepartmentName(currentUser, null, savedData.department ?? 'General');
 
     return {
       id: currentUser.id,
@@ -259,7 +337,7 @@ const getCurrentUserProfile = (explicitRole) => {
       fullName: savedData.fullName ?? (([savedData.firstName ?? firstName, savedData.lastName ?? lastName].filter(Boolean).join(' ')) || currentUser.name || ''),
       email: currentUser.email ?? '',
       phone: savedData.phone ?? currentUser.phone ?? '',
-      dateOfBirth: savedData.dateOfBirth ?? '',
+      dateOfBirth: savedData.dateOfBirth ?? savedData.date_of_birth ?? currentUser.dateOfBirth ?? currentUser.date_of_birth ?? '',
       gender: savedData.gender ?? '',
       address: savedData.address ?? '',
       city: savedData.city ?? '',
@@ -268,8 +346,8 @@ const getCurrentUserProfile = (explicitRole) => {
       avatarUrl: savedData.avatarUrl ?? currentUser.avatarUrl ?? null,
       role,
       jobTitle: savedData.jobTitle ?? role,
-      department: savedData.department ?? currentUser.department ?? 'General',
-      organization: 'Trakive',
+      department,
+      organization: savedData.organization ?? currentUser.organization_name ?? currentUser.organization ?? '',
       employeeId: savedData.employeeId ?? `EMP-${currentUser.id.replace('custom-', '').slice(-6)}`,
       supervisorId: savedData.supervisorId ?? '',
       supervisorName: savedData.supervisorName ?? 'Pending Assignment',
@@ -290,14 +368,16 @@ const getCurrentUserProfile = (explicitRole) => {
 
   const defaults = getRoleDefaults(role);
   return {
-    ...mockProfile,
     ...defaults,
-    id: currentUser?.id ?? defaults.id ?? mockProfile.id,
+    id: currentUser?.id ?? defaults.id ?? '',
     firstName: currentUser?.firstName ?? firstName ?? '',
     lastName: currentUser?.lastName ?? lastName ?? '',
     fullName: currentUser?.name ?? defaults.fullName ?? '',
     email: currentUser?.email ?? defaults.email ?? '',
-    department: currentUser?.department ?? defaults.department ?? '',
+    phone: currentUser?.phone ?? '',
+    dateOfBirth: currentUser?.dateOfBirth ?? currentUser?.date_of_birth ?? '',
+    department: getApprovedDepartmentName(currentUser, null, defaults.department ?? ''),
+    organization: currentUser?.organization_name || currentUser?.organization || defaults.organization || '',
     avatarUrl: currentUser?.avatarUrl ?? currentUser?.avatar ?? defaults.avatarUrl ?? null,
     bio: currentUser?.bio ?? defaults.bio ?? '',
     role,
@@ -327,7 +407,19 @@ export const profileService = {
         _backendProfile = result;
         _backendRoleProfile = result?.role_profile ?? null;
         const mapped = mapBackendProfile(result);
-        if (mapped) return mapped;
+        if (mapped) {
+          useAppStore.getState()?.updateUserMeta?.({
+            department: mapped.department,
+            department_name: mapped.department,
+            organization: mapped.organization,
+            organization_name: mapped.organization,
+            supervisorName: mapped.supervisorName,
+            supervisorEmail: mapped.supervisorEmail,
+            dateOfBirth: mapped.dateOfBirth,
+            date_of_birth: mapped.dateOfBirth,
+          });
+          return mapped;
+        }
       } catch (error) {
         // Backend request failed or unauthenticated; proceed with fallback profile data
       }
@@ -336,12 +428,6 @@ export const profileService = {
     await delay(250);
     const activeRole = getEffectiveRole(role);
     const sessionProfile = getCurrentUserProfile(activeRole);
-    if (isDemoUser()) {
-      if (activeRole === 'Supervisor') {
-        return { ...sessionProfile, ..._supervisorProfile, ...sessionProfile };
-      }
-      return { ...sessionProfile, ..._internProfile, ...sessionProfile };
-    }
     return sessionProfile;
   },
 
@@ -388,12 +474,9 @@ export const profileService = {
       }
     }
 
-    if (activeRole === 'Supervisor') {
-      _supervisorProfile = { ...getCurrentUserProfile(activeRole), ..._supervisorProfile, ...updates, updatedAt: new Date().toISOString() };
-      return { ..._supervisorProfile };
-    }
-    _internProfile = { ...getCurrentUserProfile(activeRole), ..._internProfile, ...updates, updatedAt: new Date().toISOString() };
-    return { ..._internProfile };
+    const updated = { ...getCurrentUserProfile(activeRole), ...updates, updatedAt: new Date().toISOString() };
+    localStorage.setItem(`trakive_user_profile_${updated.id || 'default'}`, JSON.stringify(updated));
+    return updated;
   },
 
   /**
@@ -401,8 +484,38 @@ export const profileService = {
    * @returns {Promise<Object>}
    */
   getAssignedInterns: async () => {
-    await delay(350);
-    return { ..._assignedInterns };
+    try {
+      const result = apiData(await api.get('/interns', { params: { limit: 100 } }));
+      const items = Array.isArray(result) ? result : result?.items || [];
+      const interns = items.map((intern) => ({
+        id: intern.id || intern.user_id || intern.intern_id,
+        name: intern.name || `${intern.first_name || ''} ${intern.last_name || ''}`.trim() || intern.email,
+        role: intern.department_name || intern.department || 'Intern',
+        avatar: intern.avatar_url || intern.avatarUrl || null,
+        status: normalizeStatus(intern.status || intern.intern_status),
+        statusColor: '#10b981',
+        completionRate: intern.completionRate || intern.completion_rate || 0,
+        tasksCompleted: intern.tasksCompleted || intern.tasks_completed || 0,
+        tasksTotal: intern.tasksTotal || intern.tasks_total || 0,
+        pendingReviewsCount: intern.pendingReviewsCount || intern.pending_reviews_count || 0,
+        attentionRequired: Boolean(intern.attentionRequired || intern.attention_required),
+        attentionReason: intern.attentionReason || intern.attention_reason || '',
+      }));
+      return {
+        stats: {
+          totalAssigned: interns.length,
+          activeInterns: interns.filter((intern) => intern.status === 'Active').length,
+          requiringAttention: interns.filter((intern) => intern.attentionRequired).length,
+          pendingReviews: interns.reduce((sum, intern) => sum + (intern.pendingReviewsCount || 0), 0),
+        },
+        interns,
+      };
+    } catch {
+      return {
+        stats: { totalAssigned: 0, activeInterns: 0, requiringAttention: 0, pendingReviews: 0 },
+        interns: [],
+      };
+    }
   },
 
   /**
@@ -514,61 +627,49 @@ export const profileService = {
     }
 
     await delay(250);
-    if (!isDemoUser()) {
-      const user = useAppStore.getState()?.user;
-      const key = `trakive_user_skills_${user?.id || 'new'}`;
-      const saved = localStorage.getItem(key);
-      return saved ? JSON.parse(saved) : [];
-    }
-    return [..._skills];
+    const user = useAppStore.getState()?.user;
+    const key = `trakive_user_skills_${user?.id || 'new'}`;
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : [];
   },
 
   addSkill: async (skill) => {
     await delay(400);
     const newSkill = { id: `skill_${Date.now()}`, ...skill };
-    if (!isDemoUser()) {
-      const user = useAppStore.getState()?.user;
-      const key = `trakive_user_skills_${user?.id || 'new'}`;
-      const saved = localStorage.getItem(key);
-      const current = saved ? JSON.parse(saved) : [];
-      const updated = [...current, newSkill];
-      localStorage.setItem(key, JSON.stringify(updated));
-      return newSkill;
-    }
-    _skills = [..._skills, newSkill];
-    await persistBackendSkills(_skills);
+    const user = useAppStore.getState()?.user;
+    const key = `trakive_user_skills_${user?.id || 'new'}`;
+    const saved = localStorage.getItem(key);
+    const current = saved ? JSON.parse(saved) : [];
+    const updated = [...current, newSkill];
+    localStorage.setItem(key, JSON.stringify(updated));
+    _skills = updated;
+    await persistBackendSkills(updated);
     return newSkill;
   },
 
   updateSkill: async (skillId, updates) => {
     await delay(350);
-    if (!isDemoUser()) {
-      const user = useAppStore.getState()?.user;
-      const key = `trakive_user_skills_${user?.id || 'new'}`;
-      const saved = localStorage.getItem(key);
-      const current = saved ? JSON.parse(saved) : [];
-      const updated = current.map((s) => (s.id === skillId ? { ...s, ...updates } : s));
-      localStorage.setItem(key, JSON.stringify(updated));
-      return updated.find((s) => s.id === skillId);
-    }
-    _skills = _skills.map((s) => (s.id === skillId ? { ...s, ...updates } : s));
-    await persistBackendSkills(_skills);
-    return _skills.find((s) => s.id === skillId);
+    const user = useAppStore.getState()?.user;
+    const key = `trakive_user_skills_${user?.id || 'new'}`;
+    const saved = localStorage.getItem(key);
+    const current = saved ? JSON.parse(saved) : [];
+    const updated = current.map((s) => (s.id === skillId ? { ...s, ...updates } : s));
+    localStorage.setItem(key, JSON.stringify(updated));
+    _skills = updated;
+    await persistBackendSkills(updated);
+    return updated.find((s) => s.id === skillId);
   },
 
   removeSkill: async (skillId) => {
     await delay(300);
-    if (!isDemoUser()) {
-      const user = useAppStore.getState()?.user;
-      const key = `trakive_user_skills_${user?.id || 'new'}`;
-      const saved = localStorage.getItem(key);
-      const current = saved ? JSON.parse(saved) : [];
-      const updated = current.filter((s) => s.id !== skillId);
-      localStorage.setItem(key, JSON.stringify(updated));
-      return;
-    }
-    _skills = _skills.filter((s) => s.id !== skillId);
-    await persistBackendSkills(_skills);
+    const user = useAppStore.getState()?.user;
+    const key = `trakive_user_skills_${user?.id || 'new'}`;
+    const saved = localStorage.getItem(key);
+    const current = saved ? JSON.parse(saved) : [];
+    const updated = current.filter((s) => s.id !== skillId);
+    localStorage.setItem(key, JSON.stringify(updated));
+    _skills = updated;
+    await persistBackendSkills(updated);
   },
 
   /**
@@ -577,10 +678,7 @@ export const profileService = {
    */
   getAchievements: async () => {
     await delay(350);
-    if (!isDemoUser()) {
-      return [];
-    }
-    return [..._achievements];
+    return [];
   },
 
   /**
@@ -600,17 +698,10 @@ export const profileService = {
     }
 
     await delay(400);
-    if (!isDemoUser()) {
-      const user = useAppStore.getState()?.user;
-      const key = `trakive_user_documents_${user?.id || 'new'}`;
-      const saved = localStorage.getItem(key);
-      return saved ? JSON.parse(saved) : [];
-    }
-    const activeRole = getEffectiveRole(role);
-    if (activeRole === 'Supervisor') {
-      return [..._supervisorDocuments];
-    }
-    return [..._internDocuments];
+    const user = useAppStore.getState()?.user;
+    const key = `trakive_user_documents_${user?.id || 'new'}`;
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : [];
   },
 
   uploadDocument: async (file, type, onProgress, role) => {
@@ -633,6 +724,11 @@ export const profileService = {
       icon: '📄',
     };
     const activeRole = getEffectiveRole(role);
+    const user = useAppStore.getState()?.user;
+    const key = `trakive_user_documents_${user?.id || 'new'}`;
+    const saved = localStorage.getItem(key);
+    const currentDocs = saved ? JSON.parse(saved) : [];
+    localStorage.setItem(key, JSON.stringify([newDoc, ...currentDocs]));
     if (activeRole === 'Supervisor') {
       _supervisorDocuments = [..._supervisorDocuments, newDoc];
       _supervisorActivities.unshift({
@@ -670,6 +766,11 @@ export const profileService = {
   removeDocument: async (docId, role) => {
     await delay(300);
     const activeRole = getEffectiveRole(role);
+    const user = useAppStore.getState()?.user;
+    const key = `trakive_user_documents_${user?.id || 'new'}`;
+    const saved = safeJson(localStorage.getItem(key), []);
+    localStorage.setItem(key, JSON.stringify(saved.filter((d) => d.id !== docId)));
+
     if (activeRole === 'Supervisor') {
       _supervisorDocuments = _supervisorDocuments.filter((d) => d.id !== docId);
     } else {
@@ -689,11 +790,7 @@ export const profileService = {
    */
   getAccountActivity: async (role) => {
     await delay(400);
-    const activeRole = getEffectiveRole(role);
-    if (activeRole === 'Supervisor') {
-      return [..._supervisorActivities];
-    }
-    return [..._internActivities];
+    return [];
   },
 
   revokeSession: async (sessionId, role) => {

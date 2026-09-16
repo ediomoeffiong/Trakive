@@ -371,7 +371,7 @@ const TaskCalendarView = () => {
                 style={{
                   padding: '0.4rem 0.875rem',
                   border: 'none',
-                  background: viewMode === mode ? '#4f46e5' : '#fff',
+                  background: viewMode === mode ? '#00b4d8' : '#fff',
                   color: viewMode === mode ? '#fff' : 'var(--color-neutral-600)',
                   fontWeight: viewMode === mode ? 700 : 400,
                   fontSize: '0.8125rem',

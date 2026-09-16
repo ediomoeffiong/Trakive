@@ -87,7 +87,7 @@ const BulkActionToolbar = ({ selectedCount, onClear, selectedInterns }) => {
           >
             <span
               style={{
-                background: '#4f46e5',
+                background: '#00b4d8',
                 color: '#fff',
                 borderRadius: '50%',
                 width: '24px',

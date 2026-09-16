@@ -36,6 +36,33 @@ const STATUS_TABS = [
   { key: 'pending-self-assessment',    label: 'Self-Assessment Due', icon: <RiFileEditLine /> },
 ];
 
+const deriveSummaryFromReviews = (reviews = []) => {
+  if (!reviews.length) return null;
+
+  const completed = reviews.filter((review) => review.status === 'published' || review.status === 'completed');
+  const scheduled = reviews
+    .map((review) => review.nextReviewDate || review.scheduledAt || review.reviewDate)
+    .filter(Boolean)
+    .map((date) => new Date(date))
+    .filter((date) => !Number.isNaN(date.getTime()) && date.getTime() >= Date.now())
+    .sort((a, b) => a - b);
+  const scores = completed
+    .map((review) => Number(review.overallScore ?? review.score ?? review.rating))
+    .filter((score) => Number.isFinite(score));
+  const averageScore = scores.length
+    ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
+    : null;
+
+  return {
+    overallScore: averageScore ?? '—',
+    completedReviews: completed.length,
+    nextReviewDate: scheduled[0]?.toISOString() || null,
+    averageRating: averageScore ?? '—',
+    trend: 'stable',
+    trendDelta: '—',
+  };
+};
+
 // ── Page Component ─────────────────────────────────────────────────────────────
 
 export default function ReviewsList() {
@@ -54,6 +81,10 @@ export default function ReviewsList() {
   const filteredReviews = useMemo(
     () => getFilteredReviews({ reviews, statusFilter }),
     [reviews, statusFilter]
+  );
+  const actualSummary = useMemo(
+    () => performanceSummary || deriveSummaryFromReviews(reviews),
+    [performanceSummary, reviews]
   );
 
   // Load data on mount
@@ -120,7 +151,7 @@ export default function ReviewsList() {
       {loadingTrends ? (
         <ReviewStatsBarSkeleton />
       ) : (
-        <ReviewStatsBar summary={performanceSummary} loading={loadingTrends} />
+        <ReviewStatsBar summary={actualSummary} loading={loadingTrends} />
       )}
 
       {/* ── Error Banner ─────────────────────────────────────────────────────── */}
