@@ -162,7 +162,7 @@ export default function ProjectsPage() {
       </div>
 
       {/* Summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div className="stats-grid-3" style={{ marginBottom: '1.5rem' }}>
         {[
           { label: 'Active', value: stats.active, icon: <RiLoader2Line />, color: 'var(--color-success-600)', bg: 'var(--color-success-50)' },
           { label: 'Pending Approval', value: stats.pending, icon: <RiTimeLine />, color: '#d97706', bg: '#fef3c7' },
@@ -182,7 +182,7 @@ export default function ProjectsPage() {
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: '220px', position: 'relative' }}>
+        <div style={{ flex: 1, minWidth: 0, width: '100%', position: 'relative' }}>
           <RiSearchLine style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-neutral-400)', fontSize: '0.9rem' }} />
           <input
             placeholder="Search projects..."
@@ -199,7 +199,7 @@ export default function ProjectsPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          style={{ padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid var(--color-neutral-200)', fontSize: '0.875rem', background: 'var(--color-neutral-0, #fff)', color: 'var(--color-neutral-900)', outline: 'none' }}
+          style={{ padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid var(--color-neutral-200)', fontSize: '0.875rem', background: 'var(--color-neutral-0, #fff)', color: 'var(--color-neutral-900)', outline: 'none', maxWidth: '100%' }}
         >
           {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
@@ -210,7 +210,7 @@ export default function ProjectsPage() {
 
       {/* Project grid */}
       {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: '1rem' }}>
           {[1, 2, 3].map((i) => <CardSkeleton key={i} />)}
         </div>
       ) : projects.length === 0 ? (
@@ -221,7 +221,7 @@ export default function ProjectsPage() {
           action={<Button onClick={() => setProposing(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><RiAddLine /> Propose Project</Button>}
         />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: '1rem' }}>
           {projects.map((p) => (
             <ProjectCard
               key={p.id}

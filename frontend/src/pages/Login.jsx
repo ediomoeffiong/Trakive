@@ -65,7 +65,7 @@ const Login = () => {
           id="login-email"
           label="Work Email"
           type="email"
-          placeholder="e.g. alex@company.com"
+          placeholder="user@thefifthlab.com"
           leftAddon={<RiMailLine className="text-neutral-400" />}
           error={errors.email?.message}
           disabled={authLoading}
@@ -139,7 +139,7 @@ const Login = () => {
         </Button>
       </form>
 
-      <p className="mb-0 mt-6 text-center text-sm text-neutral-500">
+      <p className="mb-0 text-center text-sm text-neutral-500" style={{ marginTop: '1.5rem' }}>
         New to Trakive?{' '}
         <Link
           to={ROUTES.REGISTER}

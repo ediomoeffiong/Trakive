@@ -125,12 +125,12 @@ function ProjectWeeklySummary({ navigate }) {
         onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'}
         onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
             <div style={{ width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-primary-50)', color: 'var(--color-primary-600)', fontSize: '1rem', flexShrink: 0 }}>
               <RiFolderLine />
             </div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-neutral-500)', fontWeight: 500 }}>My Projects</p>
               <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
                 {projectStats.active} active
@@ -157,12 +157,12 @@ function ProjectWeeklySummary({ navigate }) {
         onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'}
         onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
             <div style={{ width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-success-50)', color: 'var(--color-success-600)', fontSize: '1rem', flexShrink: 0 }}>
               <RiCalendarCheckLine />
             </div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-neutral-500)', fontWeight: 500 }}>This Week</p>
               <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
                 {weeklyStats.completed}/{weeklyStats.total} tasks
@@ -186,7 +186,7 @@ function ProjectWeeklySummary({ navigate }) {
 
 // ── Skeletons ─────────────────────────────────────────────────────────────────
 const StatsSkeleton = () => (
-  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+  <div className="dashboard-kpi-grid">
     {[1, 2, 3, 4].map((i) => (
       <Card key={i}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -313,7 +313,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
+    <div className="dashboard-page">
       
       {/* Action Required Banner for Incomplete Setup */}
       {(!user?.hasCompletedOnboarding || !user?.profileCompleted || (progress?.onboarding && progress.onboarding.value < 100)) && (
@@ -409,7 +409,7 @@ const Dashboard = () => {
         {loadingStats || !stats ? (
           <StatsSkeleton />
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+          <div className="dashboard-kpi-grid">
             {Object.entries(stats).map(([key, stat]) => {
               const Icon = getKpiIcon(stat.label);
               const isUp = stat.trendUp;
@@ -461,17 +461,17 @@ const Dashboard = () => {
       </section>
 
       {/* ── Grid Layout for Main Content ───────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', lg: 'repeat(12, 1fr)', gap: '1.5rem', alignItems: 'start' }} className="grid-responsive">
+      <div className="grid-responsive">
         
         {/* Left Column (8 cols equivalent on desktop) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', gridColumn: 'span 8' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', minWidth: 0 }}>
           
           {/* Progress & Circulars */}
           <Card header={<h5 style={{ margin: 0 }}>Progress Overview</h5>}>
             {loadingProgress || !progress ? (
               <ListSkeleton rows={3} />
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', padding: '0.5rem 0' }}>
+              <div className="dashboard-progress-circles">
                 
                 {/* Onboarding progress circular */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
@@ -504,7 +504,7 @@ const Dashboard = () => {
           </Card>
 
           {/* Productivity line chart & Status distribution */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          <div className="dashboard-charts-row">
             {/* Weekly Productivity */}
             {loadingCharts || !chartData ? (
               <ChartSkeleton />
@@ -564,9 +564,9 @@ const Dashboard = () => {
           {/* Task Overview Section */}
           <Card
             header={
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <h5 style={{ margin: 0 }}>Active Tasks</h5>
-                <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--color-neutral-100)', padding: '2px', borderRadius: '0.5rem' }}>
+                <div className="dashboard-task-filters">
                   {['all', 'pending', 'in-progress', 'completed'].map((f) => (
                     <button
                       key={f}
@@ -626,7 +626,7 @@ const Dashboard = () => {
         </div>
 
         {/* Right Column (4 cols equivalent on desktop) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', gridColumn: 'span 4' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', minWidth: 0, width: '100%' }}>
           
           {/* Quick Actions */}
           <Card header={<h5 style={{ margin: 0 }}>Quick Actions</h5>}>
@@ -703,7 +703,7 @@ const Dashboard = () => {
             <ChartSkeleton />
           ) : (
             <Card header={<h5 style={{ margin: 0 }}>Monthly Progress</h5>}>
-              <div style={{ height: '180px', marginTop: '1rem' }}>
+              <div style={{ height: '180px', marginTop: '1rem', width: '100%', minWidth: 0, overflow: 'hidden' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData.monthly}>
                     <XAxis dataKey="week" tick={{ fill: 'var(--color-neutral-400)', fontSize: 10 }} axisLine={false} tickLine={false} />

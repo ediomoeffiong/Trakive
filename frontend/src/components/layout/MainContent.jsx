@@ -37,8 +37,8 @@ const MainContent = ({ children, className = '', maxWidth = true }) => {
         exit="exit"
         style={
           maxWidth
-            ? { maxWidth: '1280px', width: '100%', margin: '0 auto' }
-            : undefined
+            ? { maxWidth: '1280px', width: '100%', margin: '0 auto', minWidth: 0 }
+            : { width: '100%', minWidth: 0 }
         }
       >
         {children}

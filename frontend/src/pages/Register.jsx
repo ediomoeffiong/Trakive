@@ -18,6 +18,17 @@ import {
   PasswordStrength,
 } from '../components/ui';
 
+const getMaxDateOfBirth = () => {
+  const cutoff = new Date();
+  cutoff.setHours(0, 0, 0, 0);
+  cutoff.setFullYear(cutoff.getFullYear() - 10);
+  cutoff.setDate(cutoff.getDate() - 1);
+  const year = cutoff.getFullYear();
+  const month = String(cutoff.getMonth() + 1).padStart(2, '0');
+  const day = String(cutoff.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const Register = () => {
   const navigate = useNavigate();
   const registerFn = useAppStore((state) => state.register);
@@ -28,6 +39,7 @@ const Register = () => {
   const [step, setStep] = useState(1);
   const [role, setRole] = useState('Intern');
   const totalSteps = 3;
+  const maxDateOfBirth = getMaxDateOfBirth();
 
   const {
     register,
@@ -165,7 +177,7 @@ const Register = () => {
               id="reg-email"
               label="Work Email"
               type="email"
-              placeholder="e.g. covenant@company.com"
+              placeholder="user@thefifthlab.com"
               leftAddon={<FiMail className="text-neutral-400" />}
               error={errors.email?.message}
               {...register('email', {
@@ -181,7 +193,7 @@ const Register = () => {
               id="reg-phone"
               label="Phone Number"
               type="tel"
-              placeholder="e.g. +1 555-0199"
+              placeholder="e.g. +234 801 234 5678"
               leftAddon={<FiPhone className="text-neutral-400" />}
               error={errors.phone?.message}
               {...register('phone', {
@@ -197,15 +209,25 @@ const Register = () => {
               id="reg-dob"
               label="Date of Birth"
               type="date"
+              max={maxDateOfBirth}
               leftAddon={<FiCalendar className="text-neutral-400" />}
               error={errors.dateOfBirth?.message}
               {...register('dateOfBirth', {
                 required: 'Date of birth is required',
                 validate: (val) => {
-                  const selected = new Date(val);
+                  const parts = String(val).split('-').map(Number);
+                  const selected = new Date(parts[0], parts[1] - 1, parts[2]);
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);
-                  if (selected >= today) return 'Date of birth must be in the past';
+                  if (Number.isNaN(selected.getTime()) || selected >= today) {
+                    return 'Date of birth must be in the past';
+                  }
+                  const ageCutoff = new Date();
+                  ageCutoff.setHours(0, 0, 0, 0);
+                  ageCutoff.setFullYear(ageCutoff.getFullYear() - 10);
+                  if (selected >= ageCutoff) {
+                    return 'You must be older than 10 years';
+                  }
                   return true;
                 },
               })}
