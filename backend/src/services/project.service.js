@@ -40,7 +40,18 @@ const ProjectService = {
 
     if (role === 'supervisor') {
       const spId = await this._getSupervisorProfileId(requestingUser.id);
-      if (project.supervisor_id !== spId) {
+      const creatorProfile = project.creator_id ? await this._getInternProfile(project.creator_id) : null;
+      let memberBelongsToSupervisor = false;
+      const members = Array.isArray(project.members) ? project.members : [];
+      for (const member of members) {
+        const memberProfile = member.intern_id ? await this._getInternProfile(member.intern_id) : null;
+        if (memberProfile?.supervisor_id === spId) {
+          memberBelongsToSupervisor = true;
+          break;
+        }
+      }
+
+      if (project.supervisor_id !== spId && creatorProfile?.supervisor_id !== spId && !memberBelongsToSupervisor) {
         throw ApiError.forbidden('You are not the supervisor of this project');
       }
       return;
@@ -99,6 +110,7 @@ const ProjectService = {
       priority: data.priority || 'medium',
       start_date: data.start_date || null,
       due_date: data.due_date || null,
+      project_link_url: data.project_link_url || null,
       notes: data.notes || null,
     });
 
@@ -179,6 +191,7 @@ const ProjectService = {
       due_date: data.due_date || null,
       proposed_objectives: data.proposed_objectives || null,
       expected_outcome: data.expected_outcome || null,
+      project_link_url: data.project_link_url || null,
       notes: data.notes || null,
     });
 
@@ -332,6 +345,7 @@ const ProjectService = {
     if (data.start_date) updates.start_date = data.start_date;
     if (data.due_date) updates.due_date = data.due_date;
     if (data.priority) updates.priority = data.priority;
+    if (data.project_link_url !== undefined) updates.project_link_url = data.project_link_url;
 
     await ProjectModel.update(projectId, updates);
     await ProjectModel.addApprovalHistory(projectId, 'resubmitted', requestingUser.id);
@@ -385,7 +399,7 @@ const ProjectService = {
       scopedFilters.intern_id = requestingUser.id;
     } else if (role === 'supervisor') {
       const spId = await this._getSupervisorProfileId(requestingUser.id);
-      scopedFilters.supervisor_id = spId;
+      scopedFilters.supervisor_scope_id = spId;
     }
     // admin/head/hr sees all in org (no extra scoping)
 
@@ -404,16 +418,52 @@ const ProjectService = {
     await this._authorizeProjectAccess(project, requestingUser);
 
     const role = (requestingUser.role_name || '').toLowerCase();
-    const allowedForIntern = ['title', 'description', 'proposed_objectives', 'expected_outcome', 'start_date', 'due_date', 'priority', 'notes'];
+    const allowedForIntern = ['title', 'description', 'proposed_objectives', 'expected_outcome', 'start_date', 'due_date', 'priority', 'notes', 'project_link_url'];
     const allowedForSupervisor = [...allowedForIntern, 'status', 'supervisor_id', 'department_id'];
     const allowed = role === 'intern' ? allowedForIntern : allowedForSupervisor;
+
+    if (role === 'intern') {
+      if (project.creator_id !== requestingUser.id) {
+        throw ApiError.forbidden('You can only edit projects you created');
+      }
+      if (!['pending_approval', 'active'].includes(project.status)) {
+        throw ApiError.badRequest('Project cannot be edited in its current state');
+      }
+    }
 
     const updates = {};
     for (const [key, value] of Object.entries(data)) {
       if (allowed.includes(key)) updates[key] = value;
     }
 
-    const updated = await ProjectModel.update(projectId, updates);
+    if (role === 'intern') {
+      updates.status = 'pending_approval';
+      updates.supervisor_feedback = null;
+      updates.rejection_reason = null;
+    }
+
+    await ProjectModel.update(projectId, updates);
+
+    if (role === 'intern') {
+      await ProjectModel.addApprovalHistory(
+        projectId,
+        project.status === 'active' ? 'resubmitted' : 'submitted',
+        requestingUser.id
+      );
+
+      if (project.supervisor_id) {
+        const spProfile = await ProfileModel.findSupervisorById(project.supervisor_id);
+        if (spProfile) {
+          await NotificationModel.create({
+            userId: spProfile.user_id,
+            title: project.status === 'active' ? 'Approved Project Edited' : 'Project Proposal Updated',
+            message: `${requestingUser.first_name} ${requestingUser.last_name} updated "${project.title}". Please review the latest changes.`,
+            type: 'project',
+            linkUrl: `/supervisor/projects/${projectId}`,
+          });
+        }
+      }
+    }
 
     // Handle member updates (supervisor only)
     if (role !== 'intern' && Array.isArray(data.intern_ids)) {

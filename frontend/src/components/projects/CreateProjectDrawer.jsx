@@ -57,7 +57,7 @@ export function CreateProjectDrawer({ isOpen, onClose, onSuccess }) {
   const [interns, setInterns] = useState([]);
   const [selectedInterns, setSelectedInterns] = useState([]);
 
-  const [details, setDetails] = useState({ title: '', description: '', priority: 'medium', start_date: '', due_date: '', notes: '' });
+  const [details, setDetails] = useState({ title: '', description: '', priority: 'medium', start_date: '', due_date: '', project_link_url: '', notes: '' });
   const [milestones, setMilestones] = useState([{ title: '', due_date: '' }]);
 
   useEffect(() => {
@@ -140,7 +140,7 @@ export function CreateProjectDrawer({ isOpen, onClose, onSuccess }) {
 
   const handleClose = () => {
     setStep(0);
-    setDetails({ title: '', description: '', priority: 'medium', start_date: '', due_date: '', notes: '' });
+    setDetails({ title: '', description: '', priority: 'medium', start_date: '', due_date: '', project_link_url: '', notes: '' });
     setMilestones([{ title: '', due_date: '' }]);
     setSelectedInterns([]);
     onClose();
@@ -161,6 +161,10 @@ export function CreateProjectDrawer({ isOpen, onClose, onSuccess }) {
             <div style={fieldStyle}>
               <label style={labelStyle}>Description</label>
               <textarea style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }} placeholder="Project brief..." value={details.description} onChange={setDetail('description')} />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Project Link</label>
+              <input style={inputStyle} type="url" placeholder="https://github.com/org/project or live demo URL" value={details.project_link_url} onChange={setDetail('project_link_url')} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
               <div style={fieldStyle}>

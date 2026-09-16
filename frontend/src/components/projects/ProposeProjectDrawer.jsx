@@ -2,7 +2,7 @@
  * @file ProposeProjectDrawer.jsx
  * @description Intern's drawer to propose a project for supervisor approval.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { RiAddLine, RiDeleteBinLine } from 'react-icons/ri';
 import { Drawer, Button } from '../ui';
@@ -37,21 +37,49 @@ const labelStyle = {
 
 const fieldStyle = { display: 'flex', flexDirection: 'column', gap: '0' };
 
-export function ProposeProjectDrawer({ isOpen, onClose, onSuccess }) {
+const emptyForm = {
+  title: '',
+  description: '',
+  proposed_objectives: '',
+  expected_outcome: '',
+  project_link_url: '',
+  priority: 'medium',
+  start_date: '',
+  due_date: '',
+  notes: '',
+};
+
+const toDateInputValue = (value) => value ? String(value).slice(0, 10) : '';
+
+export function ProposeProjectDrawer({ isOpen, onClose, onSuccess, project = null }) {
+  const isEditing = Boolean(project?.id);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    proposed_objectives: '',
-    expected_outcome: '',
-    priority: 'medium',
-    start_date: '',
-    due_date: '',
-    notes: '',
-  });
+  const [form, setForm] = useState(emptyForm);
   const [milestones, setMilestones] = useState([{ title: '', due_date: '' }]);
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (project) {
+      setForm({
+        title: project.title || '',
+        description: project.description || '',
+        proposed_objectives: project.proposed_objectives || '',
+        expected_outcome: project.expected_outcome || '',
+        project_link_url: project.project_link_url || '',
+        priority: project.priority || 'medium',
+        start_date: toDateInputValue(project.start_date),
+        due_date: toDateInputValue(project.due_date),
+        notes: project.notes || '',
+      });
+      return;
+    }
+
+    setForm(emptyForm);
+    setMilestones([{ title: '', due_date: '' }]);
+  }, [isOpen, project]);
 
   const addMilestone = () => setMilestones((m) => [...m, { title: '', due_date: '' }]);
   const removeMilestone = (i) => setMilestones((m) => m.filter((_, idx) => idx !== i));
@@ -100,21 +128,17 @@ export function ProposeProjectDrawer({ isOpen, onClose, onSuccess }) {
         ...form,
         milestones: milestones.filter((m) => m.title.trim()),
       };
-      await projectService.proposeProject(payload);
-      toast.success('Project proposal submitted for supervisor review!');
+      if (isEditing) {
+        await projectService.updateProject(project.id, payload);
+        toast.success(project.status === 'active' ? 'Project updated and moved to pending review.' : 'Project updated.');
+      } else {
+        await projectService.proposeProject(payload);
+        toast.success('Project proposal submitted for supervisor review!');
+      }
       onSuccess?.();
       onClose();
       // Reset
-      setForm({
-        title: '',
-        description: '',
-        proposed_objectives: '',
-        expected_outcome: '',
-        priority: 'medium',
-        start_date: '',
-        due_date: '',
-        notes: '',
-      });
+      setForm(emptyForm);
       setMilestones([{ title: '', due_date: '' }]);
     } catch (err) {
       toast.error(err?.response?.data?.message || err?.message || 'Failed to submit proposal');
@@ -124,7 +148,7 @@ export function ProposeProjectDrawer({ isOpen, onClose, onSuccess }) {
   };
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} title="Propose a Project" width="min(480px, 100vw)">
+    <Drawer isOpen={isOpen} onClose={onClose} title={isEditing ? 'Edit Project' : 'Propose a Project'} width="min(480px, 100vw)">
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem', padding: '1rem 0' }}>
 
         {/* Title */}
@@ -151,6 +175,12 @@ export function ProposeProjectDrawer({ isOpen, onClose, onSuccess }) {
           <textarea style={{ ...inputStyle, minHeight: '75px', resize: 'vertical' }} placeholder="Describe the expected deliverables..." value={form.expected_outcome} onChange={set('expected_outcome')} />
         </div>
 
+        {/* Project Link */}
+        <div style={fieldStyle}>
+          <label style={labelStyle}>Project Link</label>
+          <input style={inputStyle} type="url" placeholder="https://github.com/org/project or live demo URL" value={form.project_link_url} onChange={set('project_link_url')} />
+        </div>
+
         {/* Priority + Dates — responsive 3-col grid */}
         <div className="drawer-form-grid-3">
           <div style={fieldStyle}>
@@ -170,7 +200,7 @@ export function ProposeProjectDrawer({ isOpen, onClose, onSuccess }) {
         </div>
 
         {/* Milestones */}
-        <div style={fieldStyle}>
+        {!isEditing && <div style={fieldStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
             <label style={{ ...labelStyle, marginBottom: 0 }}>Milestones</label>
             <button type="button" onClick={addMilestone} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', color: 'var(--color-primary-600)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
@@ -188,7 +218,7 @@ export function ProposeProjectDrawer({ isOpen, onClose, onSuccess }) {
               )}
             </div>
           ))}
-        </div>
+        </div>}
 
         {/* Notes */}
         <div style={fieldStyle}>
@@ -199,7 +229,7 @@ export function ProposeProjectDrawer({ isOpen, onClose, onSuccess }) {
         {/* Actions */}
         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid var(--color-neutral-100)', flexWrap: 'wrap' }}>
           <Button variant="ghost" onClick={onClose} type="button">Cancel</Button>
-          <Button type="submit" loading={loading}>Submit Proposal</Button>
+          <Button type="submit" loading={loading}>{isEditing ? 'Save Changes' : 'Submit Proposal'}</Button>
         </div>
       </form>
     </Drawer>

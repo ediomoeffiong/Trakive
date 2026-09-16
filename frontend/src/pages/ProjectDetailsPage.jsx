@@ -6,9 +6,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
-  RiArrowLeftLine, RiCheckboxCircleLine, RiTimeLine, RiUserLine,
+  RiArrowLeftLine, RiTimeLine, RiUserLine,
   RiCalendarLine, RiGroupLine, RiFlagLine, RiHistoryLine,
-  RiFileTextLine, RiTaskLine, RiFolderLine,
+  RiTaskLine, RiEditLine, RiExternalLinkLine,
 } from 'react-icons/ri';
 import { Card, Button, ProgressBar, Skeleton, EmptyState } from '../components/ui';
 import { ROUTES } from '../constants';
@@ -16,6 +16,7 @@ import { projectService } from '../services/projectService';
 import { ProjectStatusBadge, ProjectPriorityBadge } from '../components/projects/ProjectStatusBadge';
 import { MilestoneCard } from '../components/projects/MilestoneCard';
 import { ApprovalActionsModal } from '../components/projects/ApprovalActionsModal';
+import { ProposeProjectDrawer } from '../components/projects/ProposeProjectDrawer';
 import { useCurrentUser } from '../store/useAppStore';
 
 const TABS = ['Overview', 'Milestones', 'Tasks', 'Activity', 'Notes'];
@@ -74,6 +75,7 @@ export default function ProjectDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('Overview');
   const [approvalModal, setApprovalModal] = useState(false);
+  const [editingProject, setEditingProject] = useState(false);
 
   const fetchProject = useCallback(async () => {
     setLoading(true);
@@ -86,7 +88,7 @@ export default function ProjectDetailsPage() {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, navigate]);
 
   const fetchMilestones = useCallback(async () => {
     try {
@@ -119,6 +121,8 @@ export default function ProjectDetailsPage() {
   const members = Array.isArray(project.members) ? project.members : [];
   const history = Array.isArray(project.approval_history) ? project.approval_history : [];
   const backRoute = isSupervisor ? ROUTES.SUPERVISOR_PROJECTS : ROUTES.PROJECTS;
+  const currentUserId = user?.id || user?.user_id;
+  const canEditProject = !isSupervisor && project.creator_id === currentUserId && ['pending_approval', 'active'].includes(project.status);
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -146,11 +150,18 @@ export default function ProjectDetailsPage() {
             )}
           </div>
         </div>
-        {isSupervisor && project.status === 'pending_approval' && (
-          <Button onClick={() => setApprovalModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            Review Proposal
-          </Button>
-        )}
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {canEditProject && (
+            <Button variant="secondary" onClick={() => setEditingProject(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <RiEditLine /> Edit Project
+            </Button>
+          )}
+          {isSupervisor && project.status === 'pending_approval' && (
+            <Button onClick={() => setApprovalModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              Review Proposal
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
@@ -180,6 +191,14 @@ export default function ProjectDetailsPage() {
                     <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-600)', lineHeight: 1.6 }}>{project.expected_outcome}</p>
                   </>
                 )}
+              </Card>
+            )}
+            {project.project_link_url && (
+              <Card>
+                <h3 style={{ margin: '0 0 0.6rem', fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>Project Link</h3>
+                <a href={project.project_link_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-primary-600)', textDecoration: 'none', overflowWrap: 'anywhere' }}>
+                  {project.project_link_url} <RiExternalLinkLine />
+                </a>
               </Card>
             )}
             {/* Progress */}
@@ -336,6 +355,12 @@ export default function ProjectDetailsPage() {
         onClose={() => setApprovalModal(false)}
         project={project}
         onActionComplete={() => { setApprovalModal(false); fetchProject(); }}
+      />
+      <ProposeProjectDrawer
+        isOpen={editingProject}
+        onClose={() => setEditingProject(false)}
+        project={project}
+        onSuccess={() => { setEditingProject(false); fetchProject(); }}
       />
     </div>
   );
