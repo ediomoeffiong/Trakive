@@ -92,7 +92,7 @@ function CreateBatchModal({ onClose, onSave }) {
               disabled={loading}
               style={{
                 padding: '0.5rem 1.5rem', borderRadius: '0.625rem', border: 'none',
-                background: 'linear-gradient(135deg, #6366f1, #0ea5e9)', color: '#fff',
+                background: '#00b4d8', color: '#fff',
                 fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
               }}
             >
@@ -166,15 +166,15 @@ function AssignInternsDrawer({ batch, interns, onClose, onAssign }) {
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.75rem',
                   padding: '0.75rem', borderRadius: '0.75rem', cursor: 'pointer',
-                  border: `2px solid ${isSelected ? '#6366f1' : 'var(--color-neutral-200)'}`,
-                  background: isSelected ? '#eef2ff' : '#fff',
+                  border: `2px solid ${isSelected ? '#00b4d8' : 'var(--color-neutral-200)'}`,
+                  background: isSelected ? '#e6faff' : '#fff',
                   transition: 'all 0.15s',
                 }}
               >
                 <div style={{
                   width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0,
-                  border: `2px solid ${isSelected ? '#6366f1' : 'var(--color-neutral-300)'}`,
-                  background: isSelected ? '#6366f1' : '#fff',
+                  border: `2px solid ${isSelected ? '#00b4d8' : 'var(--color-neutral-300)'}`,
+                  background: isSelected ? '#00b4d8' : '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {isSelected && <RiCheckLine style={{ color: '#fff', fontSize: '0.75rem' }} />}
@@ -196,7 +196,7 @@ function AssignInternsDrawer({ batch, interns, onClose, onAssign }) {
             disabled={loading || !selected.length}
             style={{
               flex: 2, padding: '0.625rem', borderRadius: '0.75rem', border: 'none',
-              background: selected.length ? 'linear-gradient(135deg, #6366f1, #0ea5e9)' : 'var(--color-neutral-200)',
+              background: selected.length ? '#00b4d8' : 'var(--color-neutral-200)',
               color: selected.length ? '#fff' : 'var(--color-neutral-400)',
               fontWeight: 700, cursor: selected.length && !loading ? 'pointer' : 'not-allowed',
               opacity: loading ? 0.7 : 1,

@@ -26,7 +26,14 @@ BEGIN
     SELECT id INTO v_head_role FROM roles WHERE name IN ('department_head', 'head') LIMIT 1;
     SELECT id INTO v_admin_role FROM roles WHERE name IN ('super_admin', 'admin', 'org_admin') LIMIT 1;
 
-    SELECT id INTO v_dept_id FROM departments WHERE organization_id = v_fifthlab_id LIMIT 1;
+    INSERT INTO departments (organization_id, name, code, description)
+    VALUES (v_fifthlab_id, 'FifthLab', 'FIFTHLAB', 'FifthLab Venture Lab')
+    ON CONFLICT (organization_id, name) DO NOTHING;
+
+    SELECT id INTO v_dept_id
+    FROM departments
+    WHERE organization_id = v_fifthlab_id AND name = 'FifthLab'
+    LIMIT 1;
 
     -- 1. Intern (Ediomo Effiong @thefifthlab.com)
     INSERT INTO users (

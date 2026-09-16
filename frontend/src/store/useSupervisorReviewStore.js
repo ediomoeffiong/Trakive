@@ -74,6 +74,9 @@ export const useSupervisorReviewStore = create((set, get) => ({
   scheduledReviews: [],
   scheduleFormData: {
     internId: '',
+    internName: '',
+    internDepartment: '',
+    internEmail: '',
     type: 'one-on-one',
     title: '',
     scheduledAt: '',
@@ -190,7 +193,7 @@ export const useSupervisorReviewStore = create((set, get) => ({
   resetScheduleForm: () =>
     set({
       scheduleFormData: {
-        internId: '', type: 'one-on-one', title: '', scheduledAt: '',
+        internId: '', internName: '', internDepartment: '', internEmail: '', type: 'one-on-one', title: '', scheduledAt: '',
         durationMins: 30, location: 'google-meet', meetingLink: '', notes: '',
       },
     }),

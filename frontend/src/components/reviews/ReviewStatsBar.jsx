@@ -72,7 +72,7 @@ const StatCard = ({ icon, label, value, sub, accent, index }) => (
 );
 
 const ReviewStatsBar = ({ summary, loading }) => {
-  if (loading || !summary) {
+  if (loading) {
     return (
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
         {[...Array(5)].map((_, i) => (
@@ -91,40 +91,49 @@ const ReviewStatsBar = ({ summary, loading }) => {
     );
   }
 
+  const safeSummary = summary || {
+    overallScore: '—',
+    completedReviews: 0,
+    nextReviewDate: null,
+    averageRating: '—',
+    trend: 'stable',
+    trendDelta: '—',
+  };
+
   const stats = [
     {
       icon: <RiBarChartLine />,
       label: 'Overall Score',
-      value: summary.overallScore,
-      sub: (
+      value: safeSummary.overallScore,
+      sub: summary ? (
         <>
-          <TrendIcon trend={summary.trend} />
-          <span style={{ color: summary.trend === 'up' ? 'var(--color-success-600)' : 'var(--color-danger-600)', fontWeight: 600 }}>
-            {summary.trendDelta}
+          <TrendIcon trend={safeSummary.trend} />
+          <span style={{ color: safeSummary.trend === 'up' ? 'var(--color-success-600)' : safeSummary.trend === 'down' ? 'var(--color-danger-600)' : 'var(--color-neutral-500)', fontWeight: 600 }}>
+            {safeSummary.trendDelta}
           </span>
           &nbsp;vs last period
         </>
-      ),
+      ) : 'no published reviews',
       accent: 'var(--color-primary-50)',
     },
     {
       icon: <RiCheckboxCircleLine />,
       label: 'Completed',
-      value: summary.completedReviews,
+      value: safeSummary.completedReviews,
       sub: 'reviews published',
       accent: 'var(--color-success-50)',
     },
     {
       icon: <RiCalendarEventLine />,
       label: 'Next Review',
-      value: formatDate(summary.nextReviewDate),
-      sub: 'scheduled',
+      value: formatDate(safeSummary.nextReviewDate),
+      sub: safeSummary.nextReviewDate ? 'scheduled' : 'not scheduled',
       accent: 'var(--color-warning-50)',
     },
     {
       icon: <RiStarLine />,
       label: 'Avg Rating',
-      value: summary.averageRating,
+      value: safeSummary.averageRating,
       sub: 'across all criteria',
       accent: 'var(--color-purple-50, #f5f3ff)',
     },

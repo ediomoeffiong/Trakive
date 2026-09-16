@@ -20,6 +20,8 @@ import {
 } from 'react-icons/ri';
 import { ScheduleCardSkeleton } from './ReviewSkeletonLoaders';
 
+const ACCENT_COLOR = '#00b4d8';
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmtDate = (iso) =>
   iso
@@ -229,17 +231,17 @@ const ReviewScheduleView = ({
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              style={{ padding: '0.5rem 1rem', borderRadius: '0.625rem', border: 'none', background: activeTab === id ? '#fff' : 'transparent', color: activeTab === id ? '#4f46e5' : 'var(--color-neutral-500)', fontWeight: activeTab === id ? 700 : 500, fontSize: '0.875rem', cursor: 'pointer', boxShadow: activeTab === id ? '0 2px 8px rgba(0,0,0,0.06)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}
+            style={{ padding: '0.5rem 1rem', borderRadius: '0.625rem', border: 'none', background: activeTab === id ? '#fff' : 'transparent', color: activeTab === id ? ACCENT_COLOR : 'var(--color-neutral-500)', fontWeight: activeTab === id ? 700 : 500, fontSize: '0.875rem', cursor: 'pointer', boxShadow: activeTab === id ? '0 2px 8px rgba(0,0,0,0.06)' : 'none', transition: 'all 0.15s', whiteSpace: 'nowrap' }}
             >
               {label}
             </button>
           ))}
         </div>
         <motion.button
-          whileHover={{ y: -2, boxShadow: '0 6px 20px rgba(79,70,229,0.3)' }}
+          whileHover={{ y: -2, boxShadow: '0 6px 20px rgba(0,180,216,0.3)' }}
           whileTap={{ scale: 0.97 }}
           onClick={onScheduleNew}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5625rem 1.125rem', borderRadius: '0.875rem', border: 'none', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(79,70,229,0.28)' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5625rem 1.125rem', borderRadius: '0.875rem', border: 'none', background: ACCENT_COLOR, color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,180,216,0.28)' }}
         >
           <RiAddCircleLine /> Schedule Review
         </motion.button>

@@ -38,6 +38,15 @@ const Field = ({ label, value }) => (
   </div>
 );
 
+const formatDate = (value) => {
+  if (!value) return '';
+  try {
+    return new Date(value).toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch {
+    return value;
+  }
+};
+
 const FormField = ({ label, id, error, children, isLocked, onLockedClick }) => (
   <div style={{ position: 'relative' }}>
     <label htmlFor={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-700)', marginBottom: '0.375rem' }}>
@@ -227,7 +236,7 @@ const PersonalInfoForm = () => {
             <Field label="Phone" value={profile?.phone} />
             <Field label="Job Title" value={profile?.jobTitle || profile?.role} />
             <Field label="Department" value={profile?.department} />
-            <Field label="Date of Birth" value={profile?.dateOfBirth} />
+            <Field label="Date of Birth" value={formatDate(profile?.dateOfBirth)} />
             <Field label="Gender" value={profile?.gender} />
             <Field label="Address" value={profile?.address} />
             <Field label="City" value={profile?.city || DEFAULT_CITY} />
@@ -319,7 +328,7 @@ const PersonalInfoForm = () => {
 
               {/* Date of Birth */}
               <FormField label="Date of Birth" id="dateOfBirth" error={errors.dateOfBirth?.message}>
-                <input id="dateOfBirth" type="date" style={inputStyle} {...register('dateOfBirth')} />
+                <input id="dateOfBirth" type="date" style={inputStyle} {...register('dateOfBirth', { required: 'Date of birth is required' })} />
               </FormField>
 
               {/* Gender Dropdown (Male / Female strictly) */}

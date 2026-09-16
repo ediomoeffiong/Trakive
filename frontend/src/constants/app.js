@@ -18,9 +18,10 @@ export const STORAGE_KEYS = {
   THEME: 'trakive_theme',
 };
 
-/** API base URL — pulled from env, falls back to localhost */
+/** API base URL — pulled from env, uses localhost only during local dev. */
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? '/api/v1' : 'http://localhost:5000/api/v1');
 
 /** Supported themes */
 export const THEMES = {

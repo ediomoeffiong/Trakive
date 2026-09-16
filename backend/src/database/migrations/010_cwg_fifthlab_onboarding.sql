@@ -23,6 +23,7 @@ BEGIN
     -- Insert standard departments for FifthLab
     INSERT INTO departments (organization_id, name, code, description)
     VALUES 
+      (v_fifthlab_id, 'FifthLab', 'FIFTHLAB', 'FifthLab Venture Lab'),
       (v_fifthlab_id, 'Engineering', 'ENG', 'Engineering & Software Development'),
       (v_fifthlab_id, 'Product & Design', 'DES', 'Product Management & UI/UX Design'),
       (v_fifthlab_id, 'Human Resources', 'HR', 'People & Culture')
@@ -85,4 +86,3 @@ CREATE TABLE IF NOT EXISTS document_history (
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications ADD CONSTRAINT notifications_type_check 
   CHECK (type IN ('task', 'attendance', 'leave', 'system', 'message', 'application', 'onboarding_submission', 'onboarding_review'));
-

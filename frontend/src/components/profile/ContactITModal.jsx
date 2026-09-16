@@ -158,7 +158,7 @@ export const ContactITModal = ({ isOpen, onClose, fieldName = 'Job Title' }) => 
               fontWeight: 700,
               fontSize: '0.875em',
               borderRadius: '0.75em',
-              background: '#4f46e5',
+              background: '#00b4d8',
               color: '#fff',
               border: 'none',
               cursor: 'pointer',

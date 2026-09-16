@@ -37,9 +37,9 @@ const KPI_CONFIG = [
     key: 'needsRevision',
     label: 'Needs Revision',
     icon: RiRefreshLine,
-    gradient: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-    shadow: 'rgba(79,70,229,0.3)',
-    bg: '#eef2ff',
+    gradient: 'linear-gradient(135deg, #00b4d8, #0096c7)',
+    shadow: 'rgba(0,180,216,0.3)',
+    bg: '#e6faff',
     filterKey: 'needs-revision',
   },
   {

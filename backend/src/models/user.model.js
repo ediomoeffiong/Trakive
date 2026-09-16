@@ -25,16 +25,20 @@ const UserModel = {
         u.is_email_verified, u.email_verified_at, u.last_login_at,
         u.created_at, u.updated_at,
         r.name AS role_name, r.description AS role_description,
+        d.name AS department_name,
+        o.name AS organization_name,
         COALESCE(
           json_agg(p.name) FILTER (WHERE p.name IS NOT NULL),
           '[]'::json
         ) AS permissions
       FROM users u
       JOIN roles r ON r.id = u.role_id
+      LEFT JOIN departments d ON d.id = u.department_id
+      LEFT JOIN organizations o ON o.id = u.organization_id
       LEFT JOIN role_permissions rp ON rp.role_id = r.id
       LEFT JOIN permissions p ON p.id = rp.permission_id
       WHERE u.id = $1 AND u.deleted_at IS NULL
-      GROUP BY u.id, r.id;
+      GROUP BY u.id, r.id, d.id, o.id;
     `;
     const res = await query(sql, [id]);
     return res.rows[0] || null;
@@ -70,6 +74,7 @@ const UserModel = {
     first_name,
     last_name,
     phone = null,
+    date_of_birth = null,
     avatar_url = null,
     status = 'active',
     is_email_verified = false,
@@ -77,10 +82,10 @@ const UserModel = {
     const sql = `
       INSERT INTO users (
         organization_id, department_id, role_id, email, password_hash,
-        first_name, last_name, phone, avatar_url, status, is_email_verified
+        first_name, last_name, phone, date_of_birth, avatar_url, status, is_email_verified
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING id, organization_id, department_id, role_id, email, first_name, last_name, phone, avatar_url, status, is_email_verified, email_verified_at, created_at, updated_at;
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING id, organization_id, department_id, role_id, email, first_name, last_name, phone, date_of_birth, avatar_url, status, is_email_verified, email_verified_at, created_at, updated_at;
     `;
     const values = [
       organization_id,
@@ -91,6 +96,7 @@ const UserModel = {
       first_name,
       last_name,
       phone,
+      date_of_birth,
       avatar_url,
       status,
       is_email_verified,

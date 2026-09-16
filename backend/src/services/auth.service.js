@@ -97,6 +97,7 @@ const AuthService = {
       first_name: firstName || 'User',
       last_name: lastName || 'User',
       phone: data.phone || null,
+      date_of_birth: data.date_of_birth || data.dateOfBirth || null,
       status: initialStatus,
       is_email_verified: false,
     });

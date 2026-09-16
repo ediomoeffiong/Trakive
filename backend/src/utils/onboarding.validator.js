@@ -26,6 +26,7 @@ const submitOnboardingInfoSchema = Joi.object({
   department_id: Joi.string().uuid().optional(),
   start_date: Joi.string().isoDate().optional(),
   end_date: Joi.string().isoDate().optional(),
+  date_of_birth: Joi.string().isoDate().required(),
   emergency_contact: Joi.object({
     name: Joi.string().required(),
     relationship: Joi.string().required(),

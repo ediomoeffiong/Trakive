@@ -137,8 +137,8 @@ const MiniProgress = ({ value = 0 }) => {
 const SortIcon = ({ field, activeSort }) => {
   if (activeSort?.field !== field) return <RiArrowUpDownLine style={{ opacity: 0.35 }} />;
   return activeSort.order === 'asc'
-    ? <RiArrowUpLine style={{ color: '#4f46e5' }} />
-    : <RiArrowDownLine style={{ color: '#4f46e5' }} />;
+    ? <RiArrowUpLine style={{ color: '#00b4d8' }} />
+    : <RiArrowDownLine style={{ color: '#00b4d8' }} />;
 };
 
 // ── Row action dropdown ───────────────────────────────────────────────────────
@@ -146,7 +146,7 @@ const RowActions = ({ task, onView, onEdit, onDuplicate, onAssign, onArchive, on
   const [open, setOpen] = useState(false);
 
   const actions = [
-    { id: 'view', label: 'View Details', icon: RiEyeLine, onClick: () => onView?.(task), color: '#4f46e5' },
+    { id: 'view', label: 'View Details', icon: RiEyeLine, onClick: () => onView?.(task), color: '#00b4d8' },
     { id: 'edit', label: 'Edit', icon: RiEdit2Line, onClick: () => onEdit?.(task), color: '#7c3aed' },
     { id: 'duplicate', label: 'Duplicate', icon: RiFileCopyLine, onClick: () => onDuplicate?.(task), color: '#0891b2' },
     { id: 'assign', label: 'Assign', icon: RiUserAddLine, onClick: () => onAssign?.(task), color: '#059669' },
@@ -262,7 +262,7 @@ const TaskCard = ({ task, isSelected, onToggleSelect, onView, onEdit, onDuplicat
         background: '#fff',
         borderRadius: '0.875rem',
         padding: '1rem',
-        border: isSelected ? '1.5px solid #4f46e5' : '1px solid var(--color-neutral-200)',
+        border: isSelected ? '1.5px solid #00b4d8' : '1px solid var(--color-neutral-200)',
         boxShadow: isSelected ? '0 0 0 3px rgba(79,70,229,0.1)' : '0 2px 8px rgba(0,0,0,0.04)',
         display: 'flex',
         flexDirection: 'column',
@@ -276,7 +276,7 @@ const TaskCard = ({ task, isSelected, onToggleSelect, onView, onEdit, onDuplicat
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', flex: 1 }}>
           <button
             onClick={(e) => { e.stopPropagation(); onToggleSelect(task.id); }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', flexShrink: 0, color: isSelected ? '#4f46e5' : '#94a3b8', fontSize: '1.125rem' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', flexShrink: 0, color: isSelected ? '#00b4d8' : '#94a3b8', fontSize: '1.125rem' }}
           >
             {isSelected ? <RiCheckboxFill /> : <RiCheckboxBlankLine />}
           </button>
@@ -436,7 +436,7 @@ const TaskDirectoryTable = ({
               <th style={{ width: '44px', padding: '0.75rem 0.875rem', textAlign: 'center' }}>
                 <button
                   onClick={() => isAllSelected ? onClearSelection?.() : onSelectAll?.()}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: isAllSelected ? '#4f46e5' : isPartialSelected ? '#4f46e5' : '#94a3b8', fontSize: '1.125rem', display: 'flex', alignItems: 'center' }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: isAllSelected ? '#00b4d8' : isPartialSelected ? '#00b4d8' : '#94a3b8', fontSize: '1.125rem', display: 'flex', alignItems: 'center' }}
                   aria-label={isAllSelected ? 'Deselect all' : 'Select all'}
                 >
                   {isAllSelected ? <RiCheckboxFill /> : isPartialSelected ? <RiIndeterminateCircleLine /> : <RiCheckboxBlankLine />}
@@ -498,7 +498,7 @@ const TaskDirectoryTable = ({
                     <td style={{ padding: '0.75rem 0.875rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => onToggleSelect?.(task.id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: isSelected ? '#4f46e5' : '#94a3b8', fontSize: '1.125rem', display: 'flex', alignItems: 'center' }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: isSelected ? '#00b4d8' : '#94a3b8', fontSize: '1.125rem', display: 'flex', alignItems: 'center' }}
                       >
                         {isSelected ? <RiCheckboxFill /> : <RiCheckboxBlankLine />}
                       </button>
@@ -620,11 +620,11 @@ const PaginationBar = ({ currentPage, totalPages, totalTasks, pageSize, onPageCh
               style={{
                 padding: '0.4rem 0.625rem',
                 borderRadius: '0.5rem',
-                border: page === currentPage ? '1.5px solid #4f46e5' : '1px solid var(--color-neutral-200)',
+                border: page === currentPage ? '1.5px solid #00b4d8' : '1px solid var(--color-neutral-200)',
                 background: page === currentPage ? '#eef2ff' : '#fff',
                 fontSize: '0.8125rem',
                 fontWeight: page === currentPage ? 700 : 400,
-                color: page === currentPage ? '#4338ca' : 'var(--color-neutral-700)',
+                color: page === currentPage ? '#0077b6' : 'var(--color-neutral-700)',
                 cursor: 'pointer',
                 minWidth: '32px',
               }}

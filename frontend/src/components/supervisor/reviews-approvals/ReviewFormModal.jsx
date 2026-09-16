@@ -17,9 +17,12 @@ import {
   RiDeleteBinLine,
 } from 'react-icons/ri';
 
+const ACCENT_COLOR = '#00b4d8';
+const ACCENT_SOFT = '#e6faff';
+
 // ── Rubric Slider ─────────────────────────────────────────────────────────────
 const RubricSlider = ({ label, value, onChange }) => {
-  const color = value >= 90 ? '#10b981' : value >= 70 ? '#4f46e5' : value >= 50 ? '#f59e0b' : '#ef4444';
+  const color = value >= 90 ? '#10b981' : value >= 70 ? ACCENT_COLOR : value >= 50 ? '#f59e0b' : '#ef4444';
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -46,7 +49,7 @@ const RubricSlider = ({ label, value, onChange }) => {
 };
 
 // ── Tag Chip Input ────────────────────────────────────────────────────────────
-const TagChipInput = ({ label, tags = [], onChange, placeholder, color = '#4f46e5', bg = '#eef2ff' }) => {
+const TagChipInput = ({ label, tags = [], onChange, placeholder, color = ACCENT_COLOR, bg = ACCENT_SOFT }) => {
   const [input, setInput] = useState('');
   const addTag = () => {
     const trimmed = input.trim();
@@ -84,7 +87,7 @@ const TagChipInput = ({ label, tags = [], onChange, placeholder, color = '#4f46e
 // ── Decision Selector ─────────────────────────────────────────────────────────
 const DECISIONS = [
   { value: 'approved', label: 'Approved', icon: RiCheckboxCircleLine, color: '#10b981', bg: '#ecfdf5', border: '#a7f3d0' },
-  { value: 'needs-revision', label: 'Needs Revision', icon: RiRefreshLine, color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' },
+  { value: 'needs-revision', label: 'Needs Revision', icon: RiRefreshLine, color: ACCENT_COLOR, bg: ACCENT_SOFT, border: '#90e0ef' },
   { value: 'rejected', label: 'Rejected', icon: RiCloseCircleLine, color: '#ef4444', bg: '#fef2f2', border: '#fecaca' },
 ];
 
@@ -208,7 +211,7 @@ const ReviewFormModal = ({
                   placeholder="Write detailed feedback for the intern. Be specific about what was done well and what needs improvement..."
                   rows={5}
                   style={{ width: '100%', padding: '0.875rem', borderRadius: '0.875rem', border: '1.5px solid var(--color-neutral-200)', fontSize: '0.875rem', color: 'var(--color-neutral-700)', resize: 'vertical', lineHeight: 1.6, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', transition: 'border-color 0.15s' }}
-                  onFocus={(e) => (e.target.style.borderColor = '#4f46e5')}
+                  onFocus={(e) => (e.target.style.borderColor = ACCENT_COLOR)}
                   onBlur={(e) => (e.target.style.borderColor = 'var(--color-neutral-200)')}
                 />
               </div>
@@ -246,9 +249,9 @@ const ReviewFormModal = ({
                       style={{
                         padding: '0.5rem 0.875rem',
                         borderRadius: '9999px',
-                        border: `1.5px solid ${draft.recommendation === rec ? '#4f46e5' : 'var(--color-neutral-200)'}`,
-                        background: draft.recommendation === rec ? '#eef2ff' : '#fff',
-                        color: draft.recommendation === rec ? '#4338ca' : 'var(--color-neutral-600)',
+                        border: `1.5px solid ${draft.recommendation === rec ? ACCENT_COLOR : 'var(--color-neutral-200)'}`,
+                        background: draft.recommendation === rec ? ACCENT_SOFT : '#fff',
+                        color: draft.recommendation === rec ? '#0077b6' : 'var(--color-neutral-600)',
                         fontSize: '0.8125rem',
                         fontWeight: draft.recommendation === rec ? 700 : 500,
                         cursor: 'pointer',
@@ -313,11 +316,11 @@ const ReviewFormModal = ({
                 <RiSaveLine /> Save Draft
               </motion.button>
               <motion.button
-                whileHover={{ scale: 1.03, boxShadow: '0 8px 24px rgba(79,70,229,0.35)' }}
+                whileHover={{ scale: 1.03, boxShadow: '0 8px 24px rgba(0,180,216,0.35)' }}
                 whileTap={{ scale: 0.97 }}
                 onClick={handleSubmit}
                 disabled={isLoading}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.625rem 1.25rem', borderRadius: '0.75rem', border: 'none', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.7 : 1, boxShadow: '0 4px 16px rgba(79,70,229,0.28)' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.625rem 1.25rem', borderRadius: '0.75rem', border: 'none', background: ACCENT_COLOR, color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.7 : 1, boxShadow: '0 4px 16px rgba(0,180,216,0.28)' }}
               >
                 {isLoading ? (
                   <span style={{ display: 'inline-block', width: '16px', height: '16px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', animation: 'spin 0.8s linear infinite' }} />

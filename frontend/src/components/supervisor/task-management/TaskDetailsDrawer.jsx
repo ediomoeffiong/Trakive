@@ -135,7 +135,7 @@ const OverviewTab = ({ task }) => (
                 <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-700)' }}>{att.name}</span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>{att.size}</span>
               </div>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4f46e5', display: 'flex' }} title="Download">
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#00b4d8', display: 'flex' }} title="Download">
                 <RiDownloadLine />
               </button>
             </div>

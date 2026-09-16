@@ -30,7 +30,7 @@ const DIFFICULTY_STYLES = {
 
 const getCategoryColor = (category) => {
   const cat = TASK_CATEGORIES.find((c) => c.value === category);
-  return cat ? { color: cat.color, bg: cat.bg } : { color: '#4f46e5', bg: '#eef2ff' };
+  return cat ? { color: cat.color, bg: cat.bg } : { color: '#00b4d8', bg: '#e6faff' };
 };
 
 const TemplateCard = ({ template, onUse, onDuplicate, onDelete, onPreview, isSelected }) => {
@@ -47,7 +47,7 @@ const TemplateCard = ({ template, onUse, onDuplicate, onDelete, onPreview, isSel
         background: '#fff',
         borderRadius: '0.875rem',
         padding: '1.125rem',
-        border: isSelected ? '1.5px solid #4f46e5' : '1px solid var(--color-neutral-200)',
+        border: isSelected ? '1.5px solid #00b4d8' : '1px solid var(--color-neutral-200)',
         boxShadow: isSelected ? '0 0 0 3px rgba(79,70,229,0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
         display: 'flex',
         flexDirection: 'column',
@@ -108,7 +108,7 @@ const TemplateCard = ({ template, onUse, onDuplicate, onDelete, onPreview, isSel
             padding: '0.5rem',
             borderRadius: '0.625rem',
             border: 'none',
-            background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+            background: '#00b4d8',
             color: '#fff',
             fontSize: '0.75rem',
             fontWeight: 700,
@@ -118,11 +118,11 @@ const TemplateCard = ({ template, onUse, onDuplicate, onDelete, onPreview, isSel
           Use Template <RiArrowRightLine />
         </motion.button>
         <motion.button
-          whileHover={{ scale: 1.05, background: '#eef2ff' }}
+          whileHover={{ scale: 1.05, background: '#e6faff' }}
           whileTap={{ scale: 0.97 }}
           onClick={() => onDuplicate(template)}
           title="Duplicate"
-          style={{ padding: '0.5rem', borderRadius: '0.625rem', border: '1px solid var(--color-neutral-200)', background: '#fff', cursor: 'pointer', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ padding: '0.5rem', borderRadius: '0.625rem', border: '1px solid var(--color-neutral-200)', background: '#fff', cursor: 'pointer', color: '#00b4d8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           <RiFileCopyLine />
         </motion.button>
@@ -205,10 +205,10 @@ const TemplatePreviewPanel = ({ template, onClose, onUse }) => {
       </div>
 
       <motion.button
-        whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(79,70,229,0.3)' }}
+        whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(0,180,216,0.3)' }}
         whileTap={{ scale: 0.97 }}
         onClick={() => onUse(template)}
-        style={{ width: '100%', padding: '0.75rem', borderRadius: '0.875rem', border: 'none', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer' }}
+        style={{ width: '100%', padding: '0.75rem', borderRadius: '0.875rem', border: 'none', background: '#00b4d8', color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer' }}
       >
         Use This Template
       </motion.button>
@@ -344,9 +344,9 @@ const TaskTemplatesModal = ({
                     style={{
                       padding: '0.375rem 0.75rem',
                       borderRadius: '0.5rem',
-                      border: categoryFilter === cat ? '1.5px solid #4f46e5' : '1px solid var(--color-neutral-200)',
+                      border: categoryFilter === cat ? '1.5px solid #00b4d8' : '1px solid var(--color-neutral-200)',
                       background: categoryFilter === cat ? '#eef2ff' : '#fff',
-                      color: categoryFilter === cat ? '#4338ca' : 'var(--color-neutral-600)',
+                      color: categoryFilter === cat ? '#0077b6' : 'var(--color-neutral-600)',
                       fontWeight: categoryFilter === cat ? 700 : 400,
                       fontSize: '0.75rem',
                       cursor: 'pointer',
@@ -367,7 +367,7 @@ const TaskTemplatesModal = ({
                   <TemplatesGridSkeleton />
                 ) : filtered.length === 0 ? (
                   <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-neutral-400)', fontSize: '0.875rem' }}>
-                    No templates found. <button onClick={onCreateTemplate} style={{ color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.875rem' }}>Create one →</button>
+                    No templates found. <button onClick={onCreateTemplate} style={{ color: '#00b4d8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.875rem' }}>Create one →</button>
                   </div>
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.875rem' }}>

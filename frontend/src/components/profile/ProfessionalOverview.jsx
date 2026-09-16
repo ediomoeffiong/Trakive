@@ -212,6 +212,9 @@ const ProfessionalOverview = ({ completion, setActiveTab }) => {
               const tabMap = {
                 avatar: () => setAvatarModalOpen(true),
                 personal_info: () => setActiveTab('personal'),
+                date_of_birth: () => setActiveTab('personal'),
+                internship_dates: () => setActiveTab('internship'),
+                supervisor: () => setActiveTab('internship'),
                 bio: () => setActiveTab('personal'),
                 skills: () => setActiveTab('skills'),
                 documents: () => setActiveTab('documents'),
@@ -237,6 +240,21 @@ const ProfessionalOverview = ({ completion, setActiveTab }) => {
               <InfoRow label="End" value={formatDate(internship?.endDate)} />
               <InfoRow label="Location" value={internship?.workLocation} />
             </div>
+
+            {!internshipDuration ? (
+              <div className="profile-empty-panel" style={{ marginTop: '0.75rem' }}>
+                <p>Internship start and end dates are missing. Complete onboarding info so duration and progress can be calculated.</p>
+                <button type="button" onClick={() => setActiveTab('internship')}>
+                  Update internship info
+                </button>
+              </div>
+            ) : null}
+
+            {!internship?.supervisor?.name ? (
+              <div className="profile-empty-panel" style={{ marginTop: '0.75rem' }}>
+                <p>No supervisor is assigned yet. This will update once your department or HR assigns one.</p>
+              </div>
+            ) : null}
 
             {internshipProgress > 0 ? (
               <div className="profile-inline-progress">

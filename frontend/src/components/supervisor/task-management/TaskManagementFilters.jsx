@@ -157,9 +157,9 @@ const TaskManagementFilters = ({
                 style={{
                   padding: '0.4375rem 0.875rem',
                   borderRadius: '0.625rem',
-                  border: isActive ? '1.5px solid #4f46e5' : '1px solid var(--color-neutral-200)',
+                  border: isActive ? '1.5px solid #00b4d8' : '1px solid var(--color-neutral-200)',
                   background: isActive ? '#eef2ff' : '#fff',
-                  color: isActive ? '#4338ca' : 'var(--color-neutral-600)',
+                  color: isActive ? '#0077b6' : 'var(--color-neutral-600)',
                   fontSize: '0.8125rem',
                   fontWeight: isActive ? 700 : 500,
                   cursor: 'pointer',
@@ -183,9 +183,9 @@ const TaskManagementFilters = ({
             gap: '0.375rem',
             padding: '0.5rem 0.875rem',
             borderRadius: '0.75rem',
-            border: showFilters ? '1.5px solid #4f46e5' : '1px solid var(--color-neutral-200)',
-            background: showFilters ? '#eef2ff' : '#fff',
-            color: showFilters ? '#4338ca' : 'var(--color-neutral-600)',
+            border: showFilters ? '1.5px solid #00b4d8' : '1px solid var(--color-neutral-200)',
+            background: showFilters ? '#e6faff' : '#fff',
+            color: showFilters ? '#0077b6' : 'var(--color-neutral-600)',
             fontSize: '0.8125rem',
             fontWeight: 600,
             cursor: 'pointer',
@@ -198,7 +198,7 @@ const TaskManagementFilters = ({
           {activeFilterChips.length > 0 && (
             <span
               style={{
-                background: '#4f46e5',
+                background: '#00b4d8',
                 color: '#fff',
                 borderRadius: '9999px',
                 fontSize: '0.6875rem',

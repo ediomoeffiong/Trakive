@@ -6,6 +6,7 @@ const UserModel = require('../models/user.model');
 const ProfileModel = require('../models/profile.model');
 const RoleModel = require('../models/role.model');
 const InternshipModel = require('../models/internship.model');
+const InternshipRecordModel = require('../models/internshipRecord.model');
 const AuditLogModel = require('../models/auditLog.model');
 const NotificationModel = require('../models/notification.model');
 const { hashPassword } = require('../utils/password.utils');
@@ -304,9 +305,12 @@ const OnboardingService = {
 
     let assignedSupervisorProfile = null;
     let targetDeptId = data.department_id || requestingUser.department_id || null;
+    await UserModel.update(requestingUser.id, {
+      date_of_birth: data.date_of_birth || data.dateOfBirth || null,
+      ...(targetDeptId ? { department_id: targetDeptId } : {}),
+    });
 
     if (targetDeptId) {
-      await UserModel.update(requestingUser.id, { department_id: targetDeptId });
       // Supervisor auto-assignment mechanism: find active supervisor in selected department
       const supRes = await query(
         `SELECT sp.* FROM supervisor_profiles sp
@@ -339,6 +343,25 @@ const OnboardingService = {
         'active',
         'Auto-assigned supervisor upon department selection'
       );
+    }
+
+    const existingRecord = await InternshipRecordModel.findActiveByUserId(requestingUser.id);
+    const recordPayload = {
+      department_id: targetDeptId,
+      supervisor_id: assignedSupervisorProfile ? assignedSupervisorProfile.id : internProfile.supervisor_id || null,
+      start_date: data.start_date,
+      end_date: data.end_date,
+      status: 'onboarding',
+    };
+    if (existingRecord) {
+      await InternshipRecordModel.update(existingRecord.id, recordPayload);
+    } else if (data.start_date && data.end_date) {
+      await InternshipRecordModel.create({
+        user_id: requestingUser.id,
+        organization_id: orgId,
+        ...recordPayload,
+        title: 'Internship #1',
+      });
     }
 
     let updatedApp = null;

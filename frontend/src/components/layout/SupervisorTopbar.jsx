@@ -20,6 +20,7 @@ import {
 } from 'react-icons/ri';
 import Avatar from '../ui/Avatar';
 import { useCurrentUser, useTheme, useAppStore } from '../../store';
+import { useProfileStore } from '../../store/useProfileStore';
 import { NotificationDrawer } from '../notifications';
 import { ROUTES } from '../../constants';
 import { formatRole } from '../../utils';
@@ -45,6 +46,7 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const user = useCurrentUser();
+  const profile = useProfileStore((s) => s.profile);
   const theme = useTheme();
   const setTheme = useAppStore((s) => s.setTheme);
   const logout = useAppStore((s) => s.logout);
@@ -59,8 +61,8 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
     : (SUPERVISOR_PAGE_TITLES[pathname] ?? 'Supervisor Portal');
 
   // Fallback supervisor user display
-  const supervisorName = user?.name ?? 'Tochukwu Mgbemmena';
-  const supervisorDepartment = user?.department ?? 'Engineering Lead';
+  const supervisorName = profile?.fullName || user?.name || 'Supervisor';
+  const supervisorDepartment = profile?.department || user?.department_name || user?.department || 'Department not set';
 
   return (
     <header
@@ -194,14 +196,14 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
         >
           <Avatar
             name={supervisorName}
-            src={user?.avatarUrl || user?.avatar_url || user?.avatar}
+            src={profile?.avatarUrl || user?.avatarUrl || user?.avatar_url || user?.avatar}
             size="sm"
             online
           />
 
           <div className="lg-only" style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.1, marginBottom: '2px' }}>
-              {formatRole(user?.role ?? 'Supervisor')}
+              {formatRole(profile?.role || user?.role || 'Supervisor')}
             </span>
             <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-800)', lineHeight: 1.1 }}>
               {supervisorName}
@@ -240,7 +242,7 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
                     {supervisorName}
                   </p>
                   <p style={{ fontSize: '0.75rem', color: 'var(--color-neutral-500)', margin: 0 }}>
-                    {supervisorDepartment} • {formatRole(user?.role ?? 'Supervisor')}
+                    {supervisorDepartment} • {formatRole(profile?.role || user?.role || 'Supervisor')}
                   </p>
                 </div>
                 <div style={{ height: '1px', backgroundColor: 'var(--color-neutral-200)', margin: '0.5rem 0' }} />

@@ -45,6 +45,23 @@ const InfoItem = ({ label, value, valueColor }) => (
   </div>
 );
 
+const MissingNotice = ({ children }) => (
+  <div
+    style={{
+      marginBottom: '1rem',
+      padding: '0.75rem 1rem',
+      borderRadius: '0.75rem',
+      border: '1px solid #fde68a',
+      background: '#fffbeb',
+      color: '#92400e',
+      fontSize: '0.8125rem',
+      fontWeight: 600,
+    }}
+  >
+    {children}
+  </div>
+);
+
 const getInitials = (name) => {
   if (!name) return '?';
   const parts = name.split(' ').filter(Boolean);
@@ -64,6 +81,8 @@ const InternshipInfoCard = () => {
       return str;
     }
   };
+  const missingDates = !internship?.startDate || !internship?.endDate;
+  const missingSupervisor = !internship?.supervisor?.name;
 
   return (
     <motion.div
@@ -87,6 +106,12 @@ const InternshipInfoCard = () => {
             </p>
           </div>
         </div>
+
+        {missingDates && (
+          <MissingNotice>
+            Internship start and end dates are missing. Please complete your onboarding internship information so your duration and progress can be calculated.
+          </MissingNotice>
+        )}
 
         <div
           style={{
@@ -113,7 +138,7 @@ const InternshipInfoCard = () => {
           />
           <InfoItem label="Work Location"  value={internship.workLocation} />
           <InfoItem label="Work Hours"    value={internship.workHours} />
-          <InfoItem label="Days / Week"   value={`${internship.daysPerWeek} days`} />
+          <InfoItem label="Days / Week"   value={internship.daysPerWeek ? `${internship.daysPerWeek} days` : ''} />
         </div>
 
         {/* Progress bar */}
@@ -147,8 +172,9 @@ const InternshipInfoCard = () => {
             />
           </div>
           <p style={{ fontSize: '0.75rem', color: 'var(--color-neutral-500)', marginTop: '0.375rem' }}>
-            {internship.weeksCompleted} of {internship.durationWeeks} weeks completed ·{' '}
-            {internship.weeksRemaining} week{internship.weeksRemaining !== 1 ? 's' : ''} remaining
+            {internship.durationWeeks
+              ? `${internship.weeksCompleted} of ${internship.durationWeeks} weeks completed · ${internship.weeksRemaining} week${internship.weeksRemaining !== 1 ? 's' : ''} remaining`
+              : 'Duration unavailable until start and end dates are provided'}
           </p>
         </div>
       </div>
@@ -164,8 +190,14 @@ const InternshipInfoCard = () => {
           </div>
         </div>
 
+        {missingSupervisor && (
+          <MissingNotice>
+            No supervisor is assigned yet. This will update here once HR or your department assigns a supervisor.
+          </MissingNotice>
+        )}
+
         {/* Primary Supervisor */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+        {internship.supervisor?.name && <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
           <div
             style={{
               width: 56,
@@ -181,31 +213,31 @@ const InternshipInfoCard = () => {
               flexShrink: 0,
             }}
           >
-            {getInitials(internship.supervisor?.name || 'Tochukwu Mgbemmena')}
+            {getInitials(internship.supervisor?.name)}
           </div>
 
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-neutral-800)', margin: 0 }}>
-                {internship.supervisor?.name || 'Tochukwu Mgbemmena'}
+                {internship.supervisor.name}
               </p>
               <span style={{ fontSize: '0.6875rem', fontWeight: 700, padding: '0.125rem 0.5rem', borderRadius: 99, background: '#ecfdf5', color: '#047857' }}>
                 Primary Supervisor
               </span>
             </div>
             <p style={{ fontSize: '0.825rem', color: 'var(--color-neutral-500)', marginTop: 2 }}>
-              {internship.supervisor?.title || 'Lead Supervisor & Managing Partner'}
+              {internship.supervisor?.title || 'Supervisor'}
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.375rem' }}>
               <a
-                href={`mailto:${internship.supervisor?.email || 'tochukwu@fifthlab.com'}`}
+                href={`mailto:${internship.supervisor?.email || ''}`}
                 style={{ fontSize: '0.8125rem', color: 'var(--color-primary-600)', textDecoration: 'none' }}
               >
-                {internship.supervisor?.email || 'tochukwu@fifthlab.com'}
+                {internship.supervisor?.email || 'Email not provided'}
               </a>
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* Secondary / Extra Supervisor */}
         <div
@@ -226,34 +258,37 @@ const InternshipInfoCard = () => {
             </p>
           ) : (
             <p style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)', margin: 0, italic: 'true' }}>
-              None assigned yet. (Tochukwu Mgbemmena can assign an extra supervisor for your track).
+              None assigned yet.
             </p>
           )}
         </div>
 
-        {/* HR Contact */}
-        <div
-          style={{
-            marginTop: '1rem',
-            padding: '0.75rem 1rem',
-            background: 'var(--color-neutral-50)',
-            borderRadius: '0.75rem',
-            border: '1px solid var(--color-neutral-200)',
-          }}
-        >
-          <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-neutral-600)', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            HR Contact
-          </p>
-          <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-neutral-800)' }}>
-            {internship.hrContact?.name} · {internship.hrContact?.title}
-          </p>
-          <a
-            href={`mailto:${internship.hrContact?.email}`}
-            style={{ fontSize: '0.8125rem', color: 'var(--color-primary-600)', textDecoration: 'none' }}
+        {internship.hrContact?.name && (
+          <div
+            style={{
+              marginTop: '1rem',
+              padding: '0.75rem 1rem',
+              background: 'var(--color-neutral-50)',
+              borderRadius: '0.75rem',
+              border: '1px solid var(--color-neutral-200)',
+            }}
           >
-            {internship.hrContact?.email}
-          </a>
-        </div>
+            <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-neutral-600)', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              HR Contact
+            </p>
+            <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-neutral-800)' }}>
+              {internship.hrContact.name}{internship.hrContact?.title ? ` · ${internship.hrContact.title}` : ''}
+            </p>
+            {internship.hrContact?.email && (
+              <a
+                href={`mailto:${internship.hrContact.email}`}
+                style={{ fontSize: '0.8125rem', color: 'var(--color-primary-600)', textDecoration: 'none' }}
+              >
+                {internship.hrContact.email}
+              </a>
+            )}
+          </div>
+        )}
       </div>
         </>
       )}

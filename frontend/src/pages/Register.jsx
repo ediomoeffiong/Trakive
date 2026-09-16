@@ -40,6 +40,7 @@ const Register = () => {
       name: '',
       email: '',
       phone: '',
+      dateOfBirth: '',
       department: 'Fifthlab',
       startDate: '',
       endDate: '',
@@ -56,7 +57,7 @@ const Register = () => {
     let fieldsToValidate = [];
 
     if (step === 1) {
-      fieldsToValidate = ['name', 'email', 'phone'];
+      fieldsToValidate = ['name', 'email', 'phone', 'dateOfBirth'];
     } else if (step === 2) {
       fieldsToValidate = role === 'Supervisor' ? ['department'] : ['department', 'startDate', 'endDate'];
     }
@@ -78,6 +79,9 @@ const Register = () => {
         name: data.name,
         email: data.email,
         department: data.department || 'Fifthlab',
+        phone: data.phone,
+        dateOfBirth: data.dateOfBirth,
+        date_of_birth: data.dateOfBirth,
         startDate: role === 'Supervisor' ? '' : data.startDate,
         endDate: role === 'Supervisor' ? '' : data.endDate,
         role: role,
@@ -184,6 +188,24 @@ const Register = () => {
                 pattern: {
                   value: /^\+?[0-9\s\-()]{7,18}$/,
                   message: 'Please enter a valid phone number',
+                },
+              })}
+            />
+
+            <Input
+              id="reg-dob"
+              label="Date of Birth"
+              type="date"
+              leftAddon={<FiCalendar className="text-neutral-400" />}
+              error={errors.dateOfBirth?.message}
+              {...register('dateOfBirth', {
+                required: 'Date of birth is required',
+                validate: (val) => {
+                  const selected = new Date(val);
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  if (selected >= today) return 'Date of birth must be in the past';
+                  return true;
                 },
               })}
             />

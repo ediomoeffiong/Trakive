@@ -12,9 +12,12 @@ import {
   RiCloseLine,
 } from 'react-icons/ri';
 
+const ACCENT_COLOR = '#00b4d8';
+const ACCENT_SOFT = '#e6faff';
+
 const ACTIONS = [
   { key: 'approve', label: 'Approve All', icon: RiCheckboxCircleLine, color: '#10b981', bg: '#ecfdf5', hoverBg: '#d1fae5' },
-  { key: 'request-revision', label: 'Request Revision', icon: RiRefreshLine, color: '#4f46e5', bg: '#eef2ff', hoverBg: '#e0e7ff' },
+  { key: 'request-revision', label: 'Request Revision', icon: RiRefreshLine, color: ACCENT_COLOR, bg: ACCENT_SOFT, hoverBg: '#caf0f8' },
   { key: 'reject', label: 'Reject All', icon: RiCloseCircleLine, color: '#ef4444', bg: '#fef2f2', hoverBg: '#fee2e2' },
   { key: 'export', label: 'Export', icon: RiDownloadLine, color: '#64748b', bg: '#f1f5f9', hoverBg: '#e2e8f0' },
 ];
@@ -49,7 +52,7 @@ const ReviewBulkActionToolbar = ({ selectedCount = 0, onClear, onAction, isLoadi
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: '0.25rem' }}>
           <span
             style={{
-              background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+              background: ACCENT_COLOR,
               color: '#fff',
               borderRadius: '9999px',
               fontSize: '0.75rem',

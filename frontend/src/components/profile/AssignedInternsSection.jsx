@@ -19,10 +19,10 @@ const AssignedInternsSection = () => {
   const { assignedInterns, loadingAssignedInterns } = useProfileStore();
 
   const stats = assignedInterns?.stats || {
-    totalAssigned: 8,
-    activeInterns: 6,
-    requiringAttention: 2,
-    pendingReviews: 3,
+    totalAssigned: 0,
+    activeInterns: 0,
+    requiringAttention: 0,
+    pendingReviews: 0,
   };
 
   const interns = assignedInterns?.interns || [];
@@ -35,7 +35,7 @@ const AssignedInternsSection = () => {
       color: '#3b82f6',
       bg: '#eff6ff',
       border: '#bfdbfe',
-      subtitle: 'Managed across 2 engineering cohorts',
+      subtitle: 'Currently assigned to you',
     },
     {
       label: 'Active Interns',
@@ -150,6 +150,10 @@ const AssignedInternsSection = () => {
         {loadingAssignedInterns ? (
           <p style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--color-neutral-400)' }}>
             Loading assigned interns…
+          </p>
+        ) : interns.length === 0 ? (
+          <p style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--color-neutral-400)' }}>
+            No assigned interns found.
           </p>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>

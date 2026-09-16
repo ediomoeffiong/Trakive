@@ -27,6 +27,9 @@ import {
 } from 'react-icons/ri';
 import { DrawerDetailsSkeleton } from './ReviewSkeletonLoaders';
 
+const ACCENT_COLOR = '#00b4d8';
+const ACCENT_SOFT = '#e6faff';
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmt = (iso) =>
   iso
@@ -70,7 +73,7 @@ const getInitialsBg = (initials = 'XX') => {
 
 const SectionTitle = ({ children, icon: Icon }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-    {Icon && <Icon style={{ fontSize: '0.9rem', color: '#4f46e5' }} />}
+    {Icon && <Icon style={{ fontSize: '0.9rem', color: ACCENT_COLOR }} />}
     <h4 style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-neutral-500)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
       {children}
     </h4>
@@ -135,10 +138,10 @@ const SubmissionDetailsDrawer = ({
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 {submission?.status === 'pending-review' && (
                   <motion.button
-                    whileHover={{ scale: 1.04, boxShadow: '0 4px 16px rgba(79,70,229,0.3)' }}
+                    whileHover={{ scale: 1.04, boxShadow: '0 4px 16px rgba(0,180,216,0.3)' }}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => onReview?.(submission)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: 'none', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: '#fff', fontSize: '0.8125rem', fontWeight: 700, cursor: 'pointer' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '0.75rem', border: 'none', background: ACCENT_COLOR, color: '#fff', fontSize: '0.8125rem', fontWeight: 700, cursor: 'pointer' }}
                   >
                     <RiEdit2Line /> Write Review
                   </motion.button>
@@ -164,7 +167,7 @@ const SubmissionDetailsDrawer = ({
                       <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
                         {submission.internName}
                       </div>
-                      <div style={{ fontSize: '0.8125rem', color: '#4f46e5', fontWeight: 600 }}>
+                      <div style={{ fontSize: '0.8125rem', color: ACCENT_COLOR, fontWeight: 600 }}>
                         {submission.internDepartment}
                       </div>
                     </div>
@@ -220,7 +223,7 @@ const SubmissionDetailsDrawer = ({
                             href={link.url}
                             target="_blank"
                             rel="noreferrer"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.75rem', borderRadius: '0.625rem', background: '#eef2ff', color: '#4338ca', fontSize: '0.8125rem', fontWeight: 600, textDecoration: 'none', border: '1px solid #e0e7ff' }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.75rem', borderRadius: '0.625rem', background: ACCENT_SOFT, color: '#0077b6', fontSize: '0.8125rem', fontWeight: 600, textDecoration: 'none', border: '1px solid #90e0ef' }}
                           >
                             <RiExternalLinkLine style={{ fontSize: '0.875rem' }} /> {link.label}
                           </a>
@@ -249,7 +252,7 @@ const SubmissionDetailsDrawer = ({
                                 <div style={{ fontSize: '0.6875rem', color: 'var(--color-neutral-400)' }}>{file.size}</div>
                               </div>
                               <motion.button
-                                whileHover={{ scale: 1.08, color: '#4f46e5' }}
+                                whileHover={{ scale: 1.08, color: ACCENT_COLOR }}
                                 whileTap={{ scale: 0.95 }}
                                 title="Download"
                                 style={{ background: 'none', border: 'none', color: 'var(--color-neutral-400)', fontSize: '1rem', cursor: 'pointer', flexShrink: 0 }}

@@ -48,8 +48,8 @@ const InternCard = ({ intern, isSelected, onToggle }) => (
       gap: '0.75rem',
       padding: '0.75rem 0.875rem',
       borderRadius: '0.75rem',
-      border: isSelected ? '1.5px solid #4f46e5' : '1px solid var(--color-neutral-200)',
-      background: isSelected ? '#f5f3ff' : '#fff',
+      border: isSelected ? '1.5px solid #00b4d8' : '1px solid var(--color-neutral-200)',
+      background: isSelected ? '#e6faff' : '#fff',
       cursor: 'pointer',
       transition: 'all 0.15s ease',
     }}
@@ -59,7 +59,7 @@ const InternCard = ({ intern, isSelected, onToggle }) => (
         width: '36px',
         height: '36px',
         borderRadius: '50%',
-        background: COLORS[Math.abs(intern.id?.charCodeAt(intern.id.length - 1) - 48) % COLORS.length] || '#4f46e5',
+        background: COLORS[Math.abs(intern.id?.charCodeAt(intern.id.length - 1) - 48) % COLORS.length] || '#00b4d8',
         color: '#fff',
         fontSize: '0.8125rem',
         fontWeight: 700,
@@ -79,7 +79,7 @@ const InternCard = ({ intern, isSelected, onToggle }) => (
         {intern.department || intern.role || 'Intern'}
       </p>
     </div>
-    <div style={{ color: isSelected ? '#4f46e5' : '#cbd5e1', fontSize: '1.125rem', flexShrink: 0 }}>
+    <div style={{ color: isSelected ? '#00b4d8' : '#cbd5e1', fontSize: '1.125rem', flexShrink: 0 }}>
       {isSelected ? <RiCheckboxFill /> : <RiCheckboxBlankLine />}
     </div>
   </motion.div>
@@ -91,43 +91,43 @@ const AssignmentSummary = ({ task, selectedInterns, mode, department, batch }) =
   return (
     <div
       style={{
-        background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+        background: 'linear-gradient(135deg, #e6faff 0%, #cffafe 100%)',
         borderRadius: '0.875rem',
         padding: '1rem',
-        border: '1px solid #c4b5fd',
+        border: '1px solid #67e8f9',
       }}
     >
-      <h4 style={{ margin: '0 0 0.625rem', fontSize: '0.875rem', fontWeight: 700, color: '#5b21b6' }}>
+      <h4 style={{ margin: '0 0 0.625rem', fontSize: '0.875rem', fontWeight: 700, color: '#0077b6' }}>
         Assignment Summary
       </h4>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
         {task && (
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-            <span style={{ color: '#6d28d9', fontWeight: 500 }}>Task:</span>
-            <span style={{ color: '#4c1d95', fontWeight: 700, textAlign: 'right', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
+            <span style={{ color: '#0077b6', fontWeight: 500 }}>Task:</span>
+            <span style={{ color: '#075985', fontWeight: 700, textAlign: 'right', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
           </div>
         )}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-          <span style={{ color: '#6d28d9', fontWeight: 500 }}>Mode:</span>
-          <span style={{ color: '#4c1d95', fontWeight: 700, textTransform: 'capitalize' }}>{mode}</span>
+          <span style={{ color: '#0077b6', fontWeight: 500 }}>Mode:</span>
+          <span style={{ color: '#075985', fontWeight: 700, textTransform: 'capitalize' }}>{mode}</span>
         </div>
         {mode === 'department' && department && (
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-            <span style={{ color: '#6d28d9', fontWeight: 500 }}>Department:</span>
-            <span style={{ color: '#4c1d95', fontWeight: 700 }}>{department}</span>
+            <span style={{ color: '#0077b6', fontWeight: 500 }}>Department:</span>
+            <span style={{ color: '#075985', fontWeight: 700 }}>{department}</span>
           </div>
         )}
         {mode === 'batch' && batch && (
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-            <span style={{ color: '#6d28d9', fontWeight: 500 }}>Batch:</span>
-            <span style={{ color: '#4c1d95', fontWeight: 700 }}>{batch}</span>
+            <span style={{ color: '#0077b6', fontWeight: 500 }}>Batch:</span>
+            <span style={{ color: '#075985', fontWeight: 700 }}>{batch}</span>
           </div>
         )}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-          <span style={{ color: '#6d28d9', fontWeight: 500 }}>Interns to assign:</span>
+          <span style={{ color: '#0077b6', fontWeight: 500 }}>Interns to assign:</span>
           <span
             style={{
-              background: '#4f46e5',
+              background: '#00b4d8',
               color: '#fff',
               borderRadius: '9999px',
               fontSize: '0.75rem',
@@ -285,16 +285,16 @@ const TaskAssignmentModal = ({ isOpen, task, onClose, onAssign, isLoading }) => 
                         gap: '0.375rem',
                         padding: '0.875rem 0.5rem',
                         borderRadius: '0.875rem',
-                        border: mode === id ? '1.5px solid #4f46e5' : '1px solid var(--color-neutral-200)',
-                        background: mode === id ? '#eef2ff' : '#fff',
+                        border: mode === id ? '1.5px solid #00b4d8' : '1px solid var(--color-neutral-200)',
+                        background: mode === id ? '#e6faff' : '#fff',
                         cursor: 'pointer',
                         textAlign: 'center',
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      <Icon style={{ fontSize: '1.25rem', color: mode === id ? '#4f46e5' : '#94a3b8' }} />
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: mode === id ? '#4338ca' : 'var(--color-neutral-700)' }}>{label}</span>
-                      <span style={{ fontSize: '0.6875rem', color: mode === id ? '#6366f1' : 'var(--color-neutral-400)' }}>{desc}</span>
+                      <Icon style={{ fontSize: '1.25rem', color: mode === id ? '#00b4d8' : '#94a3b8' }} />
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: mode === id ? '#0077b6' : 'var(--color-neutral-700)' }}>{label}</span>
+                      <span style={{ fontSize: '0.6875rem', color: mode === id ? '#0096c7' : 'var(--color-neutral-400)' }}>{desc}</span>
                     </motion.button>
                   ))}
                 </div>
@@ -351,16 +351,16 @@ const TaskAssignmentModal = ({ isOpen, task, onClose, onAssign, isLoading }) => 
                           gap: '0.5rem',
                           padding: '0.625rem 0.875rem',
                           borderRadius: '0.75rem',
-                          border: selectedDept === dept ? '1.5px solid #4f46e5' : '1px solid var(--color-neutral-200)',
-                          background: selectedDept === dept ? '#eef2ff' : '#fff',
+                          border: selectedDept === dept ? '1.5px solid #00b4d8' : '1px solid var(--color-neutral-200)',
+                          background: selectedDept === dept ? '#e6faff' : '#fff',
                           cursor: 'pointer',
                           textAlign: 'left',
                           fontSize: '0.8125rem',
                           fontWeight: selectedDept === dept ? 700 : 400,
-                          color: selectedDept === dept ? '#4338ca' : 'var(--color-neutral-700)',
+                          color: selectedDept === dept ? '#0077b6' : 'var(--color-neutral-700)',
                         }}
                       >
-                        {selectedDept === dept && <RiCheckLine style={{ color: '#4f46e5', flexShrink: 0 }} />}
+                        {selectedDept === dept && <RiCheckLine style={{ color: '#00b4d8', flexShrink: 0 }} />}
                         {dept}
                       </motion.button>
                     ))}
@@ -384,18 +384,18 @@ const TaskAssignmentModal = ({ isOpen, task, onClose, onAssign, isLoading }) => 
                           gap: '0.75rem',
                           padding: '0.875rem 1rem',
                           borderRadius: '0.875rem',
-                          border: selectedBatch === batch ? '1.5px solid #4f46e5' : '1px solid var(--color-neutral-200)',
-                          background: selectedBatch === batch ? '#eef2ff' : '#fff',
+                          border: selectedBatch === batch ? '1.5px solid #00b4d8' : '1px solid var(--color-neutral-200)',
+                          background: selectedBatch === batch ? '#e6faff' : '#fff',
                           cursor: 'pointer',
                           textAlign: 'left',
                         }}
                       >
-                        <RiGroupLine style={{ fontSize: '1.25rem', color: selectedBatch === batch ? '#4f46e5' : '#94a3b8' }} />
+                        <RiGroupLine style={{ fontSize: '1.25rem', color: selectedBatch === batch ? '#00b4d8' : '#94a3b8' }} />
                         <div>
-                          <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: selectedBatch === batch ? '#4338ca' : 'var(--color-neutral-800)' }}>{batch}</p>
+                          <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: selectedBatch === batch ? '#0077b6' : 'var(--color-neutral-800)' }}>{batch}</p>
                           <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>~15 interns in this batch</p>
                         </div>
-                        {selectedBatch === batch && <RiCheckLine style={{ color: '#4f46e5', marginLeft: 'auto' }} />}
+                        {selectedBatch === batch && <RiCheckLine style={{ color: '#00b4d8', marginLeft: 'auto' }} />}
                       </motion.button>
                     ))}
                   </div>
