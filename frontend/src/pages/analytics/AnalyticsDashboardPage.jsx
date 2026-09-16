@@ -183,8 +183,7 @@ export default function AnalyticsDashboardPage() {
       {effectiveRole !== USER_ROLES.INTERN && <AnalyticsFilters />}
 
       {/* ── Dynamic Layout Renderer ─────────────────────────────────────────── */}
-      {dashboardLayout.map((widget) => {
-        if (!widget.visible) return null;
+      {dashboardLayout.filter((widget) => widget.visible && widget.id !== 'insights').map((widget) => {
 
         switch (widget.id) {
           case 'kpis':
@@ -226,10 +225,6 @@ export default function AnalyticsDashboardPage() {
                 </div>
               </section>
             );
-
-          case 'insights':
-            // Removed per user request
-            return null;
 
           case 'reports':
             return (

@@ -8,12 +8,14 @@ import toast from 'react-hot-toast';
 import {
   RiFolderLine, RiAddLine, RiArrowRightLine, RiSearchLine,
   RiRefreshLine, RiTimeLine, RiCheckboxCircleLine, RiLoader2Line,
+  RiEditLine,
 } from 'react-icons/ri';
 import { Card, Button, EmptyState, Skeleton, ProgressBar } from '../components/ui';
 import { ROUTES } from '../constants';
 import { projectService } from '../services/projectService';
 import { ProjectStatusBadge, ProjectPriorityBadge } from '../components/projects/ProjectStatusBadge';
 import { ProposeProjectDrawer } from '../components/projects/ProposeProjectDrawer';
+import { useCurrentUser } from '../store/useAppStore';
 
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
@@ -27,8 +29,7 @@ const STATUS_OPTIONS = [
   { value: 'cancelled',      label: 'Cancelled'         },
 ];
 
-function ProjectCard({ project, onView }) {
-  const members = Array.isArray(project.members) ? project.members : [];
+function ProjectCard({ project, onView, onEdit, canEdit }) {
   return (
     <Card style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
       {/* Top row */}
@@ -80,7 +81,12 @@ function ProjectCard({ project, onView }) {
       )}
 
       {/* Actions */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', flexWrap: 'wrap' }}>
+        {canEdit && (
+          <Button size="sm" variant="ghost" onClick={() => onEdit(project)} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}>
+            <RiEditLine /> Edit
+          </Button>
+        )}
         <Button size="sm" variant="ghost" onClick={() => onView(project.id)} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}>
           View Details <RiArrowRightLine />
         </Button>
@@ -102,11 +108,13 @@ function CardSkeleton() {
 
 export default function ProjectsPage() {
   const navigate = useNavigate();
+  const user = useCurrentUser();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [proposing, setProposing] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
 
   const fetchProjects = useCallback(async () => {
     setLoading(true);
@@ -134,6 +142,11 @@ export default function ProjectsPage() {
   };
 
   const handleView = (id) => navigate(ROUTES.PROJECT_DETAILS.replace(':projectId', id));
+  const currentUserId = user?.id || user?.user_id;
+  const canEditProject = (project) => (
+    project.creator_id === currentUserId &&
+    ['pending_approval', 'active'].includes(project.status)
+  );
 
   return (
     <div style={{ maxWidth: '960px', margin: '0 auto' }}>
@@ -209,11 +222,25 @@ export default function ProjectsPage() {
         />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
-          {projects.map((p) => <ProjectCard key={p.id} project={p} onView={handleView} />)}
+          {projects.map((p) => (
+            <ProjectCard
+              key={p.id}
+              project={p}
+              onView={handleView}
+              onEdit={setEditingProject}
+              canEdit={canEditProject(p)}
+            />
+          ))}
         </div>
       )}
 
       <ProposeProjectDrawer isOpen={proposing} onClose={() => setProposing(false)} onSuccess={fetchProjects} />
+      <ProposeProjectDrawer
+        isOpen={!!editingProject}
+        onClose={() => setEditingProject(null)}
+        onSuccess={fetchProjects}
+        project={editingProject}
+      />
     </div>
   );
 }

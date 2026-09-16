@@ -367,33 +367,47 @@ export const useSupervisorReviewStore = create((set, get) => ({
       const now = new Date().toISOString();
       set((s) => ({
         onboardingQueue: s.onboardingQueue.map((intern) => {
-          if (intern.internId !== internId) return intern;
-          const updatedSteps = intern.steps.map((step) =>
-            step.id === stepId
-              ? { ...step, status: decision, reviewedAt: now, reviewedBy: 'Marcus Rodriguez', notes }
+          if ((intern.internId || intern.intern_id) !== internId) return intern;
+          const matchStep = (step) =>
+            step.id === stepId ||
+            step.document?.id === stepId ||
+            step.category === stepId;
+
+          const updatedSteps = (intern.steps || intern.documents || []).map((step) =>
+            matchStep(step)
+              ? {
+                  ...step,
+                  status: decision,
+                  review_status: decision,
+                  reviewedAt: now,
+                  notes,
+                  document: step.document
+                    ? { ...step.document, review_status: decision, review_notes: notes }
+                    : step.document,
+                }
               : step
           );
-          const totalRequired = updatedSteps.filter((st) => st.required).length;
-          const approvedRequired = updatedSteps.filter((st) => st.required && st.status === 'approved').length;
-          const progress = totalRequired > 0 ? Math.round((approvedRequired / totalRequired) * 100) : 0;
+          const approvedRequired = updatedSteps.filter((st) => st.review_status === 'approved' || st.status === 'approved').length;
+          const totalRequired = updatedSteps.length || intern.total_required || 3;
           const newAuditEntry = {
             id: `log-${Date.now()}`,
             action: decision,
-            stepTitle: intern.steps.find((st) => st.id === stepId)?.title || '',
-            performedBy: 'Marcus Rodriguez',
+            stepTitle: updatedSteps.find((st) => matchStep(st))?.title || '',
+            performedBy: 'Supervisor',
             timestamp: now,
             reason: notes || undefined,
           };
           return {
             ...intern,
             steps: updatedSteps,
-            overallProgress: progress,
-            status: progress === 100 ? 'completed' : 'in-progress',
-            auditLog: [newAuditEntry, ...intern.auditLog],
+            documents: updatedSteps,
+            approved_count: approvedRequired,
+            progress_label: `${approvedRequired}/${totalRequired} Approved`,
+            onboarding_ready: approvedRequired >= totalRequired,
+            auditLog: [newAuditEntry, ...(intern.auditLog || [])],
           };
         }),
         loading: { ...s.loading, onboardingAction: false },
-        selectedOnboardingStep: null,
       }));
     } catch (err) {
       set((s) => ({

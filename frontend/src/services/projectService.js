@@ -6,14 +6,12 @@ import api from './api';
 
 const STORAGE_KEY = 'trakive_projects_store';
 
-// Helper to check if error is network/offline or unauthenticated (401/403)
+// Helper to check if error is a true network/offline failure (not auth/permission)
 const isNetworkError = (err) => {
   return (
     !err?.response ||
     err?.code === 'ERR_NETWORK' ||
-    err?.code === 'ECONNREFUSED' ||
-    err?.response?.status === 401 ||
-    err?.response?.status === 403
+    err?.code === 'ECONNREFUSED'
   );
 };
 
@@ -121,6 +119,7 @@ export const projectService = {
           progress: 0,
           start_date: data.start_date || '',
           due_date: data.due_date || '',
+          project_link_url: data.project_link_url || '',
           notes: data.notes || '',
           source: 'supervisor_assigned',
           created_at: new Date().toISOString(),
@@ -171,6 +170,7 @@ export const projectService = {
           progress: 0,
           start_date: data.start_date || '',
           due_date: data.due_date || '',
+          project_link_url: data.project_link_url || '',
           notes: data.notes || '',
           source: 'intern_proposed',
           created_at: new Date().toISOString(),
@@ -214,7 +214,13 @@ export const projectService = {
         const list = getLocalProjects();
         const idx = list.findIndex((p) => p.id === id);
         if (idx !== -1) {
-          list[idx] = { ...list[idx], ...data };
+          const previousStatus = list[idx].status;
+          const shouldReturnToReview = list[idx].source === 'intern_proposed' && ['active', 'pending_approval'].includes(previousStatus);
+          list[idx] = { ...list[idx], ...data, status: shouldReturnToReview ? 'pending_approval' : (data.status || list[idx].status) };
+          list[idx].approval_history = list[idx].approval_history || [];
+          if (shouldReturnToReview) {
+            list[idx].approval_history.push({ action: previousStatus === 'active' ? 'resubmitted' : 'submitted', created_at: new Date().toISOString() });
+          }
           saveLocalProjects(list);
           return { status: 'success', data: list[idx] };
         }

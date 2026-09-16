@@ -43,36 +43,46 @@ export const PendingApprovalsWidget = ({ approvals = [] }) => {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-        {approvals.map((appr) => (
-          <div
-            key={appr.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.625rem 0.75rem',
-              borderRadius: '0.5rem',
-              background: 'var(--color-neutral-50)',
-              border: '1px solid var(--color-neutral-200)',
-            }}
-          >
-            <div>
-              <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-900)' }}>
-                {appr.intern}
-              </p>
-              <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>
-                {appr.type}
-              </p>
-            </div>
-            <button
-              className="btn btn-secondary"
-              onClick={() => toast.success(`Approved ${appr.type} for ${appr.intern}`)}
-              style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+        {approvals.length === 0 && (
+          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
+            No pending approvals
+          </p>
+        )}
+        {approvals.map((appr, idx) => {
+          const internName = appr.intern || appr.internName || appr.name || 'Intern';
+          const typeLabel = appr.type || appr.progress_label || appr.reviewType || 'Onboarding Review';
+          const key = appr.id || appr.intern_id || appr.internId || appr.user_id || `approval-${idx}`;
+          return (
+            <div
+              key={key}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.625rem 0.75rem',
+                borderRadius: '0.5rem',
+                background: 'var(--color-neutral-50)',
+                border: '1px solid var(--color-neutral-200)',
+              }}
             >
-              Approve
-            </button>
-          </div>
-        ))}
+              <div>
+                <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-900)' }}>
+                  {internName}
+                </p>
+                <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>
+                  {typeLabel}
+                </p>
+              </div>
+              <button
+                className="btn btn-secondary"
+                onClick={() => toast.success(`Approved ${typeLabel} for ${internName}`)}
+                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+              >
+                Approve
+              </button>
+            </div>
+          );
+        })}
       </div>
     </motion.div>
   );
@@ -102,9 +112,9 @@ export const ReviewRemindersWidget = ({ reminders = [] }) => {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-        {reminders.map((rem) => (
+        {reminders.map((rem, idx) => (
           <div
-            key={rem.id}
+            key={rem.id || rem.intern_id || `reminder-${idx}`}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -117,10 +127,10 @@ export const ReviewRemindersWidget = ({ reminders = [] }) => {
           >
             <div>
               <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#581c87' }}>
-                {rem.intern}
+                {rem.intern || rem.internName || 'Intern'}
               </p>
               <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.75rem', color: '#7e22ce' }}>
-                {rem.reviewType}
+                {rem.reviewType || rem.title || 'Review'}
               </p>
             </div>
             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b21a8' }}>
@@ -157,9 +167,9 @@ export const RecentlyAssignedWidget = ({ interns = [] }) => {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {interns.map((item) => (
+        {interns.map((item, idx) => (
           <div
-            key={item.id}
+            key={item.id || item.user_id || `intern-${idx}`}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -172,7 +182,7 @@ export const RecentlyAssignedWidget = ({ interns = [] }) => {
                 {item.name}
               </p>
               <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>
-                {item.department} • Assigned {item.assignedDate}
+                {item.department} • Assigned {item.assignedDate || item.assignedAt || 'recently'}
               </p>
             </div>
           </div>
@@ -206,9 +216,9 @@ export const OrgAnnouncementsWidget = ({ announcements = [] }) => {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {announcements.map((ann) => (
+        {announcements.map((ann, idx) => (
           <div
-            key={ann.id}
+            key={ann.id || `announcement-${idx}`}
             style={{
               padding: '0.625rem 0.75rem',
               borderRadius: '0.5rem',

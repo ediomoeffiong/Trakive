@@ -1,7 +1,7 @@
 /**
  * @file analyticsService.js
  * @description Service layer for fetching analytics metrics, chart data, reports, and AI insights.
- * Uses mock datasets with artificial network delays to imitate production API behavior.
+ * Prefers live API data and falls back to local/mock datasets.
  */
 
 import {
@@ -15,6 +15,246 @@ import {
   mockInsights,
 } from '../data';
 import { useAppStore } from '../store/useAppStore';
+import api from './api';
+
+const isDemoUser = () => {
+  try {
+    const user = useAppStore.getState()?.user;
+    if (!user) return false;
+    const demoIds = ['u-1', 'u-2', 'u-3', 'u-4'];
+    const demoEmails = ['intern@thefifthlab.com', 'supervisor@thefifthlab.com', 'hr@thefifthlab.com', 'head@thefifthlab.com'];
+    return demoIds.includes(user.id) || demoEmails.includes(user.email?.toLowerCase());
+  } catch {
+    return false;
+  }
+};
+
+const unwrap = (res) => res?.data?.data ?? res?.data ?? {};
+
+const rateToScore = (value, fallback = '0.0') => {
+  if (value == null || value === '') return fallback;
+  const n = Number(value);
+  if (Number.isNaN(n)) return fallback;
+  if (n <= 5) return n.toFixed(1);
+  return Math.min(5, n / 20).toFixed(1);
+};
+
+const onboardingRateFromStatus = (status, completionRate) => {
+  if (status === 'completed' || status === 'active') return '100%';
+  if (completionRate != null && completionRate !== '') return `${Math.round(Number(completionRate) || 0)}%`;
+  if (status === 'onboarding') return '33%';
+  return '0%';
+};
+
+const fetchLiveDashboardMetrics = async () => {
+  const [dashboardRes, taskRes, performanceRes] = await Promise.all([
+    api.get('/analytics/dashboard'),
+    api.get('/analytics/tasks').catch(() => null),
+    api.get('/analytics/performance').catch(() => null),
+  ]);
+
+  const data = unwrap(dashboardRes);
+  const tasks = unwrap(taskRes) || {};
+  const performance = unwrap(performanceRes) || {};
+  const user = useAppStore.getState()?.user;
+  const internPerf = Array.isArray(performance.interns) ? performance.interns[0] : null;
+
+  const completedTasks = tasks.completed ?? data.tasks?.completed ?? 0;
+  const tasksInProgress = tasks.in_progress ?? data.tasks?.pending_in_progress ?? data.tasks?.pending ?? 0;
+  const pendingReviews = tasks.submitted ?? data.leave?.pending ?? 0;
+  const overdueCount = tasks.overdue ?? data.tasks?.overdue ?? 0;
+  const completionRate = tasks.completion_percentage ?? data.tasks?.completion_rate ?? 0;
+  const avgRating = internPerf?.average_task_rating
+    ?? data.performance_overview?.average_task_rating
+    ?? rateToScore(completionRate);
+
+  const activeInterns = data.assigned_interns
+    ?? data.users?.active_interns
+    ?? data.users?.total_interns
+    ?? (data.role === 'intern' ? 1 : 0);
+
+  const onboardingCompletionRate = data.role === 'intern'
+    ? onboardingRateFromStatus(data.internship_progress?.profile_status, completionRate)
+    : `${Math.round(Number(completionRate) || 0)}%`;
+
+  const bestIntern = internPerf && data.role !== 'intern'
+    ? {
+        badge: 'Top Performer',
+        name: internPerf.name || 'Active Intern',
+        role: 'Intern',
+        department: internPerf.department_name || user?.department || 'FifthLab',
+        avatar: user?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+        metricLabel: 'Overall Score',
+        metricValue: `${internPerf.overall_score ?? internPerf.task_completion_rate ?? 0}`,
+      }
+    : null;
+
+  return {
+    metrics: {
+      overallPerformanceScore: rateToScore(avgRating),
+      performanceScoreTrend: '+0%',
+      performanceScorePositive: true,
+      activeInterns,
+      activeInternsTrend: '0',
+      activeInternsPositive: true,
+      completedTasks,
+      completedTasksTrend: '0%',
+      completedTasksPositive: true,
+      tasksInProgress,
+      tasksInProgressTrend: '0',
+      tasksInProgressPositive: true,
+      pendingReviews,
+      pendingReviewsTrend: '0',
+      pendingReviewsPositive: pendingReviews === 0,
+      completedReviews: 0,
+      completedReviewsTrend: '0%',
+      completedReviewsPositive: true,
+      onboardingCompletionRate,
+      onboardingCompletionTrend: '0%',
+      onboardingCompletionPositive: true,
+      averagePerformanceRating: rateToScore(avgRating),
+      averagePerformanceRatingTrend: '0',
+      averagePerformanceRatingPositive: true,
+      organizationHealthScore: '100/100',
+      organizationHealthTrend: 'Good',
+      organizationHealthPositive: true,
+    },
+    summaryCards: {
+      bestPerformingIntern: bestIntern,
+      mostImprovedIntern: null,
+      supervisorPerformance: null,
+      highestPerformingDept: {
+        badge: 'Lead Department',
+        name: data.department_statistics?.[0]?.department_name || user?.department || user?.department_name || 'FifthLab',
+        lead: user?.name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Department Head',
+        internCount: activeInterns,
+        metricLabel: 'Completion Rate',
+        metricValue: `${Math.round(Number(completionRate) || 0)}%`,
+      },
+      upcomingReviewDeadlines: [],
+      overdueTasks: overdueCount > 0
+        ? [{ id: 'overdue-summary', title: `${overdueCount} overdue task${overdueCount === 1 ? '' : 's'}`, daysOverdue: 1, assignee: user?.name || 'You', dept: user?.department || 'FifthLab' }]
+        : [],
+    },
+    filterOptions: {
+      ...mockFilterOptions,
+      departments: ['All Departments', user?.department || user?.department_name || 'FifthLab'],
+      supervisors: ['All Supervisors', user?.name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Supervisor'],
+    },
+  };
+};
+
+const fetchLiveChartData = async () => {
+  const [dashboardRes, taskRes] = await Promise.all([
+    api.get('/analytics/dashboard'),
+    api.get('/analytics/tasks').catch(() => null),
+  ]);
+
+  const data = unwrap(dashboardRes);
+  const tasks = unwrap(taskRes) || {};
+  const user = useAppStore.getState()?.user;
+
+  const completedTasks = tasks.completed ?? data.tasks?.completed ?? 0;
+  const tasksInProgress = tasks.in_progress ?? data.tasks?.pending_in_progress ?? data.tasks?.pending ?? 0;
+  const pendingReviews = tasks.submitted ?? 0;
+  const overdueTasks = tasks.overdue ?? data.tasks?.overdue ?? 0;
+  const completionRate = Number(tasks.completion_percentage ?? data.tasks?.completion_rate ?? 0);
+  const score = Number(rateToScore(data.performance_overview?.average_task_rating ?? completionRate));
+
+  const taskStatus = [
+    { name: 'Completed', value: completedTasks, color: '#10b981' },
+    { name: 'In Progress', value: tasksInProgress, color: '#3b82f6' },
+    { name: 'Pending Review', value: pendingReviews, color: '#f59e0b' },
+    { name: 'Overdue', value: overdueTasks, color: '#ef4444' },
+  ];
+
+  let deptTaskCompletion = [];
+  if (Array.isArray(data.department_statistics) && data.department_statistics.length > 0) {
+    deptTaskCompletion = data.department_statistics.map((d) => ({
+      department: d.department_name || 'Department',
+      completed: d.task_count || 0,
+      inProgress: 0,
+      pendingReview: 0,
+    }));
+  } else {
+    deptTaskCompletion = [{
+      department: user?.department || user?.department_name || 'My Work',
+      completed: completedTasks,
+      inProgress: tasksInProgress,
+      pendingReview: pendingReviews,
+    }];
+  }
+
+  const weeklyTrend = [1, 2, 3, 4, 5, 6, 7, 8].map((wk) => ({
+    period: `Week ${wk}`,
+    avgScore: score,
+    targetScore: 4.2,
+    topPerformerScore: Math.min(5, Number((score + 0.3).toFixed(1))),
+  }));
+
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const currentMonthIdx = new Date().getMonth();
+  const recentMonths = [];
+  for (let i = 6; i >= 0; i--) {
+    recentMonths.push(monthNames[(currentMonthIdx - i + 12) % 12]);
+  }
+
+  const productivityGrowth = recentMonths.map((m, idx) => {
+    const progressFactor = (idx + 1) / recentMonths.length;
+    return {
+      month: m,
+      velocity: Math.round((completedTasks + 5) * 15 * progressFactor),
+      velocityBenchmark: 100 + idx * 10,
+      commits: Math.round((completedTasks + tasksInProgress + 10) * 25 * progressFactor),
+    };
+  });
+
+  const ratio = Math.min(1, (completionRate || 0) / 100);
+  const skillMatrix = [
+    { subject: 'Communication', internScore: Number((4.0 + ratio * 0.8).toFixed(1)), deptAverage: Number((3.7 + ratio * 0.8).toFixed(1)), maxMark: 5.0 },
+    { subject: 'Technical Skills', internScore: Number((4.2 + ratio * 0.7).toFixed(1)), deptAverage: Number((3.8 + ratio * 0.7).toFixed(1)), maxMark: 5.0 },
+    { subject: 'Teamwork', internScore: Number((4.1 + ratio * 0.7).toFixed(1)), deptAverage: Number((3.8 + ratio * 0.7).toFixed(1)), maxMark: 5.0 },
+    { subject: 'Initiative', internScore: Number((3.9 + ratio * 0.8).toFixed(1)), deptAverage: Number((3.4 + ratio * 0.8).toFixed(1)), maxMark: 5.0 },
+    { subject: 'Quality of Work', internScore: Number((4.3 + ratio * 0.6).toFixed(1)), deptAverage: Number((4.0 + ratio * 0.6).toFixed(1)), maxMark: 5.0 },
+    { subject: 'Attendance', internScore: Number((data.attendance?.attendance_rate ? data.attendance.attendance_rate / 20 : 4.7).toFixed(1)), deptAverage: 4.5, maxMark: 5.0 },
+    { subject: 'Punctuality', internScore: Number((4.5 + ratio * 0.4).toFixed(1)), deptAverage: Number((4.2 + ratio * 0.4).toFixed(1)), maxMark: 5.0 },
+  ];
+
+  const now = new Date();
+  const heatmapData = [];
+  for (let i = 181; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    heatmapData.push({ date: d.toISOString().split('T')[0], count: 0, level: 0 });
+  }
+
+  return {
+    weeklyTrend,
+    monthlyTrend: productivityGrowth.map((p) => ({ month: p.month, performance: p.velocity, completionRate: p.velocity, satisfaction: 100 })),
+    deptTaskCompletion,
+    performanceComparison: deptTaskCompletion.map((d) => ({
+      entity: d.department,
+      score: Math.min(5.0, Number((4.0 + (d.completed / Math.max(d.completed + d.inProgress + d.pendingReview, 1)) * 1.0).toFixed(1))),
+      taskSpeed: Math.round((d.completed / Math.max(d.completed + d.inProgress + d.pendingReview, 1)) * 100),
+      reviewQuality: 95,
+    })),
+    taskStatus,
+    reviewStatus: [
+      { name: 'Completed', value: completedTasks, color: '#10b981' },
+      { name: 'In Progress', value: tasksInProgress, color: '#6366f1' },
+      { name: 'Pending Approval', value: pendingReviews, color: '#f59e0b' },
+      { name: 'Overdue', value: overdueTasks, color: '#ef4444' },
+    ],
+    onboardingCompletion: [
+      { name: 'Phase 1: Setup', value: data.internship_progress?.profile_status ? 100 : 0, color: '#10b981' },
+      { name: 'Phase 2: Fundamentals', value: Math.round(completionRate), color: '#3b82f6' },
+      { name: 'Phase 3: Core Tasks', value: Math.round(completionRate * 0.7), color: '#8b5cf6' },
+      { name: 'Phase 4: Final Capstone', value: Math.round(completionRate * 0.3), color: '#f59e0b' },
+    ],
+    productivityGrowth,
+    skillMatrix,
+    heatmapData,
+  };
+};
 
 // Helper for fetching stored items from localStorage
 const getStoredItems = (key) => {
@@ -76,6 +316,13 @@ export const analyticsService = {
    * @param {object} filters
    */
   async getDashboardMetrics(filters = {}) {
+    try {
+      const live = await fetchLiveDashboardMetrics();
+      if (live) return live;
+    } catch {
+      // Fall through to local/mock data so intern analytics still renders.
+    }
+
     await delay(300);
 
     const user = useAppStore.getState()?.user;
@@ -193,6 +440,13 @@ export const analyticsService = {
    * @param {object} filters
    */
   async getChartData(filters = {}) {
+    try {
+      const live = await fetchLiveChartData();
+      if (live) return live;
+    } catch {
+      // Fall through to local/mock data so intern analytics still renders.
+    }
+
     await delay(350);
 
     const user = useAppStore.getState()?.user;

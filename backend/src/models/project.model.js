@@ -55,6 +55,7 @@ const ProjectModel = {
     intern_id = null,
     department_id = null,
     source = '',
+    supervisor_scope_id = null,
     limit = 20,
     offset = 0,
     sort = 'created_at:desc',
@@ -83,6 +84,44 @@ const ProjectModel = {
     if (supervisor_id) {
       whereClauses.push(`p.supervisor_id = $${idx++}`);
       values.push(supervisor_id);
+    }
+    if (supervisor_scope_id) {
+      // Match assigned projects/interns, plus unassigned same-department interns
+      // (same visibility rule supervisors use for intern management).
+      whereClauses.push(`(
+        p.supervisor_id = $${idx}
+        OR EXISTS (
+          SELECT 1
+          FROM intern_profiles cip
+          JOIN supervisor_profiles sp_scope ON sp_scope.id = $${idx}
+          WHERE cip.user_id = p.creator_id
+            AND (
+              cip.supervisor_id = $${idx}
+              OR (
+                cip.supervisor_id IS NULL
+                AND cip.department_id IS NOT NULL
+                AND cip.department_id = sp_scope.department_id
+              )
+            )
+        )
+        OR EXISTS (
+          SELECT 1
+          FROM project_members pm_scope
+          JOIN intern_profiles mip ON mip.user_id = pm_scope.intern_id
+          JOIN supervisor_profiles sp_scope ON sp_scope.id = $${idx}
+          WHERE pm_scope.project_id = p.id
+            AND (
+              mip.supervisor_id = $${idx}
+              OR (
+                mip.supervisor_id IS NULL
+                AND mip.department_id IS NOT NULL
+                AND mip.department_id = sp_scope.department_id
+              )
+            )
+        )
+      )`);
+      values.push(supervisor_scope_id);
+      idx++;
     }
     if (intern_id) {
       whereClauses.push(`EXISTS (SELECT 1 FROM project_members pm2 WHERE pm2.project_id = p.id AND pm2.intern_id = $${idx++})`);
@@ -153,6 +192,7 @@ const ProjectModel = {
     intern_id = null,
     department_id = null,
     source = '',
+    supervisor_scope_id = null,
   }) {
     let whereClauses = ['p.deleted_at IS NULL'];
     let values = [];
@@ -178,6 +218,42 @@ const ProjectModel = {
     if (supervisor_id) {
       whereClauses.push(`p.supervisor_id = $${idx++}`);
       values.push(supervisor_id);
+    }
+    if (supervisor_scope_id) {
+      whereClauses.push(`(
+        p.supervisor_id = $${idx}
+        OR EXISTS (
+          SELECT 1
+          FROM intern_profiles cip
+          JOIN supervisor_profiles sp_scope ON sp_scope.id = $${idx}
+          WHERE cip.user_id = p.creator_id
+            AND (
+              cip.supervisor_id = $${idx}
+              OR (
+                cip.supervisor_id IS NULL
+                AND cip.department_id IS NOT NULL
+                AND cip.department_id = sp_scope.department_id
+              )
+            )
+        )
+        OR EXISTS (
+          SELECT 1
+          FROM project_members pm_scope
+          JOIN intern_profiles mip ON mip.user_id = pm_scope.intern_id
+          JOIN supervisor_profiles sp_scope ON sp_scope.id = $${idx}
+          WHERE pm_scope.project_id = p.id
+            AND (
+              mip.supervisor_id = $${idx}
+              OR (
+                mip.supervisor_id IS NULL
+                AND mip.department_id IS NOT NULL
+                AND mip.department_id = sp_scope.department_id
+              )
+            )
+        )
+      )`);
+      values.push(supervisor_scope_id);
+      idx++;
     }
     if (intern_id) {
       whereClauses.push(`EXISTS (SELECT 1 FROM project_members pm2 WHERE pm2.project_id = p.id AND pm2.intern_id = $${idx++})`);
@@ -218,21 +294,22 @@ const ProjectModel = {
     due_date = null,
     proposed_objectives = null,
     expected_outcome = null,
+    project_link_url = null,
     notes = null,
   }) {
     const sql = `
       INSERT INTO projects (
         organization_id, department_id, title, description, creator_id,
         supervisor_id, source, status, priority, start_date, due_date,
-        proposed_objectives, expected_outcome, notes
+        proposed_objectives, expected_outcome, project_link_url, notes
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *;
     `;
     const values = [
       organization_id, department_id, title, description, creator_id,
       supervisor_id, source, status, priority, start_date, due_date,
-      proposed_objectives, expected_outcome, notes,
+      proposed_objectives, expected_outcome, project_link_url, notes,
     ];
     const res = await query(sql, values);
     return res.rows[0];
@@ -246,6 +323,7 @@ const ProjectModel = {
       'title', 'description', 'status', 'priority', 'start_date', 'due_date',
       'proposed_objectives', 'expected_outcome', 'notes', 'supervisor_id',
       'department_id', 'rejection_reason', 'supervisor_feedback', 'progress',
+      'project_link_url',
     ];
     const setClauses = [];
     const values = [];
