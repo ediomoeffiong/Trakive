@@ -6,11 +6,12 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useIsAuthenticated } from '../../store/useAppStore';
 import { ROUTES } from '../../constants';
+import { hasAuthTokens } from '../../utils/authSession';
 
 const ProtectedRoute = () => {
   const isAuthenticated = useIsAuthenticated();
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !hasAuthTokens()) {
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
 

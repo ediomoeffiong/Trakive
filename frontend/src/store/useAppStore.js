@@ -10,6 +10,7 @@ import { ROUTES, STORAGE_KEYS } from '../constants';
 import { authService } from '../services';
 import { useNotificationStore } from './useNotificationStore';
 import { normalizePersonRecord } from '../utils/people';
+import { clearAuthTokens, hasAuthTokens, persistAuthTokens } from '../utils/authSession';
 
 // ── UI / Shell Slice ──────────────────────────────────────────────────────────
 const createUISlice = (set) => ({
@@ -29,11 +30,14 @@ const createAuthSlice = (set, get) => ({
   isLoading: false,
   error: null,
 
-  setUser: (user) => set({ user: normalizePersonRecord(user), isAuthenticated: !!user, error: null }),
+  setUser: (user) => set({ user: normalizePersonRecord(user), isAuthenticated: !!user && hasAuthTokens(), error: null }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
   clearError: () => set({ error: null }),
-  clearAuth: () => set({ user: null, isAuthenticated: false, error: null }),
+  clearAuth: () => {
+    clearAuthTokens();
+    set({ user: null, isAuthenticated: false, error: null });
+  },
 
   dismissFirstLoginPrompt: () => {
     const { user } = get();
@@ -64,7 +68,11 @@ const createAuthSlice = (set, get) => ({
     try {
       const response = await authService.login(credentials);
       const user = normalizePersonRecord(response.user);
-      set({ user, isAuthenticated: true, isLoading: false });
+      persistAuthTokens({
+        accessToken: response.token || user?.accessToken || user?.token,
+        refreshToken: user?.refreshToken || response.refreshToken,
+      });
+      set({ user, isAuthenticated: hasAuthTokens(), isLoading: false });
 
       // Dispatch security notification
       const userRole = user?.role;
@@ -170,12 +178,13 @@ export const useAppStore = create(
           sidebarCollapsed: state.sidebarCollapsed,
           theme: state.theme,
           user: state.user,
-          isAuthenticated: state.isAuthenticated,
+          isAuthenticated: state.isAuthenticated && hasAuthTokens(),
         }),
         merge: (persistedState, currentState) => ({
           ...currentState,
           ...persistedState,
           user: normalizePersonRecord(persistedState?.user),
+          isAuthenticated: Boolean(persistedState?.isAuthenticated && hasAuthTokens()),
         }),
       },
     ),
@@ -188,7 +197,7 @@ export const useSidebarCollapsed = () =>
   useAppStore((s) => s.sidebarCollapsed);
 export const useToggleSidebar = () => useAppStore((s) => s.toggleSidebar);
 export const useCurrentUser = () => useAppStore((s) => s.user);
-export const useIsAuthenticated = () => useAppStore((s) => s.isAuthenticated);
+export const useIsAuthenticated = () => useAppStore((s) => s.isAuthenticated && hasAuthTokens());
 export const useTheme = () => useAppStore((s) => s.theme);
 export const useAuthLoading = () => useAppStore((s) => s.isLoading);
 export const useAuthError = () => useAppStore((s) => s.error);
