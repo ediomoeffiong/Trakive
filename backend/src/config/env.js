@@ -7,7 +7,13 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT, 10) || 5000,
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  corsOrigin: (() => {
+    const origins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+    return origins.length ? origins : ['http://localhost:5173'];
+  })(),
   db: {
     url: process.env.DATABASE_URL || process.env.DB_URL || null,
     host: process.env.DB_HOST || 'localhost',

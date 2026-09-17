@@ -30,6 +30,15 @@ const { sendSuccess } = require('../../utils/apiResponse');
 
 const router = express.Router();
 
+router.get('/', (req, res) => {
+  res.json({
+    name: 'Trakive API',
+    version: 'v1',
+    status: 'running',
+    healthCheck: '/api/v1/health',
+  });
+});
+
 // Health & Auth Routes
 router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);

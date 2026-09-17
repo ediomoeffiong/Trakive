@@ -157,6 +157,16 @@ export default function OnboardingDashboard() {
           const match = list.find((d) => d.id === info.department_id);
           if (match) {
             setInfo((prev) => ({ ...prev, department_name: match.name }));
+          } else if (list.length > 0) {
+            const preferred =
+              list.find((d) => /fifthlab/i.test(d.name || '') && isFifthLabDomain) ||
+              list.find((d) => d.id === user?.department_id) ||
+              list[0];
+            setInfo((prev) => ({
+              ...prev,
+              department_id: preferred.id,
+              department_name: preferred.name,
+            }));
           }
         }
       } catch (err) {
@@ -225,6 +235,10 @@ export default function OnboardingDashboard() {
   useEffect(() => {
     let isMounted = true;
     const fetchTeam = async () => {
+      if (!info.department_id) {
+        setLoadingTeam(false);
+        return;
+      }
       setLoadingTeam(true);
       try {
         const res = await api.get(`/departments/${info.department_id}/staff`);

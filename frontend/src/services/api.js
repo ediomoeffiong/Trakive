@@ -7,6 +7,14 @@
 import axios from 'axios';
 import { API_BASE_URL, STORAGE_KEYS } from '../constants';
 
+const joinUrl = (base, path) => {
+  if (!path) return base;
+  if (/^https?:\/\//i.test(path)) return path;
+  const cleanBase = String(base || '').replace(/\/+$/, '');
+  const cleanPath = String(path).replace(/^\/+/, '');
+  return `${cleanBase}/${cleanPath}`;
+};
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
@@ -67,6 +75,11 @@ api.interceptors.request.use(
     const token = getBearerToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Axios 1.x URL combining can drop `/api/v1` when the path starts with `/`.
+    if (config.baseURL && config.url && !/^https?:\/\//i.test(config.url)) {
+      config.url = joinUrl(config.baseURL, config.url);
+      config.baseURL = undefined;
     }
     return config;
   },
