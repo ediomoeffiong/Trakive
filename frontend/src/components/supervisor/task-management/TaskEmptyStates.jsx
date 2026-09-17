@@ -16,8 +16,8 @@ import {
 const emptyConfigs = {
   'no-tasks': {
     icon: RiTaskLine,
-    color: '#4f46e5',
-    bg: '#eef2ff',
+    color: '#2563eb',
+    bg: '#eff6ff',
     title: 'No Tasks Yet',
     subtitle: 'Create your first task to get started. Assign tasks to interns and track their progress.',
     ctaLabel: 'Create First Task',

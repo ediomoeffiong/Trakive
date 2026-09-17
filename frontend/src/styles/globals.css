@@ -202,7 +202,7 @@ p  { color: var(--color-neutral-600); }
   padding: 0 1.5rem;
   gap: 1rem;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .app-content {
@@ -272,7 +272,7 @@ p  { color: var(--color-neutral-600); }
 
 .app-topbar {
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .app-topbar > *:not(.app-topbar-title) {

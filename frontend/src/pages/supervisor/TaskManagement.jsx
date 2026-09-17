@@ -418,7 +418,7 @@ const TaskManagementPage = () => {
           </motion.button>
 
           <motion.button
-            whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(79,70,229,0.35)' }}
+            whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(37,99,235,0.35)' }}
             whileTap={{ scale: 0.97 }}
             onClick={() => openCreateModal()}
             style={{

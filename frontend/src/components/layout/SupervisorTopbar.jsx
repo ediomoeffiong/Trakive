@@ -3,7 +3,7 @@
  * @description Dedicated top bar header for the Supervisor Portal.
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -54,6 +54,18 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
   const logout = useAppStore((s) => s.logout);
   const [searchFocused, setSearchFocused] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onPointerDown = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [menuOpen]);
 
   const handleMobileMenu = onMobileMenuToggle ?? onMobileMenuOpen;
 
@@ -187,8 +199,9 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
 
       <NotificationDrawer />
 
-      <div style={{ position: 'relative' }}>
+      <div ref={menuRef} style={{ position: 'relative', zIndex: menuOpen ? 80 : 1 }}>
         <button
+          type="button"
           className="btn btn-ghost"
           style={{
             display: 'flex',
@@ -200,6 +213,7 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
           }}
           onClick={() => setMenuOpen((v) => !v)}
           aria-label="Open supervisor user menu"
+          aria-expanded={menuOpen}
           id="supervisor-user-menu-btn"
         >
           <Avatar
@@ -221,13 +235,7 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
 
         <AnimatePresence>
           {menuOpen && (
-            <>
-              <div
-                style={{ position: 'fixed', inset: 0, zIndex: 50 }}
-                onClick={() => setMenuOpen(false)}
-                aria-hidden
-              />
-              <motion.div
+            <motion.div
                 initial={{ opacity: 0, y: -8, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.97 }}
@@ -335,7 +343,6 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
                   Sign Out
                 </button>
               </motion.div>
-            </>
           )}
         </AnimatePresence>
       </div>
