@@ -342,7 +342,15 @@ export default function OnboardingDashboard() {
   });
 
   useEffect(() => {
-    localStorage.setItem(`trakive_onboarding_docs_${user?.id || 'default'}`, JSON.stringify(documents));
+    const serializableDocuments = Object.fromEntries(
+      Object.entries(documents).map(([category, doc]) => {
+        if (!doc) return [category, null];
+        const rest = { ...doc };
+        delete rest.file;
+        return [category, rest];
+      })
+    );
+    localStorage.setItem(`trakive_onboarding_docs_${user?.id || 'default'}`, JSON.stringify(serializableDocuments));
   }, [documents, user?.id]);
 
   useEffect(() => {
@@ -546,6 +554,7 @@ export default function OnboardingDashboard() {
       file_name: file.name,
       file_size: file.size,
       mime_type: 'application/pdf',
+      file,
       uploaded_at: new Date().toISOString(),
       review_status: 'pending',
       reviewer_notes: null,
@@ -624,13 +633,24 @@ export default function OnboardingDashboard() {
       const results = await Promise.all(
         REQUIRED_DOCUMENTS.map(async (reqDoc) => {
           const doc = documents[reqDoc.category];
-          const res = await api.post('/onboarding/documents', {
-            title: reqDoc.title.replace(' (PDF)', ''),
-            file_name: doc.file_name,
-            file_path: doc.file_path || `/uploads/onboarding/${user?.id || 'user'}/${reqDoc.category}/${encodeURIComponent(doc.file_name)}`,
-            file_size: doc.file_size,
-            mime_type: 'application/pdf',
-            category: reqDoc.category,
+          if (!(doc.file instanceof File) && !doc.file_path) {
+            throw new Error(`Please reselect ${reqDoc.title.replace(' (PDF)', '')} so Trakive can upload the actual PDF file.`);
+          }
+          if (!(doc.file instanceof File)) {
+            return { category: reqDoc.category, data: doc };
+          }
+
+          const formData = new FormData();
+          formData.append('file', doc.file);
+          formData.append('title', reqDoc.title.replace(' (PDF)', ''));
+          formData.append('category', reqDoc.category);
+
+          const res = await api.post('/onboarding/documents', formData, {
+            onUploadProgress: (event) => {
+              if (!event.total) return;
+              const progress = Math.round((event.loaded / event.total) * 100);
+              setUploadErrors((prev) => ({ ...prev, [reqDoc.category]: progress < 100 ? `Uploading... ${progress}%` : null }));
+            },
           });
           return { category: reqDoc.category, data: res?.data?.data || res?.data };
         })
@@ -645,6 +665,7 @@ export default function OnboardingDashboard() {
             id: data.id || next[category]?.id,
             review_status: data.review_status || 'pending',
             file_path: data.file_path || next[category]?.file_path,
+            file: undefined,
           };
         });
         return next;

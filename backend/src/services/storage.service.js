@@ -51,6 +51,7 @@ const StorageService = {
         method: 'POST',
         headers: storageHeaders({
           'Content-Type': mimeType || 'application/octet-stream',
+          'Content-Length': String(Buffer.byteLength(buffer)),
           'x-upsert': upsert ? 'true' : 'false',
         }),
         body: buffer,
