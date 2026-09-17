@@ -644,6 +644,9 @@ export default function OnboardingDashboard() {
           formData.append('file', doc.file);
           formData.append('title', reqDoc.title.replace(' (PDF)', ''));
           formData.append('category', reqDoc.category);
+          formData.append('file_name', doc.file.name);
+          formData.append('file_size', String(doc.file.size));
+          formData.append('mime_type', doc.file.type || 'application/pdf');
 
           const res = await api.post('/onboarding/documents', formData, {
             onUploadProgress: (event) => {
