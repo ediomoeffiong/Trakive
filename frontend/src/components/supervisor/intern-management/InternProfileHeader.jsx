@@ -28,9 +28,9 @@ const STATUS_STYLES = {
 };
 
 const TREND_COLORS = {
-  up: { color: '#10b981', bg: '#d1fae5', label: '↑ Trending up' },
-  down: { color: '#ef4444', bg: '#fee2e2', label: '↓ Trending down' },
-  stable: { color: '#6366f1', bg: '#e0e7ff', label: '→ Stable' },
+  up: { color: '#10b981', bg: '#d1fae5', label: 'Trending up' },
+  down: { color: '#ef4444', bg: '#fee2e2', label: 'Trending down' },
+  stable: { color: '#0284c7', bg: '#e0f2fe', label: 'Stable' },
 };
 
 const SUPERVISOR_OPTIONS = [
@@ -143,7 +143,7 @@ const InternProfileHeader = ({ profile, performance }) => {
           style={{
             height: '6rem',
             borderRadius: '0.75rem 0.75rem 0 0',
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%)',
+            background: 'linear-gradient(135deg, #075985 0%, #0284c7 55%, #00b4d8 100%)',
             margin: '-1.5rem -1.5rem 0 -1.5rem',
             position: 'relative',
           }}
@@ -193,7 +193,7 @@ const InternProfileHeader = ({ profile, performance }) => {
                 backdropFilter: 'blur(8px)',
               }}
             >
-              {datesVerified ? '✓ Dates Verified by Supervisor' : '⏳ Pending Date Verification'}
+              {datesVerified ? 'Dates Verified by Supervisor' : 'Pending Date Verification'}
             </span>
           </div>
         </div>
@@ -272,7 +272,7 @@ const InternProfileHeader = ({ profile, performance }) => {
                 <InfoChip icon={RiTimeLine} label={`Primary Supervisor: ${profile.supervisor || 'None assigned'}`} />
                 <InfoChip icon={RiTimeLine} label={`Secondary: ${secondarySupervisor || 'None assigned'}`} />
                 <InfoChip icon={RiMapPinLine} label={profile.location} />
-                <InfoChip icon={RiCalendarEventLine} label={`${profile.startDate} → ${profile.endDate}`} />
+                <InfoChip icon={RiCalendarEventLine} label={`${profile.startDate} to ${profile.endDate}`} />
               </div>
 
               {/* Internship Period Selector Bar for Supervisors */}
@@ -304,9 +304,9 @@ const InternProfileHeader = ({ profile, performance }) => {
                       borderRadius: '0.375rem',
                       fontSize: '0.75rem',
                       fontWeight: 700,
-                      border: period.status === 'active' ? '1px solid #4f46e5' : '1px solid #cbd5e1',
-                      background: period.status === 'active' ? '#eef2ff' : '#ffffff',
-                      color: period.status === 'active' ? '#3730a3' : '#64748b',
+                      border: period.status === 'active' ? '1px solid #00b4d8' : '1px solid #cbd5e1',
+                      background: period.status === 'active' ? '#e0f7ff' : '#ffffff',
+                      color: period.status === 'active' ? '#0369a1' : '#64748b',
                       cursor: 'pointer',
                     }}
                     onClick={() => toast.success(`Switched supervisor view to ${period.title}`)}
@@ -354,7 +354,7 @@ const InternProfileHeader = ({ profile, performance }) => {
         >
           <a
             href={`mailto:${profile.email}`}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', color: '#4f46e5', fontWeight: 500, textDecoration: 'none' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', color: '#0284c7', fontWeight: 500, textDecoration: 'none' }}
           >
             <RiMailLine /> {profile.email}
           </a>
@@ -365,7 +365,7 @@ const InternProfileHeader = ({ profile, performance }) => {
             <RiPhoneLine /> {profile.phone}
           </a>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
-            💼 {profile.contractType} · {profile.stipend}
+            {profile.contractType} · {profile.stipend}
           </span>
         </div>
 
@@ -388,19 +388,19 @@ const InternProfileHeader = ({ profile, performance }) => {
             />
           ) : (
             <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: '#ecfdf5', borderRadius: '0.625rem' }}>
-              ✓ Dates Verified by Tochukwu Mgbemena
+              Dates Verified by Tochukwu Mgbemena
             </span>
           )}
 
           <QuickActionButton
             icon={RiUserAddLine}
             label={secondarySupervisor ? `Change Secondary (${secondarySupervisor})` : "Assign Extra Supervisor"}
-            color="#7c3aed"
-            bg="#faf5ff"
+            color="#0284c7"
+            bg="#e0f2fe"
             onClick={() => setShowSecondaryModal(true)}
           />
-          <QuickActionButton icon={RiTaskLine} label="Assign Task" color="#4f46e5" bg="#eef2ff" onClick={() => handleAction('assign-task')} />
-          <QuickActionButton icon={RiCalendarEventLine} label="Schedule Review" color="#7c3aed" bg="#faf5ff" onClick={() => handleAction('schedule-review')} />
+          <QuickActionButton icon={RiTaskLine} label="Assign Task" color="#0284c7" bg="#e0f2fe" onClick={() => handleAction('assign-task')} />
+          <QuickActionButton icon={RiCalendarEventLine} label="Schedule Review" color="#0891b2" bg="#ecfeff" onClick={() => handleAction('schedule-review')} />
           <QuickActionButton icon={RiCheckboxCircleLine} label="Approve Onboarding" color="#059669" bg="#ecfdf5" onClick={() => handleAction('approve-onboarding')} />
         </div>
       </div>

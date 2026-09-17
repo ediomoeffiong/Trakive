@@ -437,11 +437,31 @@ async function checkIn(user, payload = {}) {
       ]
     );
     if (!inserted.rows[0]) throw ApiError.conflict('Attendance has already been recorded for today');
+    const autoClosedCorrections = await client.query(
+      `UPDATE attendance_correction_requests
+       SET status = 'rejected',
+           attendance_id = COALESCE(attendance_id, $1),
+           reviewer_reason = 'Automatically closed because the intern successfully checked in before supervisor review.',
+           reviewed_at = NOW(),
+           updated_at = NOW()
+       WHERE intern_id = $2
+         AND date = $3
+         AND status = 'pending'
+       RETURNING *`,
+      [inserted.rows[0].id, user.id, context.date]
+    );
     await client.query(
       `INSERT INTO attendance_audit_logs (organization_id, attendance_id, actor_id, action, previous_value, new_value, reason)
        VALUES ($1, $2, $3, 'check_in', NULL, $4::jsonb, 'Intern location check-in')`,
       [context.internship.organization_id, inserted.rows[0].id, user.id, JSON.stringify(inserted.rows[0])]
     );
+    if (autoClosedCorrections.rows.length > 0) {
+      await client.query(
+        `INSERT INTO attendance_audit_logs (organization_id, attendance_id, actor_id, action, previous_value, new_value, reason)
+         VALUES ($1, $2, $3, 'correction_auto_closed', NULL, $4::jsonb, 'Pending correction request auto-closed after successful check-in')`,
+        [context.internship.organization_id, inserted.rows[0].id, user.id, JSON.stringify(autoClosedCorrections.rows)]
+      );
+    }
     await client.query('COMMIT');
 
     if (status === 'late') {
@@ -464,6 +484,15 @@ async function requestCorrection(user, payload = {}) {
   if (normalizeRole(user) !== 'intern') throw ApiError.forbidden('Only interns can request attendance corrections');
   const context = await resolveDayContext(user.id, payload.date);
   if (!payload.reason || String(payload.reason).trim().length < 5) throw ApiError.badRequest('A correction reason is required');
+  const existingAttendance = await query(
+    `SELECT id FROM attendance
+     WHERE internship_record_id = $1 AND date = $2 AND check_in IS NOT NULL
+     LIMIT 1`,
+    [context.internship.id, context.date]
+  );
+  if (existingAttendance.rows[0]) {
+    throw ApiError.badRequest('Attendance has already been recorded for this date, so a correction request is no longer needed');
+  }
   const res = await query(
     `INSERT INTO attendance_correction_requests (
        attendance_id, organization_id, intern_id, internship_record_id, date,
@@ -589,7 +618,7 @@ async function listSupervisorDashboard(user, filters = {}) {
   );
 
   const correctionParams = [user.organization_id];
-  let correctionWhere = 'acr.organization_id = $1';
+  let correctionWhere = `acr.organization_id = $1 AND acr.status = 'pending'`;
   if (supervisorProfile) {
     correctionParams.push(supervisorProfile.id);
     correctionWhere += ` AND ir.supervisor_id = $${correctionParams.length}`;

@@ -184,6 +184,7 @@ const InternSelector = ({ value = [], onChange, interns = [] }) => {
 
 const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) => {
   const [activeSection, setActiveSection] = useState('basic');
+  const isEditingExistingTask = Boolean(editingTask?.id);
 
   const interns = mockInternProfiles || [];
 
@@ -235,7 +236,7 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
   const onFormSubmit = async (data) => {
     try {
       await onSubmit({ ...data, learningObjectives: data.learningObjectives.filter(Boolean) });
-      toast.success(editingTask ? 'Task updated successfully!' : 'Task created successfully!');
+      toast.success(isEditingExistingTask ? 'Task updated successfully!' : 'Task created successfully!');
       onClose();
     } catch {
       toast.error('Failed to save task. Please try again.');
@@ -318,10 +319,10 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
             >
               <div>
                 <h2 id="task-modal-title" style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: '#ffffff' }}>
-                  {editingTask ? 'Edit Task' : 'Create New Task'}
+                  {isEditingExistingTask ? 'Edit Task' : 'Create New Task'}
                 </h2>
                 <p style={{ margin: '0.2rem 0 0', fontSize: '0.8125rem', color: '#e0f7fc' }}>
-                  {editingTask ? 'Update task details and assignment' : 'Define a new task and assign it to interns'}
+                  {isEditingExistingTask ? 'Update task details and assignment' : 'Define a new task and assign it to interns'}
                 </p>
               </div>
               <button

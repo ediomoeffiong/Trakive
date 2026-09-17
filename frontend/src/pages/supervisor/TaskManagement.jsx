@@ -6,6 +6,7 @@
  */
 
 import { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -162,6 +163,8 @@ const UpcomingDeadlines = ({ deadlines = [] }) => {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const TaskManagementPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryString = searchParams.toString();
   const {
     // State
     activeTab,
@@ -226,6 +229,34 @@ const TaskManagementPage = () => {
     loadDashboard();
     fetchTasks();
   }, []);
+
+  useEffect(() => {
+    const action = searchParams.get('action');
+    const tab = searchParams.get('tab');
+    const internId = searchParams.get('intern');
+
+    if (tab === 'weekly') {
+      setActiveTab('weekly');
+    } else if (internId) {
+      setActiveTab('directory');
+      setFilter('internId', internId);
+    }
+
+    if (action === 'new') {
+      openCreateModal(
+        internId
+          ? {
+              assignedInterns: [{ id: internId, name: searchParams.get('internName') || 'Selected Intern', initials: 'SI' }],
+              department: 'FifthLab',
+              status: 'assigned',
+            }
+          : null
+      );
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('action');
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [queryString]);
 
   useEffect(() => {
     if (activeTab === 'directory') fetchTasks();

@@ -22,7 +22,7 @@ import { InternTabsLoader } from './InternSkeletonLoaders';
 // ── Review Status styles ──────────────────────────────────────────────────────
 const REVIEW_STATUS = {
   Completed: { bg: '#dcfce7', text: '#15803d' },
-  Scheduled: { bg: '#e0e7ff', text: '#3730a3' },
+  Scheduled: { bg: '#e0f2fe', text: '#0369a1' },
   Pending: { bg: '#fef3c7', text: '#b45309' },
 };
 
@@ -38,7 +38,7 @@ const ScoreDisplay = ({ score, maxScore = 5, trend, trendDelta }) => {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.35 }}
       style={{
-        background: 'linear-gradient(135deg, #1e293b 0%, #312e81 100%)',
+        background: 'linear-gradient(135deg, #075985 0%, #0284c7 100%)',
         borderRadius: '1rem',
         padding: '1.5rem',
         color: '#ffffff',
@@ -131,7 +131,7 @@ const CompetencyBars = ({ competencies }) => (
                 background: c.score >= 4.5
                   ? 'linear-gradient(90deg, #10b981, #059669)'
                   : c.score >= 4.0
-                  ? 'linear-gradient(90deg, #4f46e5, #818cf8)'
+                  ? 'linear-gradient(90deg, #0284c7, #00b4d8)'
                   : 'linear-gradient(90deg, #f59e0b, #fbbf24)',
                 borderRadius: '99px',
               }}
@@ -343,10 +343,10 @@ const PerformanceSnapshot = ({ performance, isLoading }) => {
               <Line
                 type="monotone"
                 dataKey="score"
-                stroke="#4f46e5"
+                stroke="#0284c7"
                 strokeWidth={2.5}
-                dot={{ fill: '#4f46e5', r: 4, strokeWidth: 2, stroke: '#fff' }}
-                activeDot={{ r: 6, stroke: '#4f46e5', strokeWidth: 2, fill: '#fff' }}
+                dot={{ fill: '#0284c7', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                activeDot={{ r: 6, stroke: '#0284c7', strokeWidth: 2, fill: '#fff' }}
               />
             </LineChart>
           </ResponsiveContainer>

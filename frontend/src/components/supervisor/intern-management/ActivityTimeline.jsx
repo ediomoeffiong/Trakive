@@ -19,8 +19,8 @@ import InternEmptyState from './InternEmptyStates';
 import { InternTimelineLoader } from './InternSkeletonLoaders';
 
 const TYPE_CONFIG = {
-  task_submitted: { icon: RiTaskLine, color: '#4f46e5', bg: '#eef2ff', badgeText: 'Submitted' },
-  task_assigned: { icon: RiUserAddLine, color: '#7c3aed', bg: '#faf5ff', badgeText: 'Assigned' },
+  task_submitted: { icon: RiTaskLine, color: '#0284c7', bg: '#e0f2fe', badgeText: 'Submitted' },
+  task_assigned: { icon: RiUserAddLine, color: '#0891b2', bg: '#ecfeff', badgeText: 'Assigned' },
   review_received: { icon: RiStarLine, color: '#059669', bg: '#ecfdf5', badgeText: 'Review' },
   onboarding_approved: { icon: RiCheckboxCircleLine, color: '#10b981', bg: '#d1fae5', badgeText: 'Onboarding' },
   document_uploaded: { icon: RiFileTextLine, color: '#d97706', bg: '#fffbeb', badgeText: 'Document' },
@@ -63,7 +63,7 @@ const ActivityTimeline = ({ activities = [], isLoading = false }) => {
             top: '24px',
             bottom: '8px',
             width: '2px',
-            background: 'linear-gradient(to bottom, #4f46e5, #e0e7ff)',
+            background: 'linear-gradient(to bottom, #0284c7, #e0f2fe)',
             borderRadius: '99px',
             zIndex: 0,
           }}

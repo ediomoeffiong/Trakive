@@ -134,6 +134,11 @@ const AttendancePage = () => {
                   <Badge variant={request.status === 'approved' ? 'success' : request.status === 'rejected' ? 'danger' : 'warning'}>{label(request.status)}</Badge>
                 </div>
                 <p style={{ margin: '0.5rem 0 0', color: 'var(--color-neutral-600)', fontSize: '0.875rem' }}>{request.reason}</p>
+                {request.reviewer_reason && (
+                  <p style={{ margin: '0.35rem 0 0', color: 'var(--color-neutral-500)', fontSize: '0.8rem' }}>
+                    {request.reviewer_reason}
+                  </p>
+                )}
               </div>
             ))}
           </div>

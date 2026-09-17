@@ -18,7 +18,7 @@ import {
 import { InternProgressLoader } from './InternSkeletonLoaders';
 
 // ── Animated Circular Progress ────────────────────────────────────────────────
-const CircularProgress = ({ percentage, size = 80, strokeWidth = 7, color = '#4f46e5', trackColor = '#e0e7ff' }) => {
+const CircularProgress = ({ percentage, size = 80, strokeWidth = 7, color = '#0284c7', trackColor = '#e0f2fe' }) => {
   const [displayed, setDisplayed] = useState(0);
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -186,9 +186,9 @@ const ProgressWidgets = ({ progress, isLoading }) => {
       {/* Row 1: Circular Overview */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
         {/* Overall Progress */}
-        <WidgetCard icon={RiPieChartLine} iconColor="#4f46e5" iconBg="#eef2ff" title="Overall Progress" index={0}>
+        <WidgetCard icon={RiPieChartLine} iconColor="#0284c7" iconBg="#e0f2fe" title="Overall Progress" index={0}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            <CircularProgress percentage={overallProgress} color="#4f46e5" trackColor="#e0e7ff" />
+            <CircularProgress percentage={overallProgress} color="#0284c7" trackColor="#e0f2fe" />
             <div>
               <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-700)', fontWeight: 500, lineHeight: 1.4 }}>
                 {overallProgress >= 80
@@ -233,10 +233,10 @@ const ProgressWidgets = ({ progress, isLoading }) => {
       {/* Row 2: Linear Progress Bars */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
         {/* Onboarding Progress */}
-        <WidgetCard icon={RiCheckboxMultipleLine} iconColor="#7c3aed" iconBg="#faf5ff" title="Onboarding Progress" index={3}>
+        <WidgetCard icon={RiCheckboxMultipleLine} iconColor="#0891b2" iconBg="#ecfeff" title="Onboarding Progress" index={3}>
           <AnimatedBar
             percentage={onboardingCompletion.percentage}
-            color="linear-gradient(90deg, #7c3aed, #a78bfa)"
+            color="linear-gradient(90deg, #0891b2, #22d3ee)"
             label={`${onboardingCompletion.completed} of ${onboardingCompletion.total} modules`}
             sublabel={onboardingCompletion.percentage === 100 ? '✅ Fully onboarded' : `${onboardingCompletion.total - onboardingCompletion.completed} modules remaining`}
           />
@@ -255,7 +255,7 @@ const ProgressWidgets = ({ progress, isLoading }) => {
 
       {/* Row 3: Milestones */}
       {milestones && milestones.length > 0 && (
-        <WidgetCard icon={RiCheckboxMultipleLine} iconColor="#4f46e5" iconBg="#eef2ff" title="Internship Milestones" index={5}>
+        <WidgetCard icon={RiCheckboxMultipleLine} iconColor="#0284c7" iconBg="#e0f2fe" title="Internship Milestones" index={5}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
             {milestones.map((m) => (
               <MilestoneItem key={m.id} milestone={m} />

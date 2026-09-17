@@ -30,6 +30,8 @@ export const useInternManagementStore = create(
       notes: [],
       activity: [],
       performance: null,
+      tasks: [],
+      weeklyPlans: [],
 
       // ── Filters ───────────────────────────────────────────────────────────
       filters: {
@@ -65,6 +67,7 @@ export const useInternManagementStore = create(
         notes: false,
         activity: false,
         performance: false,
+        tasks: false,
         saveNote: false,
       },
 
@@ -77,6 +80,7 @@ export const useInternManagementStore = create(
         notes: null,
         activity: null,
         performance: null,
+        tasks: null,
       },
 
       // ── Actions ───────────────────────────────────────────────────────────
@@ -216,6 +220,31 @@ export const useInternManagementStore = create(
           set((s) => ({
             loading: { ...s.loading, performance: false },
             errors: { ...s.errors, performance: err.message },
+          }));
+        }
+      },
+
+      /**
+       * Load intern weekly tasks and plans.
+       */
+      loadInternTasks: async (internId) => {
+        set((s) => ({
+          tasks: [],
+          weeklyPlans: [],
+          loading: { ...s.loading, tasks: true },
+          errors: { ...s.errors, tasks: null },
+        }));
+        try {
+          const res = await internManagementService.fetchInternTasks(internId);
+          set((s) => ({
+            tasks: res.tasks || [],
+            weeklyPlans: res.plans || [],
+            loading: { ...s.loading, tasks: false },
+          }));
+        } catch (err) {
+          set((s) => ({
+            loading: { ...s.loading, tasks: false },
+            errors: { ...s.errors, tasks: err.message },
           }));
         }
       },
@@ -426,6 +455,8 @@ export const useInternManagementStore = create(
           notes: [],
           activity: [],
           performance: null,
+          tasks: [],
+          weeklyPlans: [],
           activeTab: 'overview',
         });
       },

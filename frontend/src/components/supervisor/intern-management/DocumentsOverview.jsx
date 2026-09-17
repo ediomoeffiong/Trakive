@@ -24,10 +24,10 @@ import InternEmptyState from './InternEmptyStates';
 
 // ── Document Type Icons & Colors ──────────────────────────────────────────────
 const DOC_TYPE_CONFIG = {
-  CV: { icon: RiFileUserLine, color: '#4f46e5', bg: '#eef2ff' },
+  CV: { icon: RiFileUserLine, color: '#0284c7', bg: '#e0f2fe' },
   'Offer Letter': { icon: RiFileShieldLine, color: '#059669', bg: '#ecfdf5' },
   'ID Card': { icon: RiFileImageLine, color: '#d97706', bg: '#fffbeb' },
-  Certificate: { icon: RiFilePdfLine, color: '#7c3aed', bg: '#faf5ff' },
+  Certificate: { icon: RiFilePdfLine, color: '#0891b2', bg: '#ecfeff' },
   Portfolio: { icon: RiFileImageLine, color: '#0891b2', bg: '#ecfeff' },
   Agreement: { icon: RiFileTextLine, color: '#dc2626', bg: '#fef2f2' },
 };
@@ -46,11 +46,25 @@ const DocumentsOverview = ({ documents = [], isLoading = false }) => {
   }
 
   const handleView = (doc) => {
-    toast.success(`Opening ${doc.name} for preview...`);
+    if (doc.url) {
+      window.open(doc.url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    toast.error('No preview file is available for this document yet.');
   };
 
   const handleDownload = (doc) => {
-    toast.success(`Downloading ${doc.name}...`);
+    if (doc.url) {
+      const link = document.createElement('a');
+      link.href = doc.url;
+      link.download = doc.name || 'document';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      return;
+    }
+    toast.error('No downloadable file is available for this document yet.');
   };
 
   const handleReplace = (doc) => {
@@ -177,7 +191,7 @@ const DocumentsOverview = ({ documents = [], isLoading = false }) => {
                     className="btn btn-ghost btn-icon"
                     title="View document"
                     onClick={() => handleView(doc)}
-                    style={{ fontSize: '1rem', padding: '0.375rem', color: '#4f46e5' }}
+                    style={{ fontSize: '1rem', padding: '0.375rem', color: '#0284c7' }}
                   >
                     <RiEyeLine />
                   </button>

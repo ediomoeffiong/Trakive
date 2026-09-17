@@ -6,16 +6,18 @@
  */
 
 import { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import toast from 'react-hot-toast';
 import {
   RiTaskLine,
   RiCheckboxCircleLine,
   RiAlertLine,
   RiCalendarCheckLine,
+  RiArrowRightLine,
+  RiAddCircleLine,
 } from 'react-icons/ri';
 import { useInternManagementStore } from '../../store/useInternManagementStore';
+import { ROUTES } from '../../constants';
 import {
   InternProfileHeader,
   InternProfileTabs,
@@ -46,15 +48,15 @@ const OverviewTab = ({ profile, progress, isLoadingProgress }) => (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
       {[
         {
-          icon: RiTaskLine, color: '#4f46e5', bg: '#eef2ff',
+          icon: RiTaskLine, color: '#0284c7', bg: '#e0f2fe',
           label: 'Current Task', value: profile?.currentTask ?? '—', sub: 'In progress',
         },
         {
           icon: RiCalendarCheckLine, color: '#059669', bg: '#ecfdf5',
-          label: 'Internship Duration', value: profile?.duration ?? '—', sub: `${profile?.startDate} → ${profile?.endDate}`,
+          label: 'Internship Duration', value: profile?.duration ?? '—', sub: `${profile?.startDate} to ${profile?.endDate}`,
         },
         {
-          icon: RiCheckboxCircleLine, color: '#7c3aed', bg: '#faf5ff',
+          icon: RiCheckboxCircleLine, color: '#0891b2', bg: '#ecfeff',
           label: 'Batch', value: profile?.batch ?? '—', sub: profile?.contractType,
         },
         {
@@ -115,8 +117,16 @@ const OverviewTab = ({ profile, progress, isLoadingProgress }) => (
   </div>
 );
 
-// ── Tasks Placeholder Tab ─────────────────────────────────────────────────────
-const TasksTab = ({ profile }) => (
+const taskStatusStyle = (status = '') => {
+  const normalized = String(status).toLowerCase();
+  if (['completed', 'done', 'reviewed'].includes(normalized)) return { bg: '#dcfce7', text: '#15803d', label: 'Completed' };
+  if (['ongoing', 'in_progress', 'in-progress'].includes(normalized)) return { bg: '#e0f2fe', text: '#0369a1', label: 'In Progress' };
+  if (['blocked', 'not_done'].includes(normalized)) return { bg: '#fee2e2', text: '#b91c1c', label: 'Blocked' };
+  return { bg: '#fef3c7', text: '#b45309', label: 'Pending' };
+};
+
+// ── Tasks Tab ────────────────────────────────────────────────────────────────
+const TasksTab = ({ profile, tasks, plans, isLoading, onAssignTask, onViewAllTasks }) => (
   <motion.div
     variants={tabPanelVariants}
     initial="initial"
@@ -127,71 +137,88 @@ const TasksTab = ({ profile }) => (
       borderRadius: '1rem',
       padding: '2rem',
       border: '1px solid var(--color-neutral-200)',
-      textAlign: 'center',
     }}
   >
-    <div style={{ maxWidth: '380px', margin: '0 auto', padding: '2rem 0' }}>
-      <div
-        style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '50%',
-          background: '#eef2ff',
-          color: '#4f46e5',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '2rem',
-          margin: '0 auto 1.25rem auto',
-        }}
-      >
-        <RiTaskLine />
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+      <div>
+        <h4 style={{ margin: '0 0 0.25rem 0', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
+          Tasks for {profile?.name || 'Intern'}
+        </h4>
+        <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-500)', lineHeight: 1.5 }}>
+          {tasks.length} task{tasks.length !== 1 ? 's' : ''} across {plans.length} weekly plan{plans.length !== 1 ? 's' : ''}.
+        </p>
       </div>
-      <h4 style={{ margin: '0 0 0.5rem 0', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
-        Task Management
-      </h4>
-      <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.875rem', color: 'var(--color-neutral-500)', lineHeight: 1.5 }}>
-        Full task assignment, submission review, and feedback thread for{' '}
-        <strong>{profile?.name}</strong> will be available in the Task Management module.
-      </p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.625rem', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.625rem' }}>
         <button
           className="btn btn-primary"
-          style={{ fontSize: '0.875rem' }}
-          onClick={() => toast.success(`Opening task assignment for ${profile?.name}...`)}
+          style={{ fontSize: '0.875rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+          onClick={onAssignTask}
         >
+          <RiAddCircleLine />
           Assign New Task
         </button>
         <button
           className="btn btn-secondary"
-          style={{ fontSize: '0.875rem' }}
-          onClick={() => toast.success(`Viewing all tasks for ${profile?.name}...`)}
+          style={{ fontSize: '0.875rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+          onClick={onViewAllTasks}
         >
           View All Tasks
+          <RiArrowRightLine />
         </button>
       </div>
-      <div
-        style={{
-          marginTop: '1.5rem',
-          padding: '0.875rem 1rem',
-          background: 'var(--color-neutral-50)',
-          borderRadius: '0.75rem',
-          border: '1px solid var(--color-neutral-200)',
-        }}
-      >
-        <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>
-          Current: {profile?.currentTask}
-        </p>
-        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
-          In progress · Last active {profile?.lastActivity}
-        </p>
-      </div>
     </div>
+
+    {isLoading ? (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div key={index} style={{ height: 72, borderRadius: '0.75rem', background: 'var(--color-neutral-50)', border: '1px solid var(--color-neutral-200)' }} />
+        ))}
+      </div>
+    ) : tasks.length === 0 ? (
+      <div style={{ textAlign: 'center', padding: '2.5rem 1rem', background: 'var(--color-neutral-50)', borderRadius: '0.875rem', border: '1px dashed var(--color-neutral-200)' }}>
+        <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', margin: '0 auto 1rem' }}>
+          <RiTaskLine />
+        </div>
+        <p style={{ margin: '0 0 0.35rem', fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>No tasks assigned yet</p>
+        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>Assign the first task from Task Management.</p>
+      </div>
+    ) : (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {tasks.slice(0, 8).map((task) => {
+          const status = taskStatusStyle(task.status);
+          return (
+            <div
+              key={`${task.planId || 'plan'}-${task.id}`}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: '1rem',
+                padding: '0.875rem 1rem',
+                borderRadius: '0.75rem',
+                border: '1px solid var(--color-neutral-200)',
+                background: 'var(--color-neutral-50)',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-neutral-900)', fontSize: '0.9rem' }}>{task.title}</p>
+                <p style={{ margin: '0.2rem 0 0', color: 'var(--color-neutral-500)', fontSize: '0.75rem' }}>
+                  Week: {task.weekStart || 'N/A'} {task.dueDate ? `· Due ${task.dueDate}` : ''}
+                </p>
+              </div>
+              <span style={{ alignSelf: 'center', padding: '0.25rem 0.625rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 800, background: status.bg, color: status.text }}>
+                {status.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    )}
   </motion.div>
 );
 
 // ── Onboarding Placeholder Tab ────────────────────────────────────────────────
-const OnboardingTab = ({ profile, progress }) => (
+const OnboardingTab = ({ profile, progress, onOpenOnboarding }) => (
   <motion.div
     variants={tabPanelVariants}
     initial="initial"
@@ -216,9 +243,9 @@ const OnboardingTab = ({ profile, progress }) => (
     {/* Progress summary */}
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
       {[
-        { label: 'Overall Onboarding', value: `${profile?.onboardingProgress ?? 0}%`, color: '#4f46e5', bg: '#eef2ff' },
+        { label: 'Overall Onboarding', value: `${progress?.onboardingCompletion?.percentage ?? profile?.onboardingProgress ?? 0}%`, color: '#0284c7', bg: '#e0f2fe' },
         { label: 'Modules Completed', value: progress ? `${progress.onboardingCompletion.completed}/${progress.onboardingCompletion.total}` : '—', color: '#059669', bg: '#ecfdf5' },
-        { label: 'Reviews Passed', value: progress ? `${progress.reviewCompletion.completed}/${progress.reviewCompletion.total}` : '—', color: '#7c3aed', bg: '#faf5ff' },
+        { label: 'Reviews Passed', value: progress ? `${progress.reviewCompletion.completed}/${progress.reviewCompletion.total}` : '—', color: '#0891b2', bg: '#ecfeff' },
       ].map((item, i) => (
         <div
           key={i}
@@ -239,7 +266,7 @@ const OnboardingTab = ({ profile, progress }) => (
     <button
       className="btn btn-primary"
       style={{ fontSize: '0.875rem' }}
-      onClick={() => toast.success(`Opening onboarding approvals for ${profile?.name}...`)}
+      onClick={onOpenOnboarding}
     >
       <RiCheckboxCircleLine style={{ marginRight: '0.375rem' }} />
       Approve Onboarding Steps
@@ -250,6 +277,7 @@ const OnboardingTab = ({ profile, progress }) => (
 // ── Main InternProfile Page ───────────────────────────────────────────────────
 const InternProfilePage = () => {
   const { internId } = useParams();
+  const navigate = useNavigate();
 
   const {
     internProfile,
@@ -258,6 +286,8 @@ const InternProfilePage = () => {
     notes,
     activity,
     performance,
+    tasks,
+    weeklyPlans,
     activeTab,
     loading,
     loadInternProfile,
@@ -265,6 +295,7 @@ const InternProfilePage = () => {
     loadInternDocuments,
     loadInternActivity,
     loadInternPerformance,
+    loadInternTasks,
     loadNotes,
     saveNote,
     deleteNote,
@@ -289,6 +320,9 @@ const InternProfilePage = () => {
       case 'performance':
         if (!performance) loadInternPerformance(internId);
         break;
+      case 'tasks':
+        if (tasks.length === 0) loadInternTasks(internId);
+        break;
       case 'documents':
         if (documents.length === 0) loadInternDocuments(internId);
         break;
@@ -302,6 +336,8 @@ const InternProfilePage = () => {
         break;
     }
   }, [activeTab, internId]);
+
+  const taskQuery = `intern=${encodeURIComponent(internId || '')}`;
 
   if (loading.profile && !internProfile) {
     return (
@@ -344,7 +380,14 @@ const InternProfilePage = () => {
           )}
 
           {activeTab === 'tasks' && (
-            <TasksTab profile={internProfile} />
+            <TasksTab
+              profile={internProfile}
+              tasks={tasks}
+              plans={weeklyPlans}
+              isLoading={loading.tasks}
+              onAssignTask={() => navigate(`${ROUTES.SUPERVISOR_TASKS}?action=new&${taskQuery}`)}
+              onViewAllTasks={() => navigate(`${ROUTES.SUPERVISOR_TASKS}?tab=weekly&${taskQuery}`)}
+            />
           )}
 
           {activeTab === 'performance' && (
@@ -355,7 +398,11 @@ const InternProfilePage = () => {
           )}
 
           {activeTab === 'onboarding' && (
-            <OnboardingTab profile={internProfile} progress={progress} />
+            <OnboardingTab
+              profile={internProfile}
+              progress={progress}
+              onOpenOnboarding={() => navigate(`${ROUTES.SUPERVISOR_ONBOARDING}?${taskQuery}`)}
+            />
           )}
 
           {activeTab === 'documents' && (
