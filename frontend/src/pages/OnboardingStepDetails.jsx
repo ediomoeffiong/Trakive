@@ -515,7 +515,7 @@ export default function OnboardingStepDetails() {
             ? 'linear-gradient(90deg, #22c55e, #16a34a)'
             : isLocked
               ? 'linear-gradient(90deg, #f59e0b, #d97706)'
-              : 'linear-gradient(90deg, #2563eb, #0ea5e9)',
+              : 'linear-gradient(90deg, #2563eb, #3b82f6)',
         }} />
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
@@ -567,7 +567,7 @@ export default function OnboardingStepDetails() {
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
                   fontSize: '0.75rem', fontWeight: 700,
-                  color: '#1d4ed8', background: '#eff6ff',
+                  color: '#2563eb', background: '#eff6ff',
                   border: '1px solid #bfdbfe',
                   padding: '0.25rem 0.625rem', borderRadius: '99px',
                 }}>
@@ -936,7 +936,7 @@ export default function OnboardingStepDetails() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3, delay: 0.12 }}
             style={{
-              background: 'linear-gradient(145deg, #1e293b, #1e3a8a)',
+              background: 'linear-gradient(145deg, #2563eb, #3b82f6)',
               borderRadius: '1.125rem',
               padding: '1.25rem',
               display: 'flex', flexDirection: 'column', gap: '0.875rem',
@@ -958,7 +958,7 @@ export default function OnboardingStepDetails() {
               </div>
             </div>
 
-            <p style={{ fontSize: '0.78rem', color: '#a5b4fc', margin: 0, lineHeight: 1.6 }}>
+            <p style={{ fontSize: '0.78rem', color: '#bfdbfe', margin: 0, lineHeight: 1.6 }}>
               Simulate a supervisor review to see how the state machine responds in real-time.
             </p>
 
@@ -1024,7 +1024,7 @@ export default function OnboardingStepDetails() {
                         {h.status === 'verified' ? '✓ Approved' : '✗ Rejected'}
                       </span>
                     </div>
-                    {h.notes && <p style={{ fontSize: '0.78rem', color: '#a5b4fc', margin: 0, lineHeight: 1.6 }}>{h.notes}</p>}
+                    {h.notes && <p style={{ fontSize: '0.78rem', color: '#bfdbfe', margin: 0, lineHeight: 1.6 }}>{h.notes}</p>}
                     <div style={{ fontSize: '0.68rem', color: '#2563eb', marginTop: '0.375rem' }}>{formatDateTime(h.date)}</div>
                   </div>
                 ))}

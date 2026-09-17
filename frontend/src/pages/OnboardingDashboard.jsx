@@ -76,7 +76,7 @@ const CATEGORIES = [
   { id: 'company_policies', name: 'Company Policies', icon: RiShieldCheckFill, color: '#06b6d4' },
   { id: 'it_setup', name: 'IT Setup', icon: RiComputerLine, color: '#f59e0b' },
   { id: 'team_intro', name: 'Team Introduction', icon: RiTeamLine, color: '#ec4899' },
-  { id: 'training', name: 'Training', icon: RiGraduationCapLine, color: '#0284c7' },
+  { id: 'training', name: 'Training', icon: RiGraduationCapLine, color: '#2563eb' },
 ];
 
 const ONBOARDING_SECTION_LABELS = CATEGORIES.reduce((acc, item) => {
@@ -238,7 +238,7 @@ export default function OnboardingDashboard() {
             location: u.office_location || 'FifthLab Office, Lagos',
             isSupervisor: u.role_name === 'supervisor' || u.role_name === 'department_head',
             bio: u.bio || `${u.first_name} is an active member of the ${info.department_name} team at FifthLab.`,
-            avatarColor: ['#2563eb', '#0284c7', '#0ea5e9', '#f59e0b', '#10b981'][idx % 5],
+            avatarColor: ['#2563eb', '#3b82f6', '#60a5fa', '#f59e0b', '#10b981'][idx % 5],
           }));
           setTeamMembers(formatted);
           setLoadingTeam(false);
@@ -742,7 +742,7 @@ export default function OnboardingDashboard() {
             {isFifthLabDomain && (
               <span style={{
                 background: '#e0f2fe',
-                color: '#0369a1',
+                color: '#2563eb',
                 border: '1px solid #bae6fd',
                 fontSize: '11px',
                 fontWeight: 700,
@@ -782,7 +782,7 @@ export default function OnboardingDashboard() {
             <RiArrowRightLine />
           </div>
           <div style={{ minWidth: 0 }}>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#1d4ed8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#2563eb', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               UP NEXT
             </span>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: '2px 0 0 0' }}>
@@ -830,11 +830,11 @@ export default function OnboardingDashboard() {
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             style={{
-              background: 'linear-gradient(145deg, #00c6ff 0%, #0072ff 100%)',
+              background: 'linear-gradient(145deg, #3b82f6 0%, #2563eb 100%)',
               borderRadius: '20px',
               padding: '24px 20px',
               color: '#ffffff',
-              boxShadow: '0 12px 30px -6px rgba(0, 114, 255, 0.4)',
+              boxShadow: '0 12px 30px -6px rgba(37, 99, 235, 0.4)',
               position: 'relative',
               overflow: 'hidden'
             }}
@@ -1016,7 +1016,7 @@ export default function OnboardingDashboard() {
                   <div style={{
                     width: `${(count.done / count.total) * 100}%`,
                     height: '100%',
-                    background: '#10b981',
+                    background: '#2563eb',
                     transition: 'width 0.3s ease'
                   }} />
                 </div>
@@ -1077,11 +1077,11 @@ export default function OnboardingDashboard() {
                     </div>
                     <div>
                       <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase' }}>Auto-Assigned Department Supervisor</span>
-                      <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#1e3a8a', margin: '2px 0 0 0' }}>{assignedSupervisor.name}</h4>
+                      <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#2563eb', margin: '2px 0 0 0' }}>{assignedSupervisor.name}</h4>
                       <span style={{ fontSize: '12px', color: '#3b82f6' }}>{assignedSupervisor.title} • {assignedSupervisor.email}</span>
                     </div>
                   </div>
-                  <span style={{ background: '#dbeafe', color: '#1e40af', fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px' }}>
+                  <span style={{ background: '#dbeafe', color: '#2563eb', fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '999px' }}>
                     Assigned
                   </span>
                 </div>
@@ -1182,7 +1182,7 @@ export default function OnboardingDashboard() {
                     disabled={savingInfo || loadingDepartments || !info.department_id}
                     className="onboarding-action-btn"
                     style={{
-                      background: savingInfo || !info.department_id ? '#94a3b8' : '#10b981',
+                      background: savingInfo || !info.department_id ? '#94a3b8' : '#2563eb',
                       color: '#ffffff',
                       border: 'none',
                       borderRadius: '10px',
@@ -1193,7 +1193,7 @@ export default function OnboardingDashboard() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      boxShadow: savingInfo || !info.department_id ? 'none' : '0 4px 14px rgba(16, 185, 129, 0.3)'
+                      boxShadow: savingInfo || !info.department_id ? 'none' : '0 4px 14px rgba(37, 99, 235, 0.3)'
                     }}
                   >
                     <RiCheckLine /> {savingInfo ? 'Saving…' : 'Save & Proceed to Documents'}
@@ -1234,7 +1234,7 @@ export default function OnboardingDashboard() {
                       {approvedDocsCount}/3 PDF Documents Approved
                     </h4>
                   </div>
-                  <span style={{ background: '#dbeafe', color: '#1e40af', fontSize: '12px', fontWeight: 800, padding: '6px 14px', borderRadius: '999px' }}>
+                  <span style={{ background: '#dbeafe', color: '#2563eb', fontSize: '12px', fontWeight: 800, padding: '6px 14px', borderRadius: '999px' }}>
                     Strictly PDF (.pdf) Only
                   </span>
                 </div>
@@ -1427,7 +1427,7 @@ export default function OnboardingDashboard() {
                   disabled={submittingDocs || submittedDocsCount < 3}
                   className="onboarding-action-btn"
                   style={{
-                    background: submittedDocsCount < 3 ? '#94a3b8' : '#10b981',
+                    background: submittedDocsCount < 3 ? '#94a3b8' : '#2563eb',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '10px',
@@ -1438,7 +1438,7 @@ export default function OnboardingDashboard() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    boxShadow: submittedDocsCount < 3 ? 'none' : '0 4px 14px rgba(16, 185, 129, 0.3)',
+                    boxShadow: submittedDocsCount < 3 ? 'none' : '0 4px 14px rgba(37, 99, 235, 0.3)',
                     opacity: submittingDocs ? 0.75 : 1,
                     whiteSpace: 'normal',
                   }}
@@ -1472,8 +1472,8 @@ export default function OnboardingDashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div className="onboarding-inline-row" style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '14px', padding: '16px 20px' }}>
                   <div>
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase' }}>FifthLab Venture Lab</span>
-                    <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#0369a1', margin: '2px 0 0 0' }}>FifthLab Official Website</h4>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase' }}>FifthLab Venture Lab</span>
+                    <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#2563eb', margin: '2px 0 0 0' }}>FifthLab Official Website</h4>
                     <p style={{ fontSize: '12px', color: '#0e7490', margin: '2px 0 0 0' }}>Explore projects, startup initiatives, and tech venture lab programs.</p>
                   </div>
                   <a
@@ -1481,7 +1481,7 @@ export default function OnboardingDashboard() {
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
-                      background: '#0284c7',
+                      background: '#2563eb',
                       color: '#ffffff',
                       padding: '10px 18px',
                       borderRadius: '10px',
@@ -1501,7 +1501,7 @@ export default function OnboardingDashboard() {
                   <button
                     onClick={() => markStepCompletedAndNext('welcome', 'company_policies')}
                     style={{
-                      background: '#10b981',
+                      background: '#2563eb',
                       color: '#ffffff',
                       border: 'none',
                       borderRadius: '10px',
@@ -1512,7 +1512,7 @@ export default function OnboardingDashboard() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                      boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
                       maxWidth: '100%',
                       whiteSpace: 'normal',
                     }}
@@ -1560,7 +1560,7 @@ export default function OnboardingDashboard() {
                 <button
                   onClick={() => markStepCompletedAndNext('company_policies', 'it_setup')}
                   style={{
-                    background: '#10b981',
+                    background: '#2563eb',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '10px',
@@ -1571,7 +1571,7 @@ export default function OnboardingDashboard() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
                     maxWidth: '100%',
                     whiteSpace: 'normal',
                   }}
@@ -1678,7 +1678,7 @@ export default function OnboardingDashboard() {
                   }}
                   disabled={!hasConfirmedItSetup}
                   style={{
-                    background: hasConfirmedItSetup ? '#10b981' : '#94a3b8',
+                    background: hasConfirmedItSetup ? '#2563eb' : '#94a3b8',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '10px',
@@ -1689,7 +1689,7 @@ export default function OnboardingDashboard() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    boxShadow: hasConfirmedItSetup ? '0 4px 14px rgba(16, 185, 129, 0.3)' : 'none',
+                    boxShadow: hasConfirmedItSetup ? '0 4px 14px rgba(37, 99, 235, 0.3)' : 'none',
                     opacity: hasConfirmedItSetup ? 1 : 0.75,
                     maxWidth: '100%',
                     whiteSpace: 'normal',
@@ -1783,7 +1783,7 @@ export default function OnboardingDashboard() {
                 <button
                   onClick={() => markStepCompletedAndNext('team_intro', 'training')}
                   style={{
-                    background: '#10b981',
+                    background: '#2563eb',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '10px',
@@ -1794,7 +1794,7 @@ export default function OnboardingDashboard() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
                     maxWidth: '100%',
                     whiteSpace: 'normal',
                   }}
@@ -1926,7 +1926,7 @@ export default function OnboardingDashboard() {
                 <button
                   onClick={() => markStepCompletedAndNext('training', null)}
                   style={{
-                    background: '#10b981',
+                    background: '#2563eb',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '10px',
@@ -1937,7 +1937,7 @@ export default function OnboardingDashboard() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
                     maxWidth: '100%',
                     whiteSpace: 'normal',
                   }}

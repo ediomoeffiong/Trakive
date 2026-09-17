@@ -65,7 +65,7 @@ function SupervisorProjectWeeklySummary({ navigate }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div className="dashboard-mini-grid">
         <Skeleton height="88px" borderRadius="0.75rem" />
         <Skeleton height="88px" borderRadius="0.75rem" />
       </div>
@@ -73,7 +73,7 @@ function SupervisorProjectWeeklySummary({ navigate }) {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+    <div className="dashboard-mini-grid">
       <Card
         style={{ padding: '1rem 1.25rem', cursor: 'pointer', transition: 'box-shadow 0.15s ease' }}
         onClick={() => navigate(ROUTES.SUPERVISOR_PROJECTS)}
@@ -181,7 +181,7 @@ const SupervisorDashboardPage = () => {
       initial="initial"
       animate="animate"
       exit="exit"
-      style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', paddingBottom: '3rem' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', paddingBottom: '3rem', minWidth: 0, maxWidth: '100%' }}
     >
       {/* Welcome Banner */}
       <div
@@ -226,7 +226,7 @@ const SupervisorDashboardPage = () => {
 
       {/* 1. KPI Cards Grid */}
       <section aria-label="Key Performance Indicators">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+        <div className="sup-dash-kpi">
           {kpis.map((card, idx) => (
             <KPICard key={card.id || card.label || idx} card={card} index={idx} />
           ))}
@@ -259,7 +259,7 @@ const SupervisorDashboardPage = () => {
           </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.25rem' }}>
+        <div className="sup-dash-charts">
           <PerformanceTrendChart data={analytics.performanceTrend} />
           <TaskDistributionChart data={analytics.taskDistribution} />
           <ReviewStatusDonutChart data={analytics.reviewStatus} />
@@ -269,7 +269,7 @@ const SupervisorDashboardPage = () => {
 
       {/* 5. Recent Activity & Deadlines Grid */}
       <section aria-label="Activity and Deadlines">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1.25rem' }}>
+        <div className="sup-dash-charts">
           <ActivityFeed activities={activities} />
           <UpcomingDeadlines deadlines={deadlines} />
         </div>
@@ -283,7 +283,7 @@ const SupervisorDashboardPage = () => {
           </h3>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+        <div className="sup-dash-widgets">
           <PendingApprovalsWidget approvals={widgets.pendingApprovals} />
           <ReviewRemindersWidget reminders={widgets.reviewReminders} />
           <RecentlyAssignedWidget interns={widgets.recentlyAssigned} />

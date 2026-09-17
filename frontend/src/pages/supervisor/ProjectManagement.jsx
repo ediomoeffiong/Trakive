@@ -17,11 +17,11 @@ import { CreateProjectDrawer } from '../../components/projects/CreateProjectDraw
 import { ApprovalActionsModal } from '../../components/projects/ApprovalActionsModal';
 
 const TAB_ITEMS = [
-  { key: '',                  label: 'All Projects'      },
-  { key: 'pending_approval',  label: 'Pending Approval'  },
+  { key: '',                  label: 'All'      },
+  { key: 'pending_approval',  label: 'Pending'  },
   { key: 'active',            label: 'Active'            },
   { key: 'on_hold',           label: 'On Hold'           },
-  { key: 'completed',         label: 'Completed'         },
+  { key: 'completed',         label: 'Done'         },
 ];
 
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
@@ -163,7 +163,7 @@ export default function ProjectManagement() {
       </div>
 
       {/* Summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div className="stats-grid-3" style={{ marginBottom: '1.5rem' }}>
         {[
           { label: 'Total Projects', value: stats.total,   color: 'var(--color-neutral-600)', bg: 'var(--color-neutral-50)'  },
           { label: 'Active',         value: stats.active,  color: 'var(--color-success-600)', bg: 'var(--color-success-50)'  },
@@ -179,7 +179,7 @@ export default function ProjectManagement() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid var(--color-neutral-100)', marginBottom: '1rem' }}>
+      <div className="page-tab-bar" style={{ display: 'flex', gap: 0, borderBottom: '2px solid var(--color-neutral-100)', marginBottom: '1rem', overflowX: 'auto' }}>
         {TAB_ITEMS.map((t) => (
           <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
             padding: '0.6rem 1rem', background: 'none', border: 'none', cursor: 'pointer',

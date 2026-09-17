@@ -90,7 +90,7 @@ const QuickActions = () => {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.875rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '0.875rem' }}>
         {ACTIONS.map((action, idx) => {
           const Icon = action.icon;
           return (

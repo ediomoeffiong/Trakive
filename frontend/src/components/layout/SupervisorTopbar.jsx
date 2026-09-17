@@ -26,19 +26,21 @@ import { ROUTES } from '../../constants';
 import { formatRole } from '../../utils';
 
 const SUPERVISOR_PAGE_TITLES = {
-  [ROUTES.SUPERVISOR_DASHBOARD]:          'Supervisor Dashboard',
-  [ROUTES.SUPERVISOR_INTERNS]:            'Intern Roster & Overview',
-  [ROUTES.SUPERVISOR_TASKS]:              'Task Assignment & Management',
-  [ROUTES.SUPERVISOR_REVIEWS]:            'Performance Reviews',
-  [ROUTES.SUPERVISOR_ONBOARDING]:         'Onboarding Approvals',
-  [ROUTES.SUPERVISOR_REPORTS]:            'Analytics & Reports',
-  [ROUTES.SUPERVISOR_REPORTS_BUILDER]:    'Custom Report Builder',
-  [ROUTES.SUPERVISOR_REPORTS_SAVED]:      'Saved Reports & Templates',
-  [ROUTES.SUPERVISOR_REPORTS_EXPORT]:     'Export & Download Center',
-  [ROUTES.SUPERVISOR_ANALYTICS_COMPARE]: 'Comparative Performance Analytics',
-  [ROUTES.SUPERVISOR_NOTIFICATIONS]:      'Supervisor Notifications',
-  [ROUTES.SUPERVISOR_PROFILE]:            'Supervisor Profile',
-  [ROUTES.SUPERVISOR_SETTINGS]:           'Portal Settings',
+  [ROUTES.SUPERVISOR_DASHBOARD]:          'Dashboard',
+  [ROUTES.SUPERVISOR_INTERNS]:            'Interns',
+  [ROUTES.SUPERVISOR_TASKS]:              'Tasks',
+  [ROUTES.SUPERVISOR_PROJECTS]:           'Projects',
+  [ROUTES.SUPERVISOR_WEEKLY_REVIEW]:      'Weekly',
+  [ROUTES.SUPERVISOR_REVIEWS]:            'Reviews',
+  [ROUTES.SUPERVISOR_ONBOARDING]:         'Onboarding',
+  [ROUTES.SUPERVISOR_REPORTS]:            'Reports',
+  [ROUTES.SUPERVISOR_REPORTS_BUILDER]:    'Builder',
+  [ROUTES.SUPERVISOR_REPORTS_SAVED]:      'Saved',
+  [ROUTES.SUPERVISOR_REPORTS_EXPORT]:     'Export',
+  [ROUTES.SUPERVISOR_ANALYTICS_COMPARE]:  'Compare',
+  [ROUTES.SUPERVISOR_NOTIFICATIONS]:      'Alerts',
+  [ROUTES.SUPERVISOR_PROFILE]:            'Profile',
+  [ROUTES.SUPERVISOR_SETTINGS]:           'Settings',
 };
 
 
@@ -57,8 +59,8 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
 
   const isInternDetails = pathname.startsWith('/supervisor/interns/');
   const pageTitle = isInternDetails
-    ? 'Intern Details'
-    : (SUPERVISOR_PAGE_TITLES[pathname] ?? 'Supervisor Portal');
+    ? 'Intern'
+    : (SUPERVISOR_PAGE_TITLES[pathname] ?? 'Dashboard');
 
   // Fallback supervisor user display
   const profile = storedProfile?.id && storedProfile.id === user?.id ? storedProfile : null;
@@ -101,9 +103,11 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.18 }}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}
+          className="app-topbar-title"
         >
           <h1
+            className="app-topbar-heading"
             style={{
               fontSize: '1.0625rem',
               fontWeight: 700,
@@ -115,6 +119,7 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
             {pageTitle}
           </h1>
           <span
+            className="topbar-role-chip"
             style={{
               fontSize: '0.6875rem',
               fontWeight: 700,
@@ -123,6 +128,7 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
               backgroundColor: 'var(--color-primary-50)',
               color: 'var(--color-primary-700)',
               border: '1px solid var(--color-primary-200)',
+              flexShrink: 0,
             }}
           >
             Supervisor
@@ -161,15 +167,16 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
           id="supervisor-global-search"
           style={{
             paddingLeft: '2.25rem',
-            width: searchFocused ? '280px' : '220px',
+            width: searchFocused ? 'clamp(160px, 24vw, 260px)' : 'clamp(140px, 18vw, 200px)',
             transition: 'width 0.2s ease',
             height: '38px',
+            maxWidth: '100%',
           }}
         />
       </div>
 
       <button
-        className="btn btn-ghost btn-icon"
+        className="btn btn-ghost btn-icon topbar-theme-toggle"
         onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
         aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
         id="supervisor-theme-toggle-btn"

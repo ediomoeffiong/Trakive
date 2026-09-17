@@ -18,7 +18,7 @@ const CATEGORY_COLORS = {
   productivity:  { bg: 'var(--color-primary-50)',  color: 'var(--color-primary-600)' },
   quality:       { bg: 'var(--color-success-50)', color: 'var(--color-success-600)' },
   communication: { bg: 'var(--color-warning-50)', color: 'var(--color-warning-600)' },
-  initiative:    { bg: '#f5f3ff',                  color: '#7c3aed' },
+  initiative:    { bg: '#eff6ff',                  color: '#2563eb' },
   teamwork:      { bg: '#fff1f2',                  color: '#e11d48' },
 };
 

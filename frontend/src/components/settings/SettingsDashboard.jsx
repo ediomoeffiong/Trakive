@@ -70,7 +70,7 @@ const CATEGORIES = [
     label:       'Language & Region',
     description: 'Language, date format, timezone, and currency',
     icon:        RiTranslate2,
-    color:       { bg: '#f0f9ff', text: '#0284c7' },
+    color:       { bg: '#eff6ff', text: '#2563eb' },
   },
   {
     id:          'role',
@@ -216,7 +216,7 @@ const PreferencesSummary = ({ settings, user }) => {
       {user && (
         <div style={{
           marginTop: '1rem', padding: '0.625rem 0.875rem', borderRadius: '0.75rem',
-          background: 'linear-gradient(135deg, var(--color-primary-600), var(--color-primary-800))',
+          background: 'linear-gradient(135deg, var(--color-primary-600), var(--color-primary-500))',
           display: 'flex', alignItems: 'center', gap: '0.625rem',
         }}>
           <span style={{ fontSize: '1rem' }}>
@@ -240,7 +240,7 @@ const PreferencesSummary = ({ settings, user }) => {
 const WelcomeBanner = ({ user }) => (
   <div style={{
     padding: '1.5rem 2rem', borderRadius: '1.25rem',
-    background: 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%)',
+    background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem',
     position: 'relative', overflow: 'hidden',
   }}>

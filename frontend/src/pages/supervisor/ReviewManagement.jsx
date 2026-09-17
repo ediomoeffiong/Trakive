@@ -108,11 +108,11 @@ const RecentReviewsActivity = ({ submissions, history }) => {
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
 const buildTabs = (pendingSubmissions, pendingOnboarding) => [
-  { id: 'dashboard',   label: 'Dashboard',           icon: RiDashboardLine },
-  { id: 'submissions', label: 'Submission Queue',     icon: RiFileTextLine,     badge: pendingSubmissions },
-  { id: 'onboarding',  label: 'Onboarding Approvals', icon: RiShieldCheckLine,  badge: pendingOnboarding },
-  { id: 'schedule',    label: 'Schedule Review',      icon: RiCalendarCheckLine },
-  { id: 'history',     label: 'Review History',       icon: RiHistoryLine },
+  { id: 'dashboard',   label: 'Overview',     icon: RiDashboardLine },
+  { id: 'submissions', label: 'Queue',        icon: RiFileTextLine,     badge: pendingSubmissions },
+  { id: 'onboarding',  label: 'Onboarding',   icon: RiShieldCheckLine,  badge: pendingOnboarding },
+  { id: 'schedule',    label: 'Schedule',     icon: RiCalendarCheckLine },
+  { id: 'history',     label: 'History',      icon: RiHistoryLine },
 ];
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
@@ -342,7 +342,7 @@ const ReviewManagementPage = () => {
       initial="initial"
       animate="animate"
       exit="exit"
-      style={{ minHeight: '100vh', background: 'var(--color-neutral-50)', padding: '1.5rem', boxSizing: 'border-box' }}
+      style={{ minHeight: '100%', background: 'var(--color-neutral-50)', padding: 0, boxSizing: 'border-box', minWidth: 0, maxWidth: '100%' }}
     >
       {/* ── Page Header ─────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
@@ -351,8 +351,8 @@ const ReviewManagementPage = () => {
             <RiFileTextLine />
           </div>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.375rem', fontWeight: 900, color: 'var(--color-neutral-900)', lineHeight: 1.2 }}>
-              Reviews & Approvals
+            <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-neutral-900)', lineHeight: 1.2 }}>
+              Reviews
             </h1>
             <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-500)' }}>
               Evaluate submissions, verify onboarding, and schedule 1-on-1s
@@ -375,13 +375,13 @@ const ReviewManagementPage = () => {
             onClick={() => openSchedulerModal()}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5625rem 1.125rem', borderRadius: '0.875rem', border: 'none', background: '#00b4d8', color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,180,216,0.28)' }}
           >
-            <RiCalendarCheckLine /> Schedule Review
+            <RiCalendarCheckLine /> Schedule
           </motion.button>
         </div>
       </div>
 
       {/* ── Tab Navigation ──────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 0, background: '#fff', borderRadius: '0.875rem', border: '1px solid var(--color-neutral-200)', padding: '0.3rem', marginBottom: '1.5rem', overflowX: 'auto', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+      <div className="page-tab-bar" style={{ display: 'flex', gap: 0, background: '#fff', borderRadius: '0.875rem', border: '1px solid var(--color-neutral-200)', padding: '0.3rem', marginBottom: '1.5rem', overflowX: 'auto', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
         {TABS.map(({ id, label, icon: Icon, badge }) => {
           const isActive = activeTab === id;
           return (
@@ -428,7 +428,7 @@ const ReviewManagementPage = () => {
           <motion.div key="dashboard" variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <ReviewKPISummary kpis={kpis} isLoading={loading.dashboard} onKPIClick={handleKPIClick} />
             <QuickStatsRow upcoming={upcomingReviews} history={reviewHistory} />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '1.25rem' }}>
               <RecentReviewsActivity submissions={submissions} history={reviewHistory} />
               {/* Upcoming reviews mini widget */}
               <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', padding: '1.25rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>

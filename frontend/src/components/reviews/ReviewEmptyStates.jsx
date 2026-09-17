@@ -85,8 +85,8 @@ export const NoFeedbackEmpty = () => (
 export const NoGoalsEmpty = () => (
   <EmptyStateBase
     icon={RiFlagLine}
-    iconColor="var(--color-purple-500, #8b5cf6)"
-    iconBg="var(--color-purple-50, #f5f3ff)"
+    iconColor="var(--color-primary-500)"
+    iconBg="var(--color-primary-50)"
     title="No Goals Set Yet"
     message="Development goals from your reviews will be tracked here. They help you focus your growth and measure progress over each review period."
   />

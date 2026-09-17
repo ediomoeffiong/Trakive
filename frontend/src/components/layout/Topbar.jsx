@@ -28,19 +28,22 @@ import { formatRole } from '../../utils';
 // ── Route → Page title map ────────────────────────────────────────────────────
 const PAGE_TITLES = {
   [ROUTES.DASHBOARD]:        'Dashboard',
-  [ROUTES.ANALYTICS]:        'Reports & Analytics Hub',
-  [ROUTES.ANALYTICS_COMPARE]:'Comparative Performance Analytics',
-  [ROUTES.REPORTS]:          'Reports & Analytics Hub',
-  [ROUTES.REPORTS_BUILDER]:  'Custom Report Builder',
-  [ROUTES.REPORTS_SAVED]:    'Saved Reports & Templates',
-  [ROUTES.REPORTS_EXPORT]:   'Export & Download Center',
+  [ROUTES.ANALYTICS]:        'Analytics',
+  [ROUTES.ANALYTICS_COMPARE]:'Compare',
+  [ROUTES.REPORTS]:          'Analytics',
+  [ROUTES.REPORTS_BUILDER]:  'Builder',
+  [ROUTES.REPORTS_SAVED]:    'Saved',
+  [ROUTES.REPORTS_EXPORT]:   'Export',
+  [ROUTES.PROJECTS]:         'Projects',
+  [ROUTES.WEEKLY_TASKS]:     'Weekly',
+  [ROUTES.TEAM]:             'Team',
   [ROUTES.TASKS]:            'Tasks',
-  [ROUTES.TASK_DETAILS]:     'Task Details',
-  [ROUTES.ONBOARDING]:       'Onboarding Pathway',
-  [ROUTES.REVIEWS]:          'Performance Reviews',
-  [ROUTES.NOTIFICATIONS]:    'Notifications',
+  [ROUTES.TASK_DETAILS]:     'Task',
+  [ROUTES.ONBOARDING]:       'Onboarding',
+  [ROUTES.REVIEWS]:          'Reviews',
+  [ROUTES.NOTIFICATIONS]:    'Alerts',
   [ROUTES.SETTINGS]:         'Settings',
-  [ROUTES.PROFILE]:          'My Profile',
+  [ROUTES.PROFILE]:          'Profile',
 };
 
 
@@ -65,7 +68,7 @@ const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) =>
 
   // Check if pathname matches task detail route regex
   const isTaskDetail = pathname.startsWith('/dashboard/tasks/');
-  const pageTitle = isTaskDetail ? 'Task Details' : (PAGE_TITLES[pathname] ?? 'Trakive');
+  const pageTitle = isTaskDetail ? 'Task' : (PAGE_TITLES[pathname] ?? 'Dashboard');
   const profile = storedProfile?.id && storedProfile.id === user?.id ? storedProfile : null;
   const displayName = profile?.fullName || user?.name || 'User';
   const displayRole = profile?.role || user?.role || 'Intern';
@@ -85,7 +88,7 @@ const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) =>
         {mobileOpen ? <RiCloseLine /> : <RiMenuLine />}
       </button>
 
-      {/* Page title */}
+      <div className="app-topbar-title">
       <AnimatePresence mode="wait">
         <motion.h1
           key={pathname}
@@ -93,6 +96,7 @@ const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) =>
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.18 }}
+          className="app-topbar-heading"
           style={{
             fontSize: '1.0625rem',
             fontWeight: 700,
@@ -109,9 +113,7 @@ const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) =>
           {pageTitle}
         </motion.h1>
       </AnimatePresence>
-
-      {/* Spacer */}
-      <div style={{ flex: 1 }} />
+      </div>
 
       {/* Search bar */}
       <div
@@ -152,7 +154,7 @@ const Topbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) =>
 
       {/* Theme toggle */}
       <button
-        className="btn btn-ghost btn-icon"
+        className="btn btn-ghost btn-icon topbar-theme-toggle"
         onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
         aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
         id="theme-toggle-btn"

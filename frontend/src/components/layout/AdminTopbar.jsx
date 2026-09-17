@@ -24,33 +24,33 @@ import { ROUTES } from '../../constants';
 import { formatRole } from '../../utils';
 
 const ADMIN_PAGE_TITLES = {
-  [ROUTES.ADMIN_DASHBOARD]:          'HR Dashboard',
-  [ROUTES.ADMIN_INTERNS]:            'Intern Management',
-  [ROUTES.ADMIN_SUPERVISORS]:        'Supervisor Management',
-  [ROUTES.ADMIN_DEPARTMENTS]:        'Department Management',
-  [ROUTES.ADMIN_BATCHES]:            'Internship Batches',
-  [ROUTES.ADMIN_ANNOUNCEMENTS]:      'Organization Announcements',
-  [ROUTES.ADMIN_USERS]:              'User Management',
-  [ROUTES.ADMIN_REPORTS]:            'Reports & Analytics',
-  [ROUTES.ADMIN_REPORTS_BUILDER]:    'Custom Report Builder',
-  [ROUTES.ADMIN_REPORTS_SAVED]:      'Saved Reports',
-  [ROUTES.ADMIN_REPORTS_EXPORT]:     'Export Center',
-  [ROUTES.ADMIN_NOTIFICATIONS]:      'Notifications',
-  [ROUTES.ADMIN_PROFILE]:            'HR Admin Profile',
-  [ROUTES.ADMIN_SETTINGS]:           'Portal Settings',
+  [ROUTES.ADMIN_DASHBOARD]:          'Dashboard',
+  [ROUTES.ADMIN_INTERNS]:            'Interns',
+  [ROUTES.ADMIN_SUPERVISORS]:        'Supervisors',
+  [ROUTES.ADMIN_DEPARTMENTS]:        'Departments',
+  [ROUTES.ADMIN_BATCHES]:            'Batches',
+  [ROUTES.ADMIN_ANNOUNCEMENTS]:      'Announcements',
+  [ROUTES.ADMIN_USERS]:              'Users',
+  [ROUTES.ADMIN_REPORTS]:            'Reports',
+  [ROUTES.ADMIN_REPORTS_BUILDER]:    'Builder',
+  [ROUTES.ADMIN_REPORTS_SAVED]:      'Saved',
+  [ROUTES.ADMIN_REPORTS_EXPORT]:     'Export',
+  [ROUTES.ADMIN_NOTIFICATIONS]:      'Alerts',
+  [ROUTES.ADMIN_PROFILE]:            'Profile',
+  [ROUTES.ADMIN_SETTINGS]:           'Settings',
 
   // Dept Head
-  [ROUTES.DEPARTMENT_HEAD_DASHBOARD]:      'Department Dashboard',
-  [ROUTES.DEPARTMENT_HEAD_SUPERVISORS]:    'Supervisor Overview',
-  [ROUTES.DEPARTMENT_HEAD_INTERNS]:        'Department Interns',
-  [ROUTES.DEPARTMENT_HEAD_TASKS]:          'Task Monitoring',
-  [ROUTES.DEPARTMENT_HEAD_REVIEWS]:        'Review Overview',
-  [ROUTES.DEPARTMENT_HEAD_ANALYTICS]:      'Department Analytics',
-  [ROUTES.DEPARTMENT_HEAD_APPROVALS]:      'Department Approvals',
-  [ROUTES.DEPARTMENT_HEAD_ANNOUNCEMENTS]:  'Department Announcements',
+  [ROUTES.DEPARTMENT_HEAD_DASHBOARD]:      'Dashboard',
+  [ROUTES.DEPARTMENT_HEAD_SUPERVISORS]:    'Supervisors',
+  [ROUTES.DEPARTMENT_HEAD_INTERNS]:        'Interns',
+  [ROUTES.DEPARTMENT_HEAD_TASKS]:          'Tasks',
+  [ROUTES.DEPARTMENT_HEAD_REVIEWS]:        'Reviews',
+  [ROUTES.DEPARTMENT_HEAD_ANALYTICS]:      'Analytics',
+  [ROUTES.DEPARTMENT_HEAD_APPROVALS]:      'Approvals',
+  [ROUTES.DEPARTMENT_HEAD_ANNOUNCEMENTS]:  'Announcements',
   [ROUTES.DEPARTMENT_HEAD_NOTIFICATIONS]:  'Notifications',
-  [ROUTES.DEPARTMENT_HEAD_PROFILE]:        'Department Head Profile',
-  [ROUTES.DEPARTMENT_HEAD_SETTINGS]:       'Portal Settings',
+  [ROUTES.DEPARTMENT_HEAD_PROFILE]:        'Profile',
+  [ROUTES.DEPARTMENT_HEAD_SETTINGS]:       'Settings',
 };
 
 const AdminTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false }) => {
@@ -68,8 +68,8 @@ const AdminTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false 
   const isDeptHead = pathname.startsWith('/department-head');
   const isInternDetails = pathname.startsWith('/admin/interns/');
   const pageTitle = isInternDetails
-    ? 'Intern Profile'
-    : (ADMIN_PAGE_TITLES[pathname] ?? (isDeptHead ? 'Department Head Portal' : 'HR Admin Portal'));
+    ? 'Intern'
+    : (ADMIN_PAGE_TITLES[pathname] ?? 'Dashboard');
 
   const adminName = user?.name ?? (isDeptHead ? 'Dr. Arinola Coker' : 'Funmi Adeyemi');
   const adminRole = user?.role ?? (isDeptHead ? 'Department Head' : 'HR Administrator');
@@ -110,9 +110,11 @@ const AdminTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false 
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.18 }}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}
+          className="app-topbar-title"
         >
           <h1
+            className="app-topbar-heading"
             style={{
               fontSize: '1.0625rem',
               fontWeight: 700,
@@ -124,6 +126,7 @@ const AdminTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false 
             {pageTitle}
           </h1>
           <span
+            className="topbar-role-chip"
             style={{
               fontSize: '0.6875rem',
               fontWeight: 700,
@@ -170,15 +173,16 @@ const AdminTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = false 
           id="admin-global-search"
           style={{
             paddingLeft: '2.25rem',
-            width: searchFocused ? '300px' : '240px',
+            width: searchFocused ? 'clamp(160px, 24vw, 260px)' : 'clamp(140px, 18vw, 200px)',
             transition: 'width 0.2s ease',
             height: '38px',
+            maxWidth: '100%',
           }}
         />
       </div>
 
       <button
-        className="btn btn-ghost btn-icon"
+        className="btn btn-ghost btn-icon topbar-theme-toggle"
         onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
         aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
         id="admin-theme-toggle-btn"

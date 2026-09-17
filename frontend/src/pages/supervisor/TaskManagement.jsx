@@ -45,12 +45,12 @@ const pageVariants = {
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
 const TABS = [
-  { id: 'dashboard',   label: 'Dashboard',      icon: RiDashboardLine },
-  { id: 'directory',   label: 'Task Board',     icon: RiListCheck },
-  { id: 'submissions', label: 'Submissions',    icon: RiFileUploadLine },
-  { id: 'weekly',      label: 'Weekly Reports', icon: RiCalendarCheckLine },
-  { id: 'calendar',    label: 'Calendar',       icon: RiCalendarEventLine },
-  { id: 'templates',   label: 'Templates',      icon: RiLayoutGridLine },
+  { id: 'dashboard',   label: 'Overview',  icon: RiDashboardLine },
+  { id: 'directory',   label: 'Board',     icon: RiListCheck },
+  { id: 'submissions', label: 'Submitted', icon: RiFileUploadLine },
+  { id: 'weekly',      label: 'Weekly',    icon: RiCalendarCheckLine },
+  { id: 'calendar',    label: 'Calendar',  icon: RiCalendarEventLine },
+  { id: 'templates',   label: 'Templates', icon: RiLayoutGridLine },
 ];
 
 // ── Recent Activity mini-feed (for dashboard tab) ─────────────────────────────
@@ -445,6 +445,7 @@ const TaskManagementPage = () => {
 
       {/* ── Tab Navigation ──────────────────────────────────────────────────── */}
       <div
+        className="page-tab-bar"
         style={{
           display: 'flex',
           gap: 0,
@@ -509,7 +510,7 @@ const TaskManagementPage = () => {
             />
 
             {/* Two-column: Activity + Deadlines */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '1.25rem' }}>
               <ActivityFeed items={recentActivity} />
               <UpcomingDeadlines deadlines={upcomingDeadlines} />
             </div>
@@ -637,7 +638,7 @@ const TaskManagementPage = () => {
                 <RiAddCircleLine /> New Template
               </motion.button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))', gap: '1rem' }}>
               {loading.templates ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} style={{ background: '#fff', borderRadius: '0.875rem', padding: '1.25rem', border: '1px solid var(--color-neutral-200)', height: '180px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

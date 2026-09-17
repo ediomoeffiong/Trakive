@@ -33,7 +33,7 @@ const ADMIN_NAV_ITEMS = [
   { label: 'Departments',      icon: RiBuildingLine,      to: ROUTES.ADMIN_DEPARTMENTS },
   { label: 'Batches',          icon: RiFoldersLine,        to: ROUTES.ADMIN_BATCHES },
   { label: 'Announcements',    icon: RiMegaphoneLine,     to: ROUTES.ADMIN_ANNOUNCEMENTS },
-  { label: 'User Management',  icon: RiUserSettingsLine,  to: ROUTES.ADMIN_USERS },
+  { label: 'Users',  icon: RiUserSettingsLine,  to: ROUTES.ADMIN_USERS },
   { label: 'Reports',          icon: RiBarChartBoxLine,   to: ROUTES.ADMIN_REPORTS },
 ];
 

@@ -27,15 +27,15 @@ import {
 // ── Shared chart style tokens ──────────────────────────────────────────────────
 
 const COLORS = {
-  overall:       '#6366f1',
+  overall:       '#2563eb',
   productivity:  '#22c55e',
   quality:       '#3b82f6',
   communication: '#f59e0b',
-  initiative:    '#a855f7',
+  initiative:    '#2563eb',
   teamwork:      '#ec4899',
 };
 
-const BAR_COLORS = ['#6366f1', '#22c55e', '#3b82f6', '#f59e0b', '#a855f7', '#ec4899'];
+const BAR_COLORS = ['#2563eb', '#22c55e', '#3b82f6', '#f59e0b', '#60a5fa', '#ec4899'];
 
 const tooltipStyle = {
   backgroundColor: 'var(--color-surface)',

@@ -135,7 +135,7 @@ const ReviewStatsBar = ({ summary, loading }) => {
       label: 'Avg Rating',
       value: safeSummary.averageRating,
       sub: 'across all criteria',
-      accent: 'var(--color-purple-50, #f5f3ff)',
+      accent: 'var(--color-primary-50)',
     },
   ];
 
