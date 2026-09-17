@@ -24,6 +24,7 @@ import {
   RiRefreshLine,
 } from 'react-icons/ri';
 import { OnboardingCardSkeleton } from './ReviewSkeletonLoaders';
+import api from '../../../services/api';
 
 // ── Status Configurations ────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -78,6 +79,7 @@ const getInitialsBg = (initials = 'IN') => {
 const DocumentReviewPanel = ({ intern, docItem, actionLoading, onReviewComplete, onBack }) => {
   const [decision, setDecision] = useState(null); // 'approved' | 'rejected' | 'resubmission_required'
   const [notes, setNotes] = useState('');
+  const [downloading, setDownloading] = useState(false);
 
   const doc = docItem.document || docItem;
   const status = docItem.review_status || doc?.review_status || docItem.status || 'pending';
@@ -92,6 +94,26 @@ const DocumentReviewPanel = ({ intern, docItem, actionLoading, onReviewComplete,
     }
 
     onReviewComplete?.(intern.internId || intern.intern_id, doc?.id || docItem.document?.id, decision, notes);
+  };
+
+  const handleDownload = async () => {
+    const documentId = doc?.id || docItem.document?.id;
+    if (!documentId) {
+      toast.error('Document is missing its download ID.');
+      return;
+    }
+
+    setDownloading(true);
+    try {
+      const response = await api.get(`/documents/${documentId}/download`);
+      const payload = response?.data?.data || response?.data || {};
+      if (!payload.url) throw new Error('No download URL returned.');
+      window.open(payload.url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Unable to open document.');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -133,18 +155,20 @@ const DocumentReviewPanel = ({ intern, docItem, actionLoading, onReviewComplete,
               </div>
             </div>
 
-            <a
-              href={doc.file_path || '#'}
-              download={doc.file_name || docTitle}
-              target="_blank" rel="noreferrer"
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={downloading}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
                 padding: '0.5rem 0.875rem', borderRadius: '0.625rem', border: '1px solid var(--color-neutral-300)',
                 background: '#fff', color: 'var(--color-neutral-700)', fontSize: '0.8125rem', fontWeight: 700, textDecoration: 'none',
+                cursor: downloading ? 'not-allowed' : 'pointer',
               }}
             >
-              <RiDownloadLine /> Download File
-            </a>
+              {downloading ? <RiLoader4Line style={{ animation: 'spin 0.8s linear infinite' }} /> : <RiDownloadLine />}
+              {downloading ? 'Opening...' : 'Open File'}
+            </button>
           </div>
         ) : (
           <div style={{ padding: '1rem', background: '#fef2f2', borderRadius: '0.75rem', color: '#dc2626', fontSize: '0.875rem' }}>

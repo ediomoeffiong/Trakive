@@ -61,7 +61,12 @@ async function canAccessDocument(user, doc) {
   if (role === 'supervisor' && doc.owner_id) {
     const supProfile = await ProfileModel.findSupervisorProfileByUserId(user.id);
     const internProfile = await ProfileModel.findInternProfileByUserId(doc.owner_id);
-    return Boolean(supProfile && internProfile && internProfile.supervisor_id === supProfile.id);
+    if (!supProfile || !internProfile) return false;
+    if (internProfile.supervisor_id === supProfile.id) return true;
+    return Boolean(
+      !internProfile.supervisor_id &&
+      (!internProfile.department_id || internProfile.department_id === supProfile.department_id)
+    );
   }
   return false;
 }
