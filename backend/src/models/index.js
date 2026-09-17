@@ -19,6 +19,10 @@ const Project = require('./project.model');
 const Milestone = require('./milestone.model');
 const WeeklyPlan = require('./weeklyPlan.model');
 const InternshipRecord = require('./internshipRecord.model');
+const OfficeLocation = require('./officeLocation.model');
+const AttendanceConfig = require('./attendanceConfig.model');
+const Holiday = require('./holiday.model');
+const { AttendanceCorrectionModel, AttendanceAuditModel } = require('./attendanceCorrection.model');
 
 module.exports = {
   Organization,
@@ -42,5 +46,10 @@ module.exports = {
   Milestone,
   WeeklyPlan,
   InternshipRecord,
+  OfficeLocation,
+  AttendanceConfig,
+  Holiday,
+  AttendanceCorrection: AttendanceCorrectionModel,
+  AttendanceAudit: AttendanceAuditModel,
 };
 

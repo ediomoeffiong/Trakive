@@ -30,6 +30,12 @@ const config = {
     accessExpiry: process.env.JWT_ACCESS_EXPIRY || '15m',
     refreshExpiry: process.env.JWT_REFRESH_EXPIRY || '7d',
   },
+  holiday: {
+    provider: process.env.HOLIDAY_PROVIDER || 'nager',
+    apiUrl: process.env.HOLIDAY_API_URL || 'https://date.nager.at/api/v3',
+    country: process.env.HOLIDAY_COUNTRY || 'NG',
+    cacheTtlHours: parseInt(process.env.HOLIDAY_CACHE_TTL_HOURS, 10) || 168,
+  },
 };
 
 module.exports = config;

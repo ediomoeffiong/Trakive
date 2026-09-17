@@ -1,4 +1,17 @@
 const { query } = require('../config/db');
+const AttendanceConfigModel = require('../models/attendanceConfig.model');
+const { computeAttendanceMetrics, computeOverallScore } = require('../utils/attendanceScoring.utils');
+
+async function attendanceMetricsForUser(internId, organizationId) {
+  const settings = organizationId
+    ? await AttendanceConfigModel.getPerformanceSettings(organizationId)
+    : null;
+  const attRes = await query(
+    'SELECT status, schedule_snapshot FROM attendance WHERE intern_id = $1',
+    [internId]
+  );
+  return { settings, metrics: computeAttendanceMetrics(attRes.rows, settings) };
+}
 
 /**
  * Resolve data scoping based on user role and filters
@@ -121,21 +134,16 @@ const AnalyticsService = {
         ? Number(((taskStats.completed / taskStats.total_assigned) * 100).toFixed(2))
         : 0;
 
-      const attSql = `
-        SELECT
-          COUNT(1)::int AS total_logged,
-          COUNT(1) FILTER (WHERE status = 'present')::int AS present,
-          COUNT(1) FILTER (WHERE status = 'late')::int AS late,
-          COUNT(1) FILTER (WHERE status = 'absent')::int AS absent,
-          COUNT(1) FILTER (WHERE status IN ('half_day', 'excused'))::int AS excused
-        FROM attendance
-        WHERE intern_id = $1;
-      `;
-      const attRes = await query(attSql, [user.id]);
-      const attStats = attRes.rows[0];
-      const attendanceRate = attStats.total_logged > 0
-        ? Number((((attStats.present + attStats.late) / attStats.total_logged) * 100).toFixed(2))
-        : 0;
+      const { metrics: attMetrics } = await attendanceMetricsForUser(user.id, user.organization_id);
+      const attStats = {
+        total_logged: attMetrics.required_days,
+        present: attMetrics.counts.present,
+        late: attMetrics.counts.late,
+        absent: attMetrics.counts.absent,
+        excused: attMetrics.counts.excused + attMetrics.counts.half_day,
+        remote: attMetrics.counts.remote,
+      };
+      const attendanceRate = attMetrics.attendance_score ?? 0;
 
       const leaveSql = `
         SELECT
@@ -171,6 +179,7 @@ const AnalyticsService = {
           absent: attStats.absent,
           excused: attStats.excused,
           attendance_rate: attendanceRate,
+          remote: attStats.remote || 0,
         },
         leave: leaveRes.rows[0],
         internship_progress: {
@@ -207,21 +216,24 @@ const AnalyticsService = {
         : 0;
 
       const attSql = `
-        SELECT
-          COUNT(a.id)::int AS total_logged,
-          COUNT(a.id) FILTER (WHERE a.status = 'present')::int AS present,
-          COUNT(a.id) FILTER (WHERE a.status = 'late')::int AS late,
-          COUNT(a.id) FILTER (WHERE a.status = 'absent')::int AS absent,
-          COUNT(a.id) FILTER (WHERE a.status IN ('half_day', 'excused'))::int AS excused
+        SELECT a.status, a.schedule_snapshot
         FROM attendance a
         JOIN intern_profiles ip ON ip.user_id = a.intern_id
         WHERE ip.supervisor_id = $1;
       `;
       const attRes = await query(attSql, [scope.supervisorProfileId]);
-      const attStats = attRes.rows[0];
-      const teamAttendanceRate = attStats.total_logged > 0
-        ? Number((((attStats.present + attStats.late) / attStats.total_logged) * 100).toFixed(2))
-        : 0;
+      const settings = user.organization_id
+        ? await AttendanceConfigModel.getPerformanceSettings(user.organization_id)
+        : null;
+      const teamMetrics = computeAttendanceMetrics(attRes.rows, settings);
+      const attStats = {
+        total_logged: teamMetrics.required_days,
+        present: teamMetrics.counts.present,
+        late: teamMetrics.counts.late,
+        absent: teamMetrics.counts.absent,
+        excused: teamMetrics.counts.excused + teamMetrics.counts.half_day,
+      };
+      const teamAttendanceRate = teamMetrics.attendance_score ?? 0;
 
       const leaveSql = `
         SELECT
@@ -821,14 +833,28 @@ const AnalyticsService = {
     `;
 
     const res = await query(perfSql, values);
+    const settings = scope.orgId
+      ? await AttendanceConfigModel.getPerformanceSettings(scope.orgId)
+      : null;
+    const internIds = res.rows.map((row) => row.intern_id);
+    const recRes = internIds.length
+      ? await query(
+        'SELECT intern_id, status, schedule_snapshot FROM attendance WHERE intern_id = ANY($1::uuid[])',
+        [internIds]
+      )
+      : { rows: [] };
+    const grouped = {};
+    recRes.rows.forEach((row) => {
+      grouped[row.intern_id] = grouped[row.intern_id] || [];
+      grouped[row.intern_id].push(row);
+    });
 
     const internPerformances = res.rows.map((row) => {
       const taskCompletionRate = row.total_tasks > 0
         ? Number(((row.completed_tasks / row.total_tasks) * 100).toFixed(2))
         : 0;
-      const attendanceRate = row.total_attendance > 0
-        ? Number(((row.attended_days / row.total_attendance) * 100).toFixed(2))
-        : 0;
+      const attMetrics = computeAttendanceMetrics(grouped[row.intern_id] || [], settings);
+      const attendanceRate = attMetrics.attendance_score ?? 0;
       const avgRating = row.avg_review_rating ? Number(row.avg_review_rating) : null;
       const ratingScore = avgRating ? avgRating * 20 : taskCompletionRate;
       const previousMonth = Number(row.previous_month_completed || 0);
@@ -837,8 +863,12 @@ const AnalyticsService = {
         ? Number((((currentMonth - previousMonth) / previousMonth) * 100).toFixed(2))
         : (currentMonth > 0 ? 100 : 0);
 
-      // Weighted score: 40% task completion, 30% rating, 30% attendance
-      const overallScore = Number(((taskCompletionRate * 0.4) + (ratingScore * 0.3) + (attendanceRate * 0.3)).toFixed(2));
+      const scored = computeOverallScore({
+        taskCompletionRate,
+        ratingScore,
+        attendanceScore: attendanceRate,
+        settings,
+      });
 
       return {
         intern_id: row.intern_id,
@@ -849,8 +879,11 @@ const AnalyticsService = {
         completed_tasks: row.completed_tasks,
         task_completion_rate: taskCompletionRate,
         attendance_rate: attendanceRate,
+        attendance_required_days: attMetrics.required_days,
+        attendance_enabled: scored.weights.attendance_enabled,
+        score_weights: scored.weights,
         average_task_rating: avgRating,
-        overall_score: overallScore,
+        overall_score: scored.overall_score,
         current_month_completed: currentMonth,
         previous_month_completed: previousMonth,
         productivity_growth_pct: productivityGrowthPct,

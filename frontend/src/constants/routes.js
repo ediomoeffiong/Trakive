@@ -41,6 +41,7 @@ export const ROUTES = {
   REPORTS_EXPORT: '/dashboard/reports/export',
   SETTINGS: '/dashboard/settings',
   PROFILE: '/dashboard/profile',
+  ATTENDANCE: '/dashboard/attendance',
 
   // Supervisor Routes
   SUPERVISOR_DASHBOARD: '/supervisor/dashboard',
@@ -61,6 +62,7 @@ export const ROUTES = {
   SUPERVISOR_NOTIFICATIONS: '/supervisor/notifications',
   SUPERVISOR_PROFILE: '/supervisor/profile',
   SUPERVISOR_SETTINGS: '/supervisor/settings',
+  SUPERVISOR_ATTENDANCE: '/supervisor/attendance',
 
   // HR Admin Routes
   ADMIN_DASHBOARD: '/admin/dashboard',

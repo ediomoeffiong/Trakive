@@ -1,5 +1,7 @@
 const { query } = require('../config/db');
 const { resolveScope, buildInternIdSubquery } = require('./analytics.service');
+const AttendanceConfigModel = require('../models/attendanceConfig.model');
+const { computeAttendanceMetrics, computeOverallScore } = require('../utils/attendanceScoring.utils');
 
 const ReportService = {
   /**
@@ -65,17 +67,36 @@ const ReportService = {
 
     values.push(limit, offset);
     const dataRes = await query(dataSql, values);
+    const settings = scope.orgId
+      ? await AttendanceConfigModel.getPerformanceSettings(scope.orgId)
+      : null;
+    const internIds = dataRes.rows.map((row) => row.intern_id);
+    const recRes = internIds.length
+      ? await query(
+        'SELECT intern_id, status, schedule_snapshot FROM attendance WHERE intern_id = ANY($1::uuid[])',
+        [internIds]
+      )
+      : { rows: [] };
+    const grouped = {};
+    recRes.rows.forEach((row) => {
+      grouped[row.intern_id] = grouped[row.intern_id] || [];
+      grouped[row.intern_id].push(row);
+    });
 
     const items = dataRes.rows.map((row) => {
       const taskCompletionRate = row.total_tasks > 0
         ? Number(((row.completed_tasks / row.total_tasks) * 100).toFixed(2))
         : 0;
-      const attendanceRate = row.total_attendance > 0
-        ? Number(((row.attended_days / row.total_attendance) * 100).toFixed(2))
-        : 0;
+      const attMetrics = computeAttendanceMetrics(grouped[row.intern_id] || [], settings);
+      const attendanceRate = attMetrics.attendance_score ?? 0;
       const avgRating = row.avg_rating ? Number(row.avg_rating) : null;
       const ratingScore = avgRating ? avgRating * 20 : taskCompletionRate;
-      const overallScore = Number(((taskCompletionRate * 0.4) + (ratingScore * 0.3) + (attendanceRate * 0.3)).toFixed(2));
+      const scored = computeOverallScore({
+        taskCompletionRate,
+        ratingScore,
+        attendanceScore: attendanceRate,
+        settings,
+      });
 
       return {
         intern_id: row.intern_id,
@@ -89,7 +110,8 @@ const ReportService = {
         task_completion_rate: taskCompletionRate,
         attendance_rate: attendanceRate,
         average_rating: avgRating,
-        overall_score: overallScore,
+        overall_score: scored.overall_score,
+        score_weights: scored.weights,
       };
     });
 

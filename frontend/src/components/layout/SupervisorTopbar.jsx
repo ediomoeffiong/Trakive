@@ -27,6 +27,7 @@ import { formatRole } from '../../utils';
 
 const SUPERVISOR_PAGE_TITLES = {
   [ROUTES.SUPERVISOR_DASHBOARD]:          'Dashboard',
+  [ROUTES.SUPERVISOR_ATTENDANCE]:         'Attendance',
   [ROUTES.SUPERVISOR_INTERNS]:            'Interns',
   [ROUTES.SUPERVISOR_TASKS]:              'Tasks',
   [ROUTES.SUPERVISOR_PROJECTS]:           'Projects',

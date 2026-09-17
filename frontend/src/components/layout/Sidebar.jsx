@@ -29,6 +29,7 @@ import { useSidebarCollapsed, useToggleSidebar, useAppStore } from '../../store'
 // ── Navigation Configuration ──────────────────────────────────────────────────
 const NAV_ITEMS = [
   { label: 'Dashboard',     icon: RiDashboardLine,         to: ROUTES.DASHBOARD },
+  { label: 'Attendance',    icon: RiCalendarCheckLine,     to: ROUTES.ATTENDANCE },
   { label: 'Analytics',     icon: RiBarChartBoxLine,       to: ROUTES.ANALYTICS },
   { label: 'Tasks',         icon: RiTaskLine,              to: ROUTES.TASKS },
   { label: 'Projects',      icon: RiFolderLine,            to: ROUTES.PROJECTS },

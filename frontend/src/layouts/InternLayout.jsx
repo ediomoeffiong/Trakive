@@ -9,6 +9,7 @@ import { Outlet } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { Sidebar, Topbar, MainContent } from '../components/layout';
 import FirstTimeLoginModal from '../components/onboarding/FirstTimeLoginModal';
+import AttendanceSessionBootstrap from '../components/attendance/AttendanceSessionBootstrap';
 import { useSidebarCollapsed, useAppStore } from '../store';
 
 const InternLayout = () => {
@@ -57,6 +58,7 @@ const InternLayout = () => {
 
       {/* First-time login prompt modal */}
       <FirstTimeLoginModal />
+      <AttendanceSessionBootstrap />
     </div>
   );
 };

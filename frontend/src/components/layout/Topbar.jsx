@@ -28,6 +28,7 @@ import { formatRole } from '../../utils';
 // ── Route → Page title map ────────────────────────────────────────────────────
 const PAGE_TITLES = {
   [ROUTES.DASHBOARD]:        'Dashboard',
+  [ROUTES.ATTENDANCE]:       'Attendance',
   [ROUTES.ANALYTICS]:        'Analytics',
   [ROUTES.ANALYTICS_COMPARE]:'Compare',
   [ROUTES.REPORTS]:          'Analytics',

@@ -102,10 +102,12 @@ const SearchService = {
     let department_id = query.departmentId || query.department_id || null;
 
     // RBAC Scoping Enforcement
+    let supervisor_profile_id = null;
     if (reqRole === 'intern') {
       intern_id = requestingUser.id; // Interns only view their own attendance
     } else if (reqRole === 'supervisor') {
-      if (!department_id) department_id = requestingUser.department_id || null;
+      const supProfile = await ProfileModel.findSupervisorProfileByUserId(requestingUser.id);
+      supervisor_profile_id = supProfile?.id || null;
     }
 
     const records = await AttendanceModel.findPaginated({
@@ -114,6 +116,7 @@ const SearchService = {
       status: query.status || '',
       intern_id,
       department_id,
+      supervisor_profile_id,
       start_date: query.startDate || query.start_date || null,
       end_date: query.endDate || query.end_date || null,
       limit,
@@ -127,6 +130,7 @@ const SearchService = {
       status: query.status || '',
       intern_id,
       department_id,
+      supervisor_profile_id,
       start_date: query.startDate || query.start_date || null,
       end_date: query.endDate || query.end_date || null,
     });

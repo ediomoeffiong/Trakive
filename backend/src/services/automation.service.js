@@ -186,12 +186,25 @@ const AutomationService = {
     const overdue = await this.runOverdueTasks();
     const expiry = await this.runInternshipExpiry();
     const leaveConsistency = await this.runLeaveAttendanceConsistency();
+    const AttendanceService = require('./attendance.service');
+    const HolidayService = require('./holiday.service');
+    const attendanceClose = await AttendanceService.runCloseWindowJob();
+    const attendanceReminders = await AttendanceService.runUpcomingReminders();
+    try {
+      const year = new Date().getUTCFullYear();
+      await HolidayService.ensureYearCached(require('../config/env').holiday.country, year);
+      await HolidayService.ensureYearCached(require('../config/env').holiday.country, year + 1);
+    } catch (err) {
+      // Cache miss is acceptable; attendance still uses stored holidays.
+    }
 
     return {
       reminders,
       overdue,
       expiry,
       leaveConsistency,
+      attendanceClose,
+      attendanceReminders,
       executedAt: new Date().toISOString(),
     };
   },

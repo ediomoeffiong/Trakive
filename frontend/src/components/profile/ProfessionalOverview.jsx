@@ -9,6 +9,7 @@ import {
 } from 'react-icons/fi';
 import { useProfileStore } from '../../store/useProfileStore';
 import ProfileCompletionCard from './ProfileCompletionCard';
+import ProfileAttendanceSummary from './ProfileAttendanceSummary';
 import ProfileEmptyState from './ProfileEmptyState';
 
 const formatDate = (str) => {
@@ -203,6 +204,8 @@ const ProfessionalOverview = ({ completion, setActiveTab }) => {
               to request changes.
             </p>
           </OverviewCard>
+
+          <ProfileAttendanceSummary />
 
           <ProfileCompletionCard
             completion={completion}

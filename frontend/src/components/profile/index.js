@@ -11,6 +11,7 @@ export { default as PersonalInfoForm }        from './PersonalInfoForm';
 export { default as AvatarUploadModal }       from './AvatarUploadModal';
 export { default as InternshipInfoCard }      from './InternshipInfoCard';
 export { default as InternshipHistoryCard }   from './InternshipHistoryCard';
+export { default as ProfileAttendanceSummary } from './ProfileAttendanceSummary';
 export { default as SkillsSection }           from './SkillsSection';
 
 export { default as AchievementsSection }     from './AchievementsSection';

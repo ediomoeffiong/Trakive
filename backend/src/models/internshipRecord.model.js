@@ -175,25 +175,27 @@ const InternshipRecordModel = {
     );
 
     const attendanceRes = await query(
-      `SELECT 
-         COUNT(*)::int AS total_days,
-         COUNT(CASE WHEN status = 'present' THEN 1 END)::int AS present_days
+      `SELECT status, schedule_snapshot
        FROM attendance
-       WHERE (internship_record_id = $1 OR (intern_id = $2 AND internship_record_id IS NULL))`,
-      [internshipRecordId, record.user_id]
+       WHERE internship_record_id = $1`,
+      [internshipRecordId]
     );
+
+    const AttendanceConfigModel = require('./attendanceConfig.model');
+    const { computeAttendanceMetrics } = require('../utils/attendanceScoring.utils');
+    const settings = record.organization_id
+      ? await AttendanceConfigModel.getPerformanceSettings(record.organization_id)
+      : null;
+    const attMetrics = computeAttendanceMetrics(attendanceRes.rows, settings);
 
     const taskStats = tasksRes.rows[0] || {};
     const reportStats = reportsRes.rows[0] || {};
-    const attendanceStats = attendanceRes.rows[0] || {};
 
     const completionRate = taskStats.total_tasks > 0 
       ? Math.round((taskStats.completed_tasks / taskStats.total_tasks) * 100)
       : 0;
 
-    const attendanceRate = attendanceStats.total_days > 0 
-      ? Math.round((attendanceStats.present_days / attendanceStats.total_days) * 100)
-      : 100;
+    const attendanceRate = attMetrics.attendance_score ?? 0;
 
     return {
       internship_id: record.id,

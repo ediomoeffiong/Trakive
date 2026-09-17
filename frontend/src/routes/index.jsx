@@ -26,6 +26,7 @@ import ErrorPage from '../pages/ErrorPage';
 
 // Intern Pages
 import Dashboard from '../pages/Dashboard';
+import AttendancePage from '../pages/AttendancePage';
 import TaskList from '../pages/TaskList';
 import TaskDetails from '../pages/TaskDetails';
 import OnboardingDashboard from '../pages/OnboardingDashboard';
@@ -48,6 +49,7 @@ import ReviewManagementPage from '../pages/supervisor/ReviewManagement';
 import SupervisorNotificationsPage from '../pages/supervisor/SupervisorNotifications';
 import SupervisorProfilePage from '../pages/supervisor/SupervisorProfile';
 import ProjectManagementPage from '../pages/supervisor/ProjectManagement';
+import SupervisorAttendancePage from '../pages/supervisor/Attendance';
 
 // Analytics & Reports Pages
 import AnalyticsDashboardPage from '../pages/analytics/AnalyticsDashboardPage';
@@ -119,6 +121,7 @@ const router = createBrowserRouter([
         element: <InternLayout />,
         children: [
           { path: ROUTES.DASHBOARD, element: <Dashboard /> },
+          { path: ROUTES.ATTENDANCE, element: <AttendancePage /> },
           { path: ROUTES.ANALYTICS, element: <AnalyticsDashboardPage /> },
           { path: ROUTES.ANALYTICS_COMPARE, element: <ComparisonDashboardPage /> },
           { path: ROUTES.ANALYTICS_DRILLDOWN, element: <DrillDownDetailPage /> },
@@ -153,6 +156,7 @@ const router = createBrowserRouter([
         element: <SupervisorLayout />,
         children: [
           { path: ROUTES.SUPERVISOR_DASHBOARD, element: <SupervisorDashboardPage /> },
+          { path: ROUTES.SUPERVISOR_ATTENDANCE, element: <SupervisorAttendancePage /> },
           { path: ROUTES.SUPERVISOR_INTERNS, element: <InternManagementPage /> },
           { path: ROUTES.SUPERVISOR_INTERN_DETAILS, element: <InternProfilePage /> },
           { path: ROUTES.SUPERVISOR_TASKS, element: <TaskManagementPage /> },

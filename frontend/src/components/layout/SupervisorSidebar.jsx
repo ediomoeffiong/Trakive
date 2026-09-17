@@ -27,6 +27,7 @@ import { useSidebarCollapsed, useToggleSidebar, useAppStore } from '../../store'
 
 const SUPERVISOR_NAV_ITEMS = [
   { label: 'Dashboard',     icon: RiDashboardLine,        to: ROUTES.SUPERVISOR_DASHBOARD },
+  { label: 'Attendance',    icon: RiCalendarCheckLine,    to: ROUTES.SUPERVISOR_ATTENDANCE },
   { label: 'Interns',       icon: RiGroupLine,            to: ROUTES.SUPERVISOR_INTERNS },
   { label: 'Tasks',         icon: RiTaskLine,             to: ROUTES.SUPERVISOR_TASKS },
   { label: 'Projects',      icon: RiFolderLine,           to: ROUTES.SUPERVISOR_PROJECTS },
