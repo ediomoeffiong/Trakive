@@ -113,7 +113,10 @@ CREATE TABLE IF NOT EXISTS weekly_submission_history (
 -- 8. Extend notifications type CHECK to include project and weekly
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications ADD CONSTRAINT notifications_type_check
-    CHECK (type IN ('task', 'attendance', 'leave', 'system', 'message', 'application', 'project', 'weekly'));
+    CHECK (type IN (
+      'task', 'attendance', 'leave', 'system', 'message', 'application',
+      'project', 'weekly', 'onboarding_submission', 'onboarding_review'
+    ));
 
 -- INDEXES
 CREATE INDEX IF NOT EXISTS idx_projects_org ON projects(organization_id);

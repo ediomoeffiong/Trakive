@@ -9,7 +9,12 @@ const getPoolConfig = () => {
   let poolConfig = {};
 
   if (config.db.url) {
-    poolConfig.connectionString = config.db.url;
+    const url = new URL(config.db.url);
+    const sslMode = url.searchParams.get('sslmode');
+    if (sslMode) {
+      url.searchParams.delete('sslmode');
+    }
+    poolConfig.connectionString = url.toString();
   } else {
     poolConfig = {
       host: config.db.host,
