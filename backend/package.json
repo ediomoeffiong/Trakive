@@ -8,7 +8,9 @@
     "dev": "nodemon src/server.js",
     "migrate": "node src/database/migrate.js",
     "seed": "node src/database/seed.js",
-    "db:setup": "npm run migrate && npm run seed"
+    "seed:default-accounts": "node src/database/seed_default_accounts.js",
+    "db:setup": "npm run migrate && npm run seed",
+    "verify:default-accounts": "node src/database/verify_default_accounts.js"
   },
   "keywords": [
     "trakive",

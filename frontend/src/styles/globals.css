@@ -943,11 +943,11 @@ h1.app-topbar-heading {
 
 .btn-outline {
   background: transparent;
-  color: var(--color-primary-600);
-  border: 1.5px solid var(--color-primary-600);
+  color: #00b4d8;
+  border: 1.5px solid #00b4d8;
 }
 .btn-outline:hover:not(:disabled) {
-  background: var(--color-primary-50);
+  background: rgba(0, 180, 216, 0.08);
 }
 
 .btn-danger {

@@ -356,11 +356,11 @@ const Dashboard = () => {
 
       {/* ── 1. Welcome Section ────────────────────────────────────────────────── */}
       <section style={{
-        background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+        background: '#00b4d8',
         borderRadius: '1.125rem',
         padding: '1.75rem 2rem',
         color: '#ffffff',
-        boxShadow: '0 8px 32px rgba(37, 99, 235, 0.22)',
+        boxShadow: '0 8px 32px rgba(0, 180, 216, 0.22)',
         display: 'flex',
         flexDirection: 'column',
         gap: '1.25rem'

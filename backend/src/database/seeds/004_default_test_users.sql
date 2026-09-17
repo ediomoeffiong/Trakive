@@ -17,6 +17,23 @@ DECLARE
     v_admin_user UUID;
     v_dept_id UUID;
 BEGIN
+    INSERT INTO organizations (name, slug, domain)
+    VALUES
+      ('FifthLab', 'fifthlab', 'thefifthlab.com'),
+      ('CWG PLC', 'cwg-plc', 'cwg-plc.com')
+    ON CONFLICT (slug) DO UPDATE SET
+      name = EXCLUDED.name,
+      domain = EXCLUDED.domain,
+      updated_at = NOW();
+
+    INSERT INTO roles (name, description, is_system) VALUES
+      ('super_admin', 'System Super Administrator with full platform control', true),
+      ('org_admin', 'Organization Administrator with full organization control', true),
+      ('department_head', 'Department Head managing departmental teams and interns', true),
+      ('supervisor', 'Supervisor assigned to guide and assess specific interns', true),
+      ('intern', 'Intern participating in internship programs', true)
+    ON CONFLICT (name) DO NOTHING;
+
     SELECT id INTO v_fifthlab_id FROM organizations WHERE slug = 'fifthlab' OR domain = 'thefifthlab.com' LIMIT 1;
     SELECT id INTO v_cwg_id FROM organizations WHERE slug = 'cwg-plc' OR domain = 'cwg-plc.com' LIMIT 1;
 
@@ -100,6 +117,30 @@ BEGIN
     ON CONFLICT (user_id) DO UPDATE SET
         supervisor_id = EXCLUDED.supervisor_id,
         department_id = EXCLUDED.department_id,
+        updated_at = NOW();
+
+    INSERT INTO internship_records (
+        user_id, internship_number, title, organization_id, department_id,
+        supervisor_id, start_date, end_date, status, days_per_week
+    )
+    VALUES (
+        v_intern_user, 1, 'Internship #1', v_fifthlab_id, v_dept_id,
+        (SELECT id FROM supervisor_profiles WHERE user_id = v_sup_user LIMIT 1),
+        CURRENT_DATE,
+        (CURRENT_DATE + INTERVAL '6 months')::DATE,
+        'onboarding',
+        5
+    )
+    ON CONFLICT (user_id, internship_number) DO UPDATE SET
+        organization_id = EXCLUDED.organization_id,
+        department_id = EXCLUDED.department_id,
+        supervisor_id = EXCLUDED.supervisor_id,
+        start_date = LEAST(internship_records.start_date, EXCLUDED.start_date),
+        end_date = GREATEST(internship_records.end_date, EXCLUDED.end_date),
+        status = CASE
+            WHEN internship_records.status IN ('active', 'onboarding') THEN internship_records.status
+            ELSE 'onboarding'
+        END,
         updated_at = NOW();
 
     -- Ensure every existing FifthLab intern defaults to Tochukwu unless explicitly assigned elsewhere.

@@ -118,7 +118,29 @@ async function getSupervisorProfile(user) {
 }
 
 async function getActiveInternship(internId) {
-  return InternshipRecordModel.findActiveByUserId(internId);
+  const existing = await InternshipRecordModel.findActiveByUserId(internId);
+  if (existing) return existing;
+
+  const profile = await ProfileModel.findInternProfileByUserId(internId);
+  if (!profile?.organization_id) return null;
+
+  const today = new Date();
+  const sixMonths = new Date(today);
+  sixMonths.setMonth(sixMonths.getMonth() + 6);
+
+  return InternshipRecordModel.create({
+    user_id: internId,
+    organization_id: profile.organization_id,
+    department_id: profile.department_id || null,
+    supervisor_id: profile.supervisor_id || null,
+    start_date: today.toISOString().slice(0, 10),
+    end_date: sixMonths.toISOString().slice(0, 10),
+    status: profile.status === 'active' ? 'active' : 'onboarding',
+    work_location: profile.work_location || null,
+    work_hours: profile.work_hours || null,
+    days_per_week: profile.days_per_week || 5,
+    title: 'Internship #1',
+  });
 }
 
 async function assertCanAccessIntern(user, internId) {
