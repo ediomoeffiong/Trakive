@@ -88,7 +88,7 @@ const ReviewKPISummary = ({ kpis = {}, isLoading = false, onKPIClick }) => {
       {KPI_CONFIG.map(({ key, label, icon: Icon, gradient, shadow, bg, filterKey }) => {
         const value = kpis[key] ?? 0;
         const isOverdue = key === 'pending' && kpis.overdue > 0;
-        const clickable = !!filterKey;
+        const clickable = !!filterKey && !!onKPIClick;
 
         return (
           <motion.div
