@@ -645,6 +645,19 @@ async function upsertOffice(user, payload) {
   const role = normalizeRole(user);
   if (!['supervisor', 'admin', 'super_admin', 'hr', 'head', 'department_head'].includes(role)) throw ApiError.forbidden('Only supervisors can manage offices');
   const radius = Number(payload.radius_meters || DEFAULT_RADIUS_METERS);
+  if (payload.id) {
+    const updated = await query(
+      `UPDATE attendance_offices
+       SET name = $3, address = $4, latitude = $5, longitude = $6,
+           radius_meters = $7, is_active = COALESCE($8, is_active), updated_at = NOW()
+       WHERE id = $1 AND organization_id = $2 AND deleted_at IS NULL
+       RETURNING *`,
+      [payload.id, user.organization_id, payload.name, payload.address || null, payload.latitude, payload.longitude, radius, payload.is_active]
+    );
+    if (!updated.rows[0]) throw ApiError.notFound('Attendance office not found');
+    return updated.rows[0];
+  }
+
   const res = await query(
     `INSERT INTO attendance_offices (id, organization_id, name, address, latitude, longitude, radius_meters, is_active, created_by)
      VALUES (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7, COALESCE($8, true), $9)
