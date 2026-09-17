@@ -9,10 +9,13 @@ import { Outlet } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { SupervisorSidebar, SupervisorTopbar, MainContent } from '../components/layout';
 import { useSidebarCollapsed, useAppStore } from '../store';
+import { useNotificationStore } from '../store/useNotificationStore';
 
 const SupervisorLayout = () => {
   const collapsed = useSidebarCollapsed();
   const theme = useAppStore((s) => s.theme);
+  const user = useAppStore((s) => s.user);
+  const fetchNotifications = useNotificationStore((s) => s.fetchNotifications);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const openMobileSidebar = useCallback(() => setMobileOpen(true), []);
@@ -36,6 +39,15 @@ const SupervisorLayout = () => {
       return () => mq.removeEventListener('change', apply);
     }
   }, [theme]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+    fetchNotifications(user.role);
+    const intervalId = window.setInterval(() => {
+      fetchNotifications(user.role);
+    }, 8000);
+    return () => window.clearInterval(intervalId);
+  }, [fetchNotifications, user]);
 
   return (
     <div className="app-shell supervisor-theme">

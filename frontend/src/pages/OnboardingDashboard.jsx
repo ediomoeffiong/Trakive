@@ -101,7 +101,7 @@ export default function OnboardingDashboard() {
   const emailDomain = (user?.email || '').split('@')[1]?.toLowerCase() || '';
   const isFifthLabDomain = emailDomain === 'thefifthlab.com';
 
-  const [activeCategory, setActiveCategory] = useState('required_docs');
+  const [activeCategory, setActiveCategory] = useState('internship_info');
   const [submittingDocs, setSubmittingDocs] = useState(false);
   const [savingInfo, setSavingInfo] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
@@ -333,10 +333,10 @@ export default function OnboardingDashboard() {
     return {
       internship_info: false,
       required_docs: false,
-      welcome: true,
+      welcome: false,
       company_policies: false,
       it_setup: false,
-      team_intro: true,
+      team_intro: false,
       training: false,
     };
   });
@@ -703,9 +703,27 @@ export default function OnboardingDashboard() {
     return { done: 0, total: 1 };
   };
 
+  const nextIncompleteCategory = useMemo(() => {
+    const completionByCategory = {
+      internship_info: Boolean(info.is_saved || completedSteps.internship_info),
+      required_docs: Boolean(completedSteps.required_docs || submittedDocsCount === REQUIRED_DOCUMENTS.length),
+      welcome: Boolean(completedSteps.welcome),
+      company_policies: Boolean(completedSteps.company_policies),
+      it_setup: Boolean(isItSetupComplete || completedSteps.it_setup),
+      team_intro: Boolean(completedSteps.team_intro),
+      training: Boolean(completedSteps.training),
+    };
+
+    return CATEGORIES.find((cat) => !completionByCategory[cat.id])?.id || CATEGORIES[0].id;
+  }, [info.is_saved, completedSteps, submittedDocsCount, isItSetupComplete]);
+
+  useEffect(() => {
+    setActiveCategory(nextIncompleteCategory);
+  }, [nextIncompleteCategory]);
+
   // Up Next item
   const upNextItem = useMemo(() => {
-    if (!info.is_saved) {
+    if (!(info.is_saved || completedSteps.internship_info)) {
       return {
         title: 'Select Department & Set Internship Info',
         categoryName: 'Internship Info',
@@ -743,7 +761,7 @@ export default function OnboardingDashboard() {
       time: 'Done 🎉',
       catId: 'required_docs',
     };
-  }, [info.is_saved, submittedDocsCount, isItSetupComplete, approvedDocsCount]);
+  }, [info.is_saved, completedSteps.internship_info, submittedDocsCount, isItSetupComplete, approvedDocsCount]);
 
   return (
     <div className="onboarding-page">
