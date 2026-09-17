@@ -85,4 +85,7 @@ CREATE TABLE IF NOT EXISTS document_history (
 -- 5. Expand notifications_type_check constraint to support onboarding types
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE notifications ADD CONSTRAINT notifications_type_check 
-  CHECK (type IN ('task', 'attendance', 'leave', 'system', 'message', 'application', 'onboarding_submission', 'onboarding_review'));
+  CHECK (type IN (
+    'task', 'attendance', 'leave', 'system', 'message', 'application',
+    'project', 'weekly', 'onboarding_submission', 'onboarding_review'
+  ));

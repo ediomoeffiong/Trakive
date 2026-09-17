@@ -807,7 +807,9 @@ const AnalyticsService = {
         
         -- Attendance metrics
         COUNT(a.id)::int AS total_attendance,
-        COUNT(a.id) FILTER (WHERE a.status IN ('present', 'late'))::int AS attended_days,
+        COUNT(a.id) FILTER (WHERE a.status IN ('present', 'late', 'remote', 'excused'))::int AS attended_days,
+        COALESCE(MAX(ap.attendance_score_enabled::int), 1)::int AS attendance_score_enabled,
+        COALESCE(MAX(ap.attendance_score_weight), 30)::numeric AS attendance_score_weight,
         
         -- Reviews rating
         ROUND(AVG(tr.rating)::numeric, 2) AS avg_review_rating
@@ -815,6 +817,7 @@ const AnalyticsService = {
       LEFT JOIN departments d ON d.id = u.department_id
       LEFT JOIN tasks t ON t.assignee_id = u.id AND t.deleted_at IS NULL
       LEFT JOIN attendance a ON a.intern_id = u.id
+      LEFT JOIN attendance_policies ap ON ap.organization_id = u.organization_id AND (ap.department_id = u.department_id OR ap.department_id IS NULL)
       LEFT JOIN task_reviews tr ON tr.task_id = t.id
       WHERE u.id IN (${subquery.sql})
       GROUP BY u.id, u.first_name, u.last_name, u.email, d.name;
@@ -837,8 +840,11 @@ const AnalyticsService = {
         ? Number((((currentMonth - previousMonth) / previousMonth) * 100).toFixed(2))
         : (currentMonth > 0 ? 100 : 0);
 
-      // Weighted score: 40% task completion, 30% rating, 30% attendance
-      const overallScore = Number(((taskCompletionRate * 0.4) + (ratingScore * 0.3) + (attendanceRate * 0.3)).toFixed(2));
+      const attendanceEnabled = Number(row.attendance_score_enabled) === 1;
+      const attendanceWeight = attendanceEnabled ? Math.min(100, Math.max(0, Number(row.attendance_score_weight || 30))) / 100 : 0;
+      const taskWeight = attendanceEnabled ? 0.4 : 0.6;
+      const ratingWeight = attendanceEnabled ? Math.max(0, 1 - taskWeight - attendanceWeight) : 0.4;
+      const overallScore = Number(((taskCompletionRate * taskWeight) + (ratingScore * ratingWeight) + (attendanceRate * attendanceWeight)).toFixed(2));
 
       return {
         intern_id: row.intern_id,
@@ -849,6 +855,8 @@ const AnalyticsService = {
         completed_tasks: row.completed_tasks,
         task_completion_rate: taskCompletionRate,
         attendance_rate: attendanceRate,
+        attendance_score_enabled: attendanceEnabled,
+        attendance_score_weight: Number(row.attendance_score_weight || 0),
         average_task_rating: avgRating,
         overall_score: overallScore,
         current_month_completed: currentMonth,

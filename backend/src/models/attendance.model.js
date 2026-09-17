@@ -1,8 +1,15 @@
 const { query } = require('../config/db');
 
 const AttendanceModel = {
-  async findByInternAndDate(internId, date) {
-    const res = await query('SELECT * FROM attendance WHERE intern_id = $1 AND date = $2', [internId, date]);
+  async findByInternAndDate(internId, date, internshipRecordId = null) {
+    const res = await query(
+      `SELECT * FROM attendance
+       WHERE intern_id = $1 AND date = $2
+         AND ($3::uuid IS NULL OR internship_record_id = $3)
+       ORDER BY internship_record_id NULLS LAST, created_at DESC
+       LIMIT 1`,
+      [internId, date, internshipRecordId]
+    );
     return res.rows[0] || null;
   },
 
@@ -161,14 +168,30 @@ const AttendanceModel = {
     return parseInt(res.rows[0].count, 10);
   },
 
-  async upsertExcusedAttendance(organizationId, internId, date, notes = 'On Approved Leave') {
+  async upsertExcusedAttendance(organizationId, internId, date, notes = 'On Approved Leave', internshipRecordId = null) {
     const sql = `
-      INSERT INTO attendance (organization_id, intern_id, date, status, notes)
-      VALUES ($1, $2, $3, 'excused', $4)
-      ON CONFLICT (intern_id, date)
+      INSERT INTO attendance (
+        organization_id, intern_id, internship_record_id, date, status, notes,
+        verification_status, verification_method, source
+      )
+      VALUES ($1, $2, $3, $4, 'excused', $5, 'manual', 'system', 'system')
+      ON CONFLICT (internship_record_id, date) WHERE internship_record_id IS NOT NULL
       DO UPDATE SET status = 'excused', notes = EXCLUDED.notes, updated_at = NOW();
     `;
-    await query(sql, [organizationId, internId, date, notes]);
+    if (internshipRecordId) {
+      await query(sql, [organizationId, internId, internshipRecordId, date, notes]);
+      return;
+    }
+    await query(
+      `INSERT INTO attendance (
+         organization_id, intern_id, date, status, notes,
+         verification_status, verification_method, source
+       )
+       VALUES ($1, $2, $3, 'excused', $4, 'manual', 'system', 'system')
+       ON CONFLICT (intern_id, date) WHERE internship_record_id IS NULL
+       DO UPDATE SET status = 'excused', notes = EXCLUDED.notes, updated_at = NOW();`,
+      [organizationId, internId, date, notes]
+    );
   },
 };
 
