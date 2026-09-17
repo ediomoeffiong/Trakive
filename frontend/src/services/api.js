@@ -34,6 +34,14 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      if (typeof config.headers?.delete === 'function') {
+        config.headers.delete('Content-Type');
+      } else if (config.headers) {
+        delete config.headers['Content-Type'];
+        delete config.headers['content-type'];
+      }
+    }
     if (config.url && !/^https?:\/\//i.test(config.url)) {
       config.url = joinUrl(config.baseURL || API_BASE_URL, config.url);
       config.baseURL = undefined;
