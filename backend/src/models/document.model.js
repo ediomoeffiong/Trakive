@@ -1,8 +1,51 @@
 const { query } = require('../config/db');
 
 const DocumentModel = {
+  async create({
+    organization_id,
+    uploader_id,
+    owner_id,
+    title,
+    file_name,
+    file_path,
+    file_size,
+    mime_type,
+    category = 'general',
+    is_private = true,
+  }) {
+    const sql = `
+      INSERT INTO documents (
+        organization_id, uploader_id, owner_id, title, file_name,
+        file_path, file_size, mime_type, category, is_private
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *;
+    `;
+    const res = await query(sql, [
+      organization_id,
+      uploader_id,
+      owner_id,
+      title,
+      file_name,
+      file_path,
+      file_size,
+      mime_type,
+      category,
+      is_private,
+    ]);
+    return res.rows[0];
+  },
+
   async findById(id) {
-    const res = await query('SELECT * FROM documents WHERE id = $1 AND deleted_at IS NULL', [id]);
+    const res = await query(
+      `SELECT d.*, owner.first_name AS owner_first_name, owner.last_name AS owner_last_name,
+              uploader.first_name AS uploader_first_name, uploader.last_name AS uploader_last_name
+       FROM documents d
+       LEFT JOIN users owner ON owner.id = d.owner_id
+       LEFT JOIN users uploader ON uploader.id = d.uploader_id
+       WHERE d.id = $1 AND d.deleted_at IS NULL`,
+      [id]
+    );
     return res.rows[0] || null;
   },
 
@@ -92,7 +135,8 @@ const DocumentModel = {
     const sql = `
       SELECT 
         d.id, d.organization_id, d.uploader_id, d.owner_id, d.title, d.file_name,
-        d.file_path, d.file_size, d.mime_type, d.category, d.is_private, d.created_at, d.updated_at,
+        d.file_path, d.file_size, d.mime_type, d.category, d.is_private,
+        d.review_status, d.reviewed_at, d.review_notes, d.created_at, d.updated_at,
         u.first_name AS uploader_first_name, u.last_name AS uploader_last_name
       FROM documents d
       JOIN users u ON u.id = d.uploader_id

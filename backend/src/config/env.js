@@ -30,6 +30,12 @@ const config = {
     accessExpiry: process.env.JWT_ACCESS_EXPIRY || '15m',
     refreshExpiry: process.env.JWT_REFRESH_EXPIRY || '7d',
   },
+  supabase: {
+    url: process.env.SUPABASE_URL || '',
+    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    storageBucket: process.env.SUPABASE_STORAGE_BUCKET || 'documents',
+    signedUrlExpiresIn: parseInt(process.env.SUPABASE_SIGNED_URL_EXPIRES_IN, 10) || 300,
+  },
 };
 
 module.exports = config;

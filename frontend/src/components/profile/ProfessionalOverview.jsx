@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import {
   FiAward,
   FiBriefcase,
@@ -10,6 +11,7 @@ import {
 import { useProfileStore } from '../../store/useProfileStore';
 import ProfileCompletionCard from './ProfileCompletionCard';
 import ProfileEmptyState from './ProfileEmptyState';
+import { attendanceService } from '../../services/attendanceService';
 
 const formatDate = (str) => {
   if (!str) return null;
@@ -144,6 +146,13 @@ const ProfessionalOverview = ({ completion, setActiveTab }) => {
     documents,
     setAvatarModalOpen,
   } = useProfileStore();
+  const [attendanceStats, setAttendanceStats] = useState(null);
+
+  useEffect(() => {
+    attendanceService.getHistory()
+      .then((result) => setAttendanceStats(result?.stats || null))
+      .catch(() => setAttendanceStats(null));
+  }, []);
 
   const locationStr = [profile?.city, profile?.state, profile?.country]
     .filter(Boolean)
@@ -270,6 +279,17 @@ const ProfessionalOverview = ({ completion, setActiveTab }) => {
               </div>
             ) : null}
           </OverviewCard>
+
+          {attendanceStats ? (
+            <OverviewCard title="Attendance Summary" action="View details" onAction={() => window.location.assign('/dashboard/attendance')} icon={FiClock}>
+              <div className="profile-info-list">
+                <InfoRow label="Attendance" value={`${attendanceStats.attendance_percentage ?? 100}%`} />
+                <InfoRow label="Required Days" value={String(attendanceStats.required_days ?? 0)} />
+                <InfoRow label="Present / Late" value={`${attendanceStats.present ?? 0} / ${attendanceStats.late ?? 0}`} />
+                <InfoRow label="Remote / Excused" value={`${attendanceStats.remote ?? 0} / ${attendanceStats.excused ?? 0}`} />
+              </div>
+            </OverviewCard>
+          ) : null}
 
           {topSkills.length > 0 ? (
             <OverviewCard

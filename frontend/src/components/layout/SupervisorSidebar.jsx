@@ -29,6 +29,7 @@ const SUPERVISOR_NAV_ITEMS = [
   { label: 'Dashboard',     icon: RiDashboardLine,        to: ROUTES.SUPERVISOR_DASHBOARD },
   { label: 'Interns',       icon: RiGroupLine,            to: ROUTES.SUPERVISOR_INTERNS },
   { label: 'Tasks',         icon: RiTaskLine,             to: ROUTES.SUPERVISOR_TASKS },
+  { label: 'Attendance',    icon: RiCalendarCheckLine,    to: ROUTES.SUPERVISOR_ATTENDANCE },
   { label: 'Projects',      icon: RiFolderLine,           to: ROUTES.SUPERVISOR_PROJECTS },
   { label: 'Reviews',       icon: RiStarLine,             to: ROUTES.SUPERVISOR_REVIEWS },
   { label: 'Onboarding',    icon: RiCheckboxMultipleLine, to: ROUTES.SUPERVISOR_ONBOARDING },

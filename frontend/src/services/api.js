@@ -32,6 +32,35 @@ const getBearerToken = () => {
   }
 };
 
+const getPersistedAuthState = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+    if (!raw || !raw.startsWith('{')) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+const getRefreshToken = () => {
+  const parsed = getPersistedAuthState();
+  return parsed?.state?.user?.refreshToken || null;
+};
+
+const persistTokenPair = ({ accessToken, refreshToken }) => {
+  const parsed = getPersistedAuthState();
+  const user = parsed?.state?.user;
+  if (!parsed?.state || !user || !accessToken) return;
+
+  parsed.state.user = {
+    ...user,
+    token: accessToken,
+    accessToken,
+    refreshToken: refreshToken || user.refreshToken,
+  };
+  localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, JSON.stringify(parsed));
+};
+
 // ── Request Interceptor ──────────────────────────────────────────────────────
 api.interceptors.request.use(
   (config) => {
@@ -44,12 +73,50 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
+let refreshPromise = null;
+
 // ── Response Interceptor ─────────────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Return error rejection to calling services cleanly without hard-redirecting to /login
-    return Promise.reject(error);
+  async (error) => {
+    const originalRequest = error.config;
+    const message = error.response?.data?.message || '';
+    const shouldRefresh =
+      error.response?.status === 401 &&
+      !originalRequest?._retry &&
+      !originalRequest?.url?.includes('/auth/login') &&
+      !originalRequest?.url?.includes('/auth/refresh') &&
+      /expired/i.test(message);
+
+    if (!shouldRefresh) {
+      return Promise.reject(error);
+    }
+
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+      return Promise.reject(error);
+    }
+
+    originalRequest._retry = true;
+
+    try {
+      refreshPromise =
+        refreshPromise ||
+        api.post('/auth/refresh', { refreshToken }).then((response) => {
+          const tokens = response.data?.data?.tokens || response.data?.tokens;
+          persistTokenPair(tokens || {});
+          return tokens;
+        }).finally(() => {
+          refreshPromise = null;
+        });
+
+      const tokens = await refreshPromise;
+      if (!tokens?.accessToken) return Promise.reject(error);
+      originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
+      return api(originalRequest);
+    } catch (refreshError) {
+      return Promise.reject(refreshError);
+    }
   },
 );
 

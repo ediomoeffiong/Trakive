@@ -9,6 +9,7 @@ const InternshipModel = require('../models/internship.model');
 const InternshipRecordModel = require('../models/internshipRecord.model');
 const AuditLogModel = require('../models/auditLog.model');
 const NotificationModel = require('../models/notification.model');
+const StorageService = require('./storage.service');
 const { hashPassword } = require('../utils/password.utils');
 const { getPaginationParams, formatPaginatedResponse } = require('../utils/pagination');
 const { resolveFifthLabDefaults } = require('../utils/fifthlabDefaults');
@@ -35,6 +36,12 @@ const VALID_TRANSITIONS = {
   completed: [],
   terminated: [],
 };
+
+const ALLOWED_DOCUMENT_MIME_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+]);
 
 const OnboardingService = {
   async findCurrentApplicationForUser(userId) {
@@ -647,6 +654,37 @@ const OnboardingService = {
     await this.ensureInternSupervisorLink(requestingUser);
 
     const category = data.category || 'general';
+    let fileName = data.file_name;
+    let filePath = data.file_path;
+    let fileSize = data.file_size;
+    let mimeType = data.mime_type;
+    let title = data.title;
+
+    if (data.file) {
+      if (!ALLOWED_DOCUMENT_MIME_TYPES.has(data.file.mimetype)) {
+        throw ApiError.badRequest('Only PDF, JPG, and PNG files are allowed');
+      }
+      fileName = data.file.originalname;
+      fileSize = data.file.size;
+      mimeType = data.file.mimetype;
+      title = title || data.file.originalname;
+      filePath = StorageService.buildObjectPath({
+        organizationId: orgId,
+        ownerId: requestingUser.id,
+        category,
+        originalName: data.file.originalname,
+      });
+      await StorageService.uploadBuffer({
+        buffer: data.file.buffer,
+        mimeType,
+        objectPath: filePath,
+      });
+    }
+
+    if (!fileName || !filePath || !fileSize || !mimeType) {
+      throw ApiError.badRequest('Document file metadata is required');
+    }
+
     const existingDoc = await OnboardingModel.findDocumentByOwnerAndCategory(requestingUser.id, category);
 
     let doc;
@@ -665,22 +703,22 @@ const OnboardingService = {
       });
 
       doc = await OnboardingModel.replaceDocumentFile(existingDoc.id, {
-        file_name: data.file_name,
-        file_path: data.file_path,
-        file_size: data.file_size,
-        mime_type: data.mime_type,
-        title: data.title,
+        file_name: fileName,
+        file_path: filePath,
+        file_size: fileSize,
+        mime_type: mimeType,
+        title,
       });
     } else {
       doc = await OnboardingModel.createDocument({
         organization_id: orgId,
         uploader_id: requestingUser.id,
         owner_id: requestingUser.id,
-        title: data.title,
-        file_name: data.file_name,
-        file_path: data.file_path,
-        file_size: data.file_size,
-        mime_type: data.mime_type,
+        title,
+        file_name: fileName,
+        file_path: filePath,
+        file_size: fileSize,
+        mime_type: mimeType,
         category,
         is_private: true,
       });

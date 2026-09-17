@@ -17,6 +17,7 @@ export * from './hrService';
 export * from './departmentService';
 export * from './projectService';
 export * from './weeklyPlanService';
+export * from './attendanceService';
 
 
 

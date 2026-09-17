@@ -480,6 +480,15 @@ export const useProfileStore = create((set, get) => ({
     }
   },
 
+  downloadDocument: async (doc) => {
+    try {
+      return await profileService.downloadDocument(doc);
+    } catch (err) {
+      set({ error: err.message });
+      throw err;
+    }
+  },
+
   // ── Security Actions ───────────────────────────────────────────────────────
 
   revokeSession: async (sessionId) => {
