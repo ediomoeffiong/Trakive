@@ -36,12 +36,24 @@ const inputStyle = {
   background: '#fff',
 };
 
+const emptyOffice = () => ({ id: null, name: '', latitude: '', longitude: '', radius_meters: 200, address: '', is_active: true });
+
+const mapOfficeToForm = (item) => ({
+  id: item?.id || null,
+  name: item?.name || '',
+  latitude: item?.latitude ?? '',
+  longitude: item?.longitude ?? '',
+  radius_meters: item?.radius_meters ?? 200,
+  address: item?.address || '',
+  is_active: item?.is_active ?? true,
+});
+
 const AttendanceDashboard = () => {
   const [date, setDate] = useState(todayIso());
   const [dashboard, setDashboard] = useState(null);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [office, setOffice] = useState({ name: '', latitude: '', longitude: '', radius_meters: 200, address: '' });
+  const [office, setOffice] = useState(() => emptyOffice());
   const [policy, setPolicy] = useState({ required_weekdays: [2, 3, 4], grace_minutes: 60, timezone: 'Africa/Lagos', attendance_score_enabled: true, attendance_score_weight: 30 });
   const [override, setOverride] = useState({ start_date: todayIso(), end_date: todayIso(), status: 'remote', reason: '' });
   const [holiday, setHoliday] = useState({ date: todayIso(), name: '' });
@@ -67,18 +79,34 @@ const AttendanceDashboard = () => {
     load();
   }, [load]);
 
+  useEffect(() => {
+    const offices = config?.offices || [];
+    if (offices.length === 0) return;
+
+    setOffice((current) => {
+      const selected = offices.find((item) => item.id === current.id) || offices[0];
+      const hasUnsavedOffice =
+        !current.id &&
+        (String(current.name).trim() ||
+          String(current.latitude).trim() ||
+          String(current.longitude).trim() ||
+          String(current.address).trim());
+      return hasUnsavedOffice ? current : mapOfficeToForm(selected);
+    });
+  }, [config?.offices]);
+
   const exportParams = useMemo(() => ({ date }), [date]);
 
   const submit = async (kind) => {
     try {
       if (kind === 'office') {
-        await attendanceService.saveOffice({
+        const savedOffice = await attendanceService.saveOffice({
           ...office,
           latitude: Number(office.latitude),
           longitude: Number(office.longitude),
           radius_meters: Number(office.radius_meters || 200),
         });
-        setOffice({ name: '', latitude: '', longitude: '', radius_meters: 200, address: '' });
+        setOffice(mapOfficeToForm(savedOffice));
       }
       if (kind === 'policy') await attendanceService.savePolicy(policy);
       if (kind === 'override') await attendanceService.createOverride(override);
@@ -247,12 +275,36 @@ const AttendanceDashboard = () => {
               <Field label="Longitude"><input style={inputStyle} value={office.longitude} onChange={(e) => setOffice({ ...office, longitude: e.target.value })} /></Field>
               <Field label="Radius (m)"><input type="number" style={inputStyle} value={office.radius_meters} onChange={(e) => setOffice({ ...office, radius_meters: e.target.value })} /></Field>
             </div>
-            <Button onClick={() => submit('office')}><RiMapPinLine /> Save Office</Button>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
+              <input type="checkbox" checked={office.is_active} onChange={(e) => setOffice({ ...office, is_active: e.target.checked })} />
+              Active geofence
+            </label>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <Button onClick={() => submit('office')}><RiMapPinLine /> {office.id ? 'Update Office' : 'Save Office'}</Button>
+              <Button variant="outline" onClick={() => setOffice(emptyOffice())}>New Office</Button>
+            </div>
             <div style={{ display: 'grid', gap: '0.5rem' }}>
               {(config?.offices || []).map((item) => (
-                <div key={item.id} style={{ fontSize: '0.85rem', color: 'var(--color-neutral-600)' }}>
-                  <strong>{item.name}</strong> · {item.radius_meters}m
-                </div>
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setOffice(mapOfficeToForm(item))}
+                  style={{
+                    textAlign: 'left',
+                    border: `1px solid ${office.id === item.id ? 'var(--color-primary-300)' : 'var(--color-neutral-200)'}`,
+                    background: office.id === item.id ? 'var(--color-primary-50)' : '#fff',
+                    borderRadius: 8,
+                    padding: '0.65rem 0.75rem',
+                    font: 'inherit',
+                    color: 'var(--color-neutral-600)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <strong style={{ color: 'var(--color-neutral-800)' }}>{item.name}</strong> · {item.radius_meters}m
+                  <span style={{ marginLeft: '0.4rem', color: item.is_active ? 'var(--color-success-600)' : 'var(--color-neutral-400)' }}>
+                    {item.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </button>
               ))}
             </div>
           </div>
