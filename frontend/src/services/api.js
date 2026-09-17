@@ -5,7 +5,8 @@
  */
 
 import axios from 'axios';
-import { API_BASE_URL, STORAGE_KEYS } from '../constants';
+import { API_BASE_URL } from '../constants';
+import { getAccessToken, getRefreshToken, persistTokenPairInStore } from '../utils/authSession';
 
 const joinUrl = (base, path) => {
   if (!path) return base;
@@ -26,56 +27,10 @@ const api = axios.create({
   },
 });
 
-// Helper to safely extract Bearer token string
-const getBearerToken = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-    if (!raw) return null;
-    if (raw.startsWith('{')) {
-      const parsed = JSON.parse(raw);
-      const userToken = parsed?.state?.user?.token;
-      if (userToken) return userToken;
-      return null;
-    }
-    return raw;
-  } catch {
-    return null;
-  }
-};
-
-const getPersistedAuthState = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-    if (!raw || !raw.startsWith('{')) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-};
-
-const getRefreshToken = () => {
-  const parsed = getPersistedAuthState();
-  return parsed?.state?.user?.refreshToken || null;
-};
-
-const persistTokenPair = ({ accessToken, refreshToken }) => {
-  const parsed = getPersistedAuthState();
-  const user = parsed?.state?.user;
-  if (!parsed?.state || !user || !accessToken) return;
-
-  parsed.state.user = {
-    ...user,
-    token: accessToken,
-    accessToken,
-    refreshToken: refreshToken || user.refreshToken,
-  };
-  localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, JSON.stringify(parsed));
-};
-
 // ── Request Interceptor ──────────────────────────────────────────────────────
 api.interceptors.request.use(
   (config) => {
-    const token = getBearerToken();
+    const token = getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -119,7 +74,7 @@ api.interceptors.response.use(
         refreshPromise ||
         api.post('/auth/refresh', { refreshToken }).then((response) => {
           const tokens = response.data?.data?.tokens || response.data?.tokens;
-          persistTokenPair(tokens || {});
+          persistTokenPairInStore(tokens || {});
           return tokens;
         }).finally(() => {
           refreshPromise = null;

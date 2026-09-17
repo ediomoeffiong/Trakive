@@ -7,6 +7,8 @@ import api from './api';
 import { mockUsers, DEFAULT_MOCK_PASSWORD } from '../data/mockUsers';
 import { normalizeDepartmentForPerson, normalizePersonRecord } from '../utils/people';
 
+const MOCK_AUTH_ENABLED = !import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
+
 // Helper to get all users (mock users + registered users from localStorage)
 const getRegisteredUsers = () => {
   const customUsersJson = localStorage.getItem('trakive_custom_users');
@@ -93,8 +95,14 @@ export const authService = {
       return {
         user: safeUser,
         token,
+        refreshToken: tokens.refreshToken,
       };
     } catch (err) {
+      if (!MOCK_AUTH_ENABLED) {
+        const backendMsg = err.response?.data?.message || err.response?.data?.error;
+        throw new Error(backendMsg || err.message || 'Login failed. Please try again.');
+      }
+
       // If backend responded with explicit auth failure message
       const backendMsg = err.response?.data?.message || err.response?.data?.error;
       if (backendMsg) {

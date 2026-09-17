@@ -6,6 +6,7 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useIsAuthenticated, useCurrentUser } from '../../store';
 import { ROUTES, USER_ROLES } from '../../constants';
+import { hasAuthTokens } from '../../utils/authSession';
 
 const ROLE_DEFAULT_ROUTES = {
   [USER_ROLES.INTERN]: ROUTES.DASHBOARD,
@@ -18,7 +19,7 @@ const RoleGuard = ({ allowedRoles = [] }) => {
   const isAuthenticated = useIsAuthenticated();
   const user = useCurrentUser();
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !hasAuthTokens()) {
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
 
