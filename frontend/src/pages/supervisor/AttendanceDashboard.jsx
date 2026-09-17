@@ -100,12 +100,25 @@ const AttendanceDashboard = () => {
   const submit = async (kind) => {
     try {
       if (kind === 'office') {
-        const savedOffice = await attendanceService.saveOffice({
-          ...office,
-          latitude: Number(office.latitude),
-          longitude: Number(office.longitude),
-          radius_meters: Number(office.radius_meters || 200),
-        });
+        const latitude = Number(office.latitude);
+        const longitude = Number(office.longitude);
+        const radius = Number(office.radius_meters || 200);
+        if (!office.name.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude) || !Number.isFinite(radius)) {
+          toast.error('Add a valid office name, latitude, longitude, and radius.');
+          return;
+        }
+
+        const payload = {
+          name: office.name.trim(),
+          address: office.address?.trim() || null,
+          latitude,
+          longitude,
+          radius_meters: radius,
+          is_active: office.is_active,
+        };
+        if (office.id) payload.id = office.id;
+
+        const savedOffice = await attendanceService.saveOffice(payload);
         setOffice(mapOfficeToForm(savedOffice));
       }
       if (kind === 'policy') await attendanceService.savePolicy(policy);
