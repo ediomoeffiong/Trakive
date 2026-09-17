@@ -1,26 +1,208 @@
 /**
  * @file taskManagementService.js
  * @description Service abstraction for the Supervisor Task & Assignment Management module.
- * All methods return Promises with artificial delays to simulate backend responses.
- * Replace mock data imports and delay logic with real Axios API calls when backend is ready.
+ * Uses the shared API when available and falls back to local/demo task data.
  */
 
 import { mockSupervisorTasks } from '../data/supervisorTasks';
 import { mockTaskTemplates } from '../data/taskTemplates';
 import { mockTaskSubmissions } from '../data/taskSubmissions';
-import { mockTaskKPIs, mockRecentTaskActivity, mockUpcomingDeadlines } from '../data/taskDashboardData';
 import { getTaskTimeline } from '../data/taskTimeline';
+import api from './api';
 
 // ── Simulated network delay ──────────────────────────────────────────────────
 const DELAY_MS = 350;
 const delay = (ms = DELAY_MS) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ── In-memory mutable task store ─────────────────────────────────────────────
-let tasksStore = JSON.parse(JSON.stringify(mockSupervisorTasks));
-let templatesStore = JSON.parse(JSON.stringify(mockTaskTemplates));
+let tasksStore = [];
+let templatesStore = JSON.parse(JSON.stringify(mockTaskTemplates))
+  .filter((template) => ['Weekly Progress Report', 'Bug Investigation & Fix'].includes(template.name));
 let nextId = 100;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+const unwrapApiList = (response) => {
+  const body = response?.data;
+  if (Array.isArray(body)) return { items: body, meta: {} };
+  if (Array.isArray(body?.data)) return { items: body.data, meta: body.meta || {} };
+  if (Array.isArray(body?.data?.items)) return { items: body.data.items, meta: body.data.meta || body.meta || {} };
+  if (Array.isArray(body?.items)) return { items: body.items, meta: body.pagination || body.meta || {} };
+  return { items: [], meta: {} };
+};
+
+const toDateKey = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+};
+
+const initialsFor = (name = '') =>
+  name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'IN';
+
+const normalizeStatus = (status, dueDate) => {
+  const raw = String(status || 'todo').toLowerCase().replace(/_/g, '-');
+  const mapped = {
+    todo: 'assigned',
+    open: 'assigned',
+    assigned: 'assigned',
+    draft: 'draft',
+    'in-progress': 'in-progress',
+    submitted: 'pending-review',
+    'in-review': 'pending-review',
+    'under-review': 'pending-review',
+    reviewed: 'completed',
+    approved: 'completed',
+    completed: 'completed',
+    'revision-requested': 'needs-revision',
+    'requires-changes': 'needs-revision',
+    'needs-revision': 'needs-revision',
+    overdue: 'overdue',
+    archived: 'archived',
+  }[raw] || raw;
+
+  if (mapped !== 'completed' && mapped !== 'archived' && dueDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(`${dueDate}T00:00:00`);
+    if (!Number.isNaN(due.getTime()) && due < today && mapped !== 'pending-review') return 'overdue';
+  }
+  return mapped;
+};
+
+const completionForStatus = (status, fallback = 0) => {
+  if (typeof fallback === 'number' && fallback > 0) return Math.min(100, fallback);
+  if (status === 'completed') return 100;
+  if (status === 'pending-review') return 90;
+  if (status === 'needs-revision') return 70;
+  if (status === 'in-progress') return 45;
+  return 0;
+};
+
+const normalizeTask = (raw = {}) => {
+  const dueDate = toDateKey(raw.dueDate || raw.due_date);
+  const assigneeName = raw.assigneeName || raw.assignee_name ||
+    [raw.assignee_first_name, raw.assignee_last_name].filter(Boolean).join(' ') ||
+    raw.internName || raw.intern_name || '';
+  const assignedInterns = Array.isArray(raw.assignedInterns)
+    ? raw.assignedInterns
+    : assigneeName
+      ? [{ id: raw.assignee_id || raw.intern_id || raw.assigneeId || 'intern', name: assigneeName, initials: initialsFor(assigneeName) }]
+      : [];
+  const status = normalizeStatus(raw.status, dueDate);
+  const completionPercentage = completionForStatus(status, raw.completionPercentage ?? raw.progress);
+
+  return {
+    id: String(raw.id || raw.task_id || `task-${Math.random().toString(36).slice(2)}`),
+    title: raw.title || 'Untitled task',
+    description: raw.description || '',
+    category: raw.category || raw.project_title || raw.milestone_title || 'General',
+    priority: String(raw.priority || 'medium').toLowerCase(),
+    status,
+    dueDate,
+    createdDate: toDateKey(raw.createdDate || raw.created_at) || dueDate,
+    updatedAt: raw.updated_at || raw.updatedAt,
+    department: raw.department || raw.department_name || 'FifthLab',
+    assignedInterns,
+    totalAssigned: Number(raw.totalAssigned || raw.total_assigned || Math.max(assignedInterns.length, raw.assignee_id ? 1 : 0)),
+    submissionCount: Number(raw.submissionCount || raw.submission_count || (['pending-review', 'completed', 'needs-revision'].includes(status) ? 1 : 0)),
+    completionPercentage,
+    estimatedHours: Number(raw.estimatedHours || raw.estimated_hours || 4),
+    tags: raw.tags || [],
+    learningObjectives: raw.learningObjectives || [],
+    submissionRequirements: raw.submissionRequirements || '',
+    rubric: raw.rubric || [],
+    raw,
+  };
+};
+
+const getStoredTasks = () => {
+  if (typeof localStorage === 'undefined') return [];
+  const tasks = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (key === 'trakive_tasks' || key?.startsWith('trakive_user_tasks_')) {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(key));
+        if (Array.isArray(parsed)) tasks.push(...parsed);
+      } catch {
+        // Ignore malformed local cache entries.
+      }
+    }
+  }
+  return tasks;
+};
+
+const syncTaskStore = async () => {
+  try {
+    const response = await api.get('/tasks', { params: { page: 1, limit: 500, sort: 'due_date:asc' } });
+    const { items } = unwrapApiList(response);
+    if (items.length > 0) {
+      tasksStore = items.map(normalizeTask);
+      return tasksStore;
+    }
+  } catch {
+    // Offline or unauthenticated demo mode falls through to local data.
+  }
+
+  const fallbackTasks = [...mockSupervisorTasks, ...getStoredTasks()];
+  tasksStore = fallbackTasks.map(normalizeTask);
+  return tasksStore;
+};
+
+const isActiveTask = (task) => task.status !== 'archived' && task.status !== 'draft';
+const countBy = (items, predicate) => items.filter(predicate).length;
+
+const makeKpis = (tasks) => {
+  const active = tasks.filter((task) => task.status !== 'archived');
+  const total = active.length;
+  const pct = (count) => `${total ? Math.round((count / total) * 100) : 0}%`;
+  const completed = countBy(active, (task) => task.status === 'completed');
+  const inProgress = countBy(active, (task) => ['assigned', 'in-progress', 'needs-revision'].includes(task.status));
+  const pendingReview = countBy(active, (task) => task.status === 'pending-review');
+  const overdue = countBy(active, (task) => task.status === 'overdue');
+
+  return [
+    { id: 'total', label: 'Total Tasks', value: total, trend: pct(total), trendType: 'neutral', color: 'blue', iconName: 'RiTaskLine', filterKey: 'all', description: `${active.filter(isActiveTask).length} active task(s)` },
+    { id: 'completed', label: 'Completed', value: completed, trend: pct(completed), trendType: 'positive', color: 'green', iconName: 'RiCheckboxCircleLine', filterKey: 'completed', description: 'Reviewed and done' },
+    { id: 'in-progress', label: 'In Progress', value: inProgress, trend: pct(inProgress), trendType: 'neutral', color: 'indigo', iconName: 'RiPlayCircleLine', filterKey: 'in-progress', description: 'Assigned or being worked on' },
+    { id: 'pending-review', label: 'Under Review', value: pendingReview, trend: pct(pendingReview), trendType: 'warning', color: 'amber', iconName: 'RiEyeLine', filterKey: 'pending-review', description: 'Submitted and not reviewed' },
+    { id: 'overdue', label: 'Overdue', value: overdue, trend: pct(overdue), trendType: 'urgent', color: 'red', iconName: 'RiAlarmWarningLine', filterKey: 'overdue', description: 'Past due date' },
+  ];
+};
+
+const makeRecentActivity = (tasks) =>
+  [...tasks]
+    .sort((a, b) => String(b.updatedAt || b.createdDate || '').localeCompare(String(a.updatedAt || a.createdDate || '')))
+    .slice(0, 6)
+    .map((task) => ({
+      id: `activity-${task.id}`,
+      type: task.status === 'completed' ? 'completed' : task.status === 'pending-review' ? 'submission' : task.status === 'overdue' ? 'overdue' : 'assigned',
+      message: `${task.assignedInterns[0]?.name || 'An intern'} ${task.status === 'pending-review' ? 'submitted' : 'is assigned to'} "${task.title}"`,
+      timeAgo: task.updatedAt ? new Date(task.updatedAt).toLocaleDateString('en-GB') : task.createdDate || 'Recently',
+      internInitials: task.assignedInterns[0]?.initials,
+    }));
+
+const makeUpcomingDeadlines = (tasks) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return tasks
+    .filter((task) => task.dueDate && !['completed', 'archived'].includes(task.status))
+    .map((task) => {
+      const due = new Date(`${task.dueDate}T00:00:00`);
+      return { ...task, daysLeft: Math.ceil((due - today) / 86400000) };
+    })
+    .sort((a, b) => a.daysLeft - b.daysLeft)
+    .slice(0, 6)
+    .map((task) => ({
+      id: task.id,
+      taskTitle: task.title,
+      assignedCount: task.totalAssigned,
+      dueDate: task.dueDate,
+      daysLeft: task.daysLeft,
+    }));
+};
+
 function applyFilters(tasks, filters = {}) {
   let result = [...tasks];
 
@@ -36,7 +218,10 @@ function applyFilters(tasks, filters = {}) {
   }
 
   if (filters.status && filters.status !== 'all') {
-    result = result.filter((t) => t.status === filters.status);
+    result = result.filter((t) => {
+      if (filters.status === 'active') return isActiveTask(t) && !['completed', 'overdue', 'pending-review'].includes(t.status);
+      return t.status === filters.status;
+    });
   }
 
   if (filters.priority && filters.priority !== 'all') {
@@ -67,11 +252,12 @@ export const taskManagementService = {
    * Fetch dashboard metrics: KPIs, recent activity, and upcoming deadlines.
    */
   fetchDashboardMetrics: async () => {
-    await delay(300);
+    const tasks = await syncTaskStore();
+    await delay(120);
     return {
-      kpis: mockTaskKPIs,
-      recentActivity: mockRecentTaskActivity,
-      upcomingDeadlines: mockUpcomingDeadlines,
+      kpis: makeKpis(tasks),
+      recentActivity: makeRecentActivity(tasks),
+      upcomingDeadlines: makeUpcomingDeadlines(tasks),
     };
   },
 
@@ -80,8 +266,21 @@ export const taskManagementService = {
    * @param {object} filters - { search, status, priority, department, category, internId, page, pageSize }
    */
   fetchTasks: async (filters = {}) => {
-    await delay();
-    const filtered = applyFilters(tasksStore, filters);
+    const allTasks = await syncTaskStore();
+    await delay(120);
+    const filtered = applyFilters(allTasks, filters);
+    const sortFieldMap = { dueDate: 'dueDate', title: 'title', status: 'status', priority: 'priority', progress: 'completionPercentage' };
+    const sortField = sortFieldMap[filters.sortField] || filters.sortField;
+    if (sortField) {
+      filtered.sort((a, b) => {
+        const left = a[sortField] ?? '';
+        const right = b[sortField] ?? '';
+        const comparison = typeof left === 'number' && typeof right === 'number'
+          ? left - right
+          : String(left).localeCompare(String(right));
+        return filters.sortOrder === 'desc' ? -comparison : comparison;
+      });
+    }
     const page = filters.page || 1;
     const pageSize = filters.pageSize || 10;
     const start = (page - 1) * pageSize;
@@ -89,6 +288,7 @@ export const taskManagementService = {
 
     return {
       tasks: paginated,
+      allTasks,
       total: filtered.length,
       page,
       pageSize,
@@ -113,14 +313,14 @@ export const taskManagementService = {
    */
   createTask: async (taskData) => {
     await delay(400);
-    const newTask = {
+    const newTask = normalizeTask({
       id: `task-${String(++nextId).padStart(3, '0')}`,
       ...taskData,
       createdDate: new Date().toISOString().split('T')[0],
       submissionCount: 0,
       completionPercentage: 0,
       assignedInterns: taskData.assignedInterns || [],
-    };
+    });
     tasksStore = [newTask, ...tasksStore];
     return { task: newTask };
   },
@@ -240,10 +440,40 @@ export const taskManagementService = {
    * @param {string|null} taskId
    */
   fetchSubmissions: async (taskId = null) => {
-    await delay(300);
-    const filtered = taskId
-      ? mockTaskSubmissions.filter((s) => s.taskId === taskId)
-      : mockTaskSubmissions;
+    const tasks = await syncTaskStore();
+    await delay(120);
+    const derived = tasks
+      .filter((task) => !taskId || task.id === taskId)
+      .map((task) => {
+        const submitted = ['pending-review', 'completed', 'needs-revision'].includes(task.status);
+        const isLate = task.status === 'overdue';
+        const status =
+          task.status === 'completed' ? 'reviewed'
+          : task.status === 'needs-revision' ? 'needs-revision'
+          : task.status === 'pending-review' ? 'submitted'
+          : task.status === 'overdue' ? 'late'
+          : task.completionPercentage > 0 ? 'pending'
+          : 'not-started';
+
+        return {
+          id: `sub-${task.id}`,
+          taskId: task.id,
+          taskTitle: task.title,
+          internName: task.assignedInterns[0]?.name || 'Unassigned intern',
+          internInitials: task.assignedInterns[0]?.initials || 'IN',
+          status,
+          attemptNumber: submitted ? 1 : 0,
+          submittedAt: submitted ? (task.updatedAt || task.createdDate || task.dueDate) : null,
+          dueDate: task.dueDate,
+          isLate,
+          score: task.status === 'completed' ? 100 : null,
+          submissionNote: submitted ? task.submissionRequirements || task.description : '',
+          links: [],
+          feedback: null,
+          reviewedBy: null,
+        };
+      });
+    const filtered = mockTaskSubmissions.length > 0 ? mockTaskSubmissions : derived;
     return { submissions: filtered };
   },
 

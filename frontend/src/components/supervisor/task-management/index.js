@@ -8,6 +8,7 @@ export { default as TaskManagementFilters } from './TaskManagementFilters';
 export { default as TaskDirectoryTable } from './TaskDirectoryTable';
 export { default as TaskDetailsDrawer } from './TaskDetailsDrawer';
 export { default as CreateTaskModal } from './CreateTaskModal';
+export { default as CreateTemplateModal } from './CreateTemplateModal';
 export { default as TaskAssignmentModal } from './TaskAssignmentModal';
 export { default as TaskTemplatesModal } from './TaskTemplatesModal';
 export { default as SubmissionMonitoringView } from './SubmissionMonitoringView';

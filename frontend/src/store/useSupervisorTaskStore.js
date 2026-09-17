@@ -27,6 +27,7 @@ export const useSupervisorTaskStore = create(
     (set, get) => ({
       // ── Task List State ─────────────────────────────────────────────────────
       tasks: [],
+      allTasks: [],
       totalTasks: 0,
       totalPages: 1,
 
@@ -227,6 +228,7 @@ export const useSupervisorTaskStore = create(
           });
           set((s) => ({
             tasks: res.tasks,
+            allTasks: res.allTasks || res.tasks,
             totalTasks: res.total,
             totalPages: res.totalPages,
             loading: { ...s.loading, tasks: false },
@@ -373,6 +375,24 @@ export const useSupervisorTaskStore = create(
           set((s) => ({ templates: res.templates, loading: { ...s.loading, templates: false } }));
         } catch (err) {
           set((s) => ({ loading: { ...s.loading, templates: false }, errors: { ...s.errors, templates: err.message } }));
+        }
+      },
+
+      /**
+       * Create a reusable task template.
+       */
+      createTemplate: async (templateData) => {
+        set((s) => ({ loading: { ...s.loading, action: true }, errors: { ...s.errors, action: null } }));
+        try {
+          const res = await taskManagementService.createTemplate(templateData);
+          set((s) => ({
+            templates: [res.template, ...s.templates],
+            loading: { ...s.loading, action: false },
+          }));
+          return res.template;
+        } catch (err) {
+          set((s) => ({ loading: { ...s.loading, action: false }, errors: { ...s.errors, action: err.message || 'Failed to create template' } }));
+          throw err;
         }
       },
 

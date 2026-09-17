@@ -5,7 +5,7 @@
  * Consumes useSupervisorTaskStore exclusively for state and async operations.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -30,6 +30,7 @@ import {
   TaskDirectoryTable,
   TaskDetailsDrawer,
   CreateTaskModal,
+  CreateTemplateModal,
   TaskAssignmentModal,
   TaskTemplatesModal,
   SubmissionMonitoringView,
@@ -164,6 +165,7 @@ const UpcomingDeadlines = ({ deadlines = [] }) => {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const TaskManagementPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isCreateTemplateModalOpen, setIsCreateTemplateModalOpen] = useState(false);
   const queryString = searchParams.toString();
   const {
     // State
@@ -220,8 +222,10 @@ const TaskManagementPage = () => {
     deleteTask,
     duplicateTask,
     fetchTemplates,
+    createTemplate,
     deleteTemplate,
     assignTask,
+    fetchSubmissions,
   } = useSupervisorTaskStore();
 
   // ── Initial load ────────────────────────────────────────────────────────────
@@ -259,7 +263,8 @@ const TaskManagementPage = () => {
   }, [queryString]);
 
   useEffect(() => {
-    if (activeTab === 'directory') fetchTasks();
+    if (activeTab === 'directory' || activeTab === 'calendar') fetchTasks();
+    if (activeTab === 'submissions') fetchSubmissions();
     if (activeTab === 'templates') fetchTemplates();
   }, [activeTab]);
 
@@ -663,13 +668,13 @@ const TaskManagementPage = () => {
               <motion.button
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.97 }}
-                onClick={() => openCreateModal()}
+                onClick={() => setIsCreateTemplateModalOpen(true)}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5625rem 1rem', borderRadius: '0.875rem', border: 'none', background: '#00b4d8', color: '#fff', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,180,216,0.25)' }}
               >
                 <RiAddCircleLine /> New Template
               </motion.button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1rem', alignItems: 'stretch' }}>
               {loading.templates ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} style={{ background: '#fff', borderRadius: '0.875rem', padding: '1.25rem', border: '1px solid var(--color-neutral-200)', height: '180px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -684,22 +689,22 @@ const TaskManagementPage = () => {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   whileHover={{ y: -3, boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}
-                  style={{ background: '#fff', borderRadius: '0.875rem', padding: '1.25rem', border: '1px solid var(--color-neutral-200)', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}
+                  style={{ background: '#fff', borderRadius: '0.875rem', padding: '1.25rem', border: '1px solid var(--color-neutral-200)', display: 'flex', flexDirection: 'column', gap: '0.875rem', minHeight: '230px', height: '100%' }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', minHeight: '42px' }}>
                     <h3 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: 1.3 }}>{template.name}</h3>
                     <span style={{ padding: '0.2rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: '#eff2ff', color: '#4338ca', flexShrink: 0 }}>
                       {template.category}
                     </span>
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-500)', lineHeight: 1.6, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                  <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-500)', lineHeight: 1.6, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', minHeight: '62px' }}>
                     {template.description}
                   </p>
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>~{template.estimatedHours}h</span>
                     <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>· Used {template.usageCount}×</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.375rem', borderTop: '1px solid var(--color-neutral-100)' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-neutral-100)', marginTop: 'auto' }}>
                     <motion.button
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.97 }}
@@ -752,6 +757,13 @@ const TaskManagementPage = () => {
         }}
       />
 
+      <CreateTemplateModal
+        isOpen={isCreateTemplateModalOpen}
+        onClose={() => setIsCreateTemplateModalOpen(false)}
+        isLoading={loading.action}
+        onSubmit={createTemplate}
+      />
+
       {/* ── Task Details Drawer ───────────────────────────────────────────────── */}
       <TaskDetailsDrawer
         isOpen={isDetailsDrawerOpen}
@@ -784,7 +796,7 @@ const TaskManagementPage = () => {
         onUseTemplate={handleUseTemplate}
         onDuplicateTemplate={(template) => toast.success(`"${template.name}" duplicated.`)}
         onDeleteTemplate={(id) => deleteTemplate(id)}
-        onCreateTemplate={() => { closeTemplatesModal(); openCreateModal(); }}
+        onCreateTemplate={() => { closeTemplatesModal(); setIsCreateTemplateModalOpen(true); }}
       />
     </motion.div>
   );
