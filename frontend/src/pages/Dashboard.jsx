@@ -56,6 +56,7 @@ import { useDashboardStore } from '../store/useDashboardStore';
 import { ROUTES } from '../constants';
 import { projectService } from '../services/projectService';
 import { weeklyPlanService } from '../services/weeklyPlanService';
+import { TodayAttendanceCard } from '../components/attendance';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getMondayOfWeek(date = new Date()) {
@@ -458,6 +459,10 @@ const Dashboard = () => {
       {/* ── 2b. Projects & Weekly Summary ──────────────────────────────────────── */}
       <section>
         <ProjectWeeklySummary navigate={navigate} />
+      </section>
+
+      <section>
+        <TodayAttendanceCard compact />
       </section>
 
       {/* ── Grid Layout for Main Content ───────────────────────────────────────── */}

@@ -269,7 +269,7 @@ const DocumentRow = ({ doc, onRemove, onDownload }) => (
 // ── Main Section ──────────────────────────────────────────────────────────────
 
 const DocumentsSection = () => {
-  const { documents, removeDocument, loadingDocuments, uploadDocOpen, setUploadDocOpen } = useProfileStore();
+  const { documents, removeDocument, downloadDocument, loadingDocuments, uploadDocOpen, setUploadDocOpen } = useProfileStore();
   const [downloading, setDownloading] = useState(null);
 
   const handleRemove = async (docId) => {
@@ -284,8 +284,20 @@ const DocumentsSection = () => {
   const handleDownload = async (doc) => {
     setDownloading(doc.id);
     try {
-      await new Promise((r) => setTimeout(r, 700));
-      toast.success(`Downloading "${doc.name}"…`);
+      const result = await downloadDocument(doc);
+      if (result?.downloadUrl && result.downloadUrl !== '#') {
+        const link = document.createElement('a');
+        link.href = result.downloadUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.download = result.fileName || doc.name;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+      toast.success(`Opening "${doc.name}"…`);
+    } catch {
+      toast.error('Failed to prepare document download.');
     } finally {
       setDownloading(null);
     }

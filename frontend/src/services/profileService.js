@@ -226,8 +226,8 @@ const mapBackendDocument = (doc) => ({
   size: doc.file_size ?? doc.size ?? 0,
   mimeType: doc.mime_type ?? doc.mimeType ?? '',
   uploadedAt: doc.created_at ?? doc.uploadedAt ?? '',
-  status: doc.status ?? 'Stored',
-  statusColor: '#10b981',
+  status: doc.status ?? (doc.review_status === 'approved' ? 'Verified' : doc.review_status ? doc.review_status.replace(/_/g, ' ') : 'Stored'),
+  statusColor: doc.statusColor ?? (doc.review_status === 'rejected' || doc.review_status === 'resubmission_required' ? '#ef4444' : doc.review_status === 'pending' ? '#f59e0b' : '#10b981'),
   icon: 'DOC',
 });
 
@@ -716,6 +716,25 @@ export const profileService = {
   },
 
   uploadDocument: async (file, type, onProgress, role) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', type || 'Other');
+      formData.append('title', type || file.name);
+
+      const response = await api.post('/documents/upload', formData, {
+        onUploadProgress: (event) => {
+          if (!event.total || !onProgress) return;
+          onProgress(Math.round((event.loaded / event.total) * 100));
+        },
+      });
+      const uploaded = apiData(response);
+      if (onProgress) onProgress(100);
+      return mapBackendDocument(uploaded);
+    } catch (error) {
+      if (hasRealBackendToken()) throw error;
+    }
+
     const steps = [15, 40, 75, 100];
     for (const step of steps) {
       await delay(200);
@@ -732,7 +751,7 @@ export const profileService = {
       uploadedAt: new Date().toISOString(),
       status: 'Verified',
       statusColor: '#10b981',
-      icon: '📄',
+      icon: 'DOC',
     };
     const activeRole = getEffectiveRole(role);
     const user = useAppStore.getState()?.user;
@@ -775,6 +794,13 @@ export const profileService = {
   },
 
   removeDocument: async (docId, role) => {
+    try {
+      await api.delete(`/documents/${docId}`);
+      return;
+    } catch (error) {
+      if (hasRealBackendToken()) throw error;
+    }
+
     await delay(300);
     const activeRole = getEffectiveRole(role);
     const user = useAppStore.getState()?.user;
@@ -790,6 +816,13 @@ export const profileService = {
   },
 
   downloadDocument: async (doc) => {
+    try {
+      const result = apiData(await api.get(`/documents/${doc.id}/download`));
+      return { downloadUrl: result.url, fileName: result.fileName || doc.name };
+    } catch (error) {
+      if (hasRealBackendToken()) throw error;
+    }
+
     await delay(500);
     return { downloadUrl: '#', fileName: doc.name };
   },

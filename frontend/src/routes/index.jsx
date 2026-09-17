@@ -37,6 +37,7 @@ import ProfilePage from '../pages/ProfilePage';
 import SettingsPage from '../pages/SettingsPage';
 import ProjectsPage from '../pages/ProjectsPage';
 import ProjectDetailsPage from '../pages/ProjectDetailsPage';
+import AttendancePage from '../pages/AttendancePage';
 
 // Supervisor Pages
 import SupervisorDashboardPage from '../pages/supervisor/Dashboard';
@@ -48,6 +49,7 @@ import ReviewManagementPage from '../pages/supervisor/ReviewManagement';
 import SupervisorNotificationsPage from '../pages/supervisor/SupervisorNotifications';
 import SupervisorProfilePage from '../pages/supervisor/SupervisorProfile';
 import ProjectManagementPage from '../pages/supervisor/ProjectManagement';
+import SupervisorAttendanceDashboard from '../pages/supervisor/AttendanceDashboard';
 
 // Analytics & Reports Pages
 import AnalyticsDashboardPage from '../pages/analytics/AnalyticsDashboardPage';
@@ -127,6 +129,7 @@ const router = createBrowserRouter([
           { path: ROUTES.WEEKLY_TASKS, element: <Navigate to={ROUTES.TASKS} replace /> },
           { path: ROUTES.TASKS, element: <TaskList /> },
           { path: ROUTES.TASK_DETAILS, element: <TaskDetails /> },
+          { path: ROUTES.ATTENDANCE, element: <AttendancePage /> },
           { path: ROUTES.ONBOARDING, element: <OnboardingDashboard /> },
           { path: ROUTES.ONBOARDING_DETAILS, element: <OnboardingStepDetails /> },
           { path: ROUTES.REVIEWS, element: <ReviewsList /> },
@@ -156,6 +159,7 @@ const router = createBrowserRouter([
           { path: ROUTES.SUPERVISOR_INTERNS, element: <InternManagementPage /> },
           { path: ROUTES.SUPERVISOR_INTERN_DETAILS, element: <InternProfilePage /> },
           { path: ROUTES.SUPERVISOR_TASKS, element: <TaskManagementPage /> },
+          { path: ROUTES.SUPERVISOR_ATTENDANCE, element: <SupervisorAttendanceDashboard /> },
           { path: ROUTES.SUPERVISOR_PROJECTS, element: <ProjectManagementPage /> },
           { path: ROUTES.SUPERVISOR_PROJECT_DETAILS, element: <ProjectDetailsPage /> },
           { path: ROUTES.SUPERVISOR_WEEKLY_REVIEW, element: <Navigate to={ROUTES.SUPERVISOR_TASKS} replace /> },

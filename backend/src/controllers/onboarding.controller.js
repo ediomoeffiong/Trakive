@@ -19,7 +19,12 @@ const submitOnboardingDetails = asyncHandler(async (req, res) => {
 });
 
 const submitOnboardingDocument = asyncHandler(async (req, res) => {
-  const result = await OnboardingService.submitOnboardingDocument(req.body, req.user, req.ip, req.headers['user-agent']);
+  const result = await OnboardingService.submitOnboardingDocument(
+    { ...req.body, file: req.file },
+    req.user,
+    req.ip,
+    req.headers['user-agent']
+  );
   return sendSuccess(res, {
     statusCode: 201,
     message: 'Onboarding document submitted successfully',
