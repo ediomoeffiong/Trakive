@@ -16,18 +16,6 @@ import {
 import { TASK_CATEGORIES } from '../../../data/taskCategories';
 import { STANDARD_DEPARTMENTS } from '../../../utils/departments';
 
-const STATUSES = [
-  { value: 'all', label: 'All Statuses' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'assigned', label: 'Assigned' },
-  { value: 'in-progress', label: 'In Progress' },
-  { value: 'pending-review', label: 'Pending Review' },
-  { value: 'needs-revision', label: 'Needs Revision' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'overdue', label: 'Overdue' },
-  { value: 'archived', label: 'Archived' },
-];
-
 const PRIORITIES = [
   { value: 'all', label: 'All Priorities' },
   { value: 'urgent', label: 'Urgent' },
@@ -141,9 +129,9 @@ const TaskManagementFilters = ({
 
         {/* Quick status pills */}
         <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
-          {['all', 'in-progress', 'pending-review', 'overdue', 'completed'].map((status) => {
+          {['all', 'active', 'pending-review', 'overdue', 'completed'].map((status) => {
             const isActive = (filters.status || 'all') === status;
-            const labels = { all: 'All', 'in-progress': 'Active', 'pending-review': 'Review', overdue: 'Overdue', completed: 'Done' };
+            const labels = { all: 'All', active: 'Active', 'pending-review': 'Review', overdue: 'Overdue', completed: 'Done' };
             return (
               <motion.button
                 key={status}

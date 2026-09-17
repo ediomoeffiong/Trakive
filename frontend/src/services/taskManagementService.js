@@ -135,7 +135,7 @@ const getStoredTasks = () => {
 
 const syncTaskStore = async () => {
   try {
-    const response = await api.get('/tasks', { params: { page: 1, limit: 500, sort: 'due_date:asc' } });
+    const response = await api.get('/tasks', { params: { page: 1, limit: 100, sort: 'due_date:asc' } });
     const { items } = unwrapApiList(response);
     if (items.length > 0) {
       tasksStore = items.map(normalizeTask);

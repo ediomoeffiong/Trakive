@@ -145,8 +145,9 @@ const TaskKPISummary = ({ kpis = [], isLoading = false, onKPIClick }) => {
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
         gap: '1rem',
+        width: '100%',
       }}
     >
       {kpis.map((card, i) => (

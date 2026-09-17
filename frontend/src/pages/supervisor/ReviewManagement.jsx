@@ -1,19 +1,17 @@
 /**
  * @file ReviewManagement.jsx
  * @description Supervisor Reviews & Approvals — unified main page.
- * Orchestrates all views: Dashboard, Submission Queue, Onboarding Approvals,
- * Schedule Review, and Review History tabs.
+ * Orchestrates all review views: Dashboard, Submission Queue, Schedule Review,
+ * and Review History tabs.
  * Consumes useSupervisorReviewStore exclusively for state and async operations.
  */
 
 import { useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   RiDashboardLine,
   RiFileTextLine,
-  RiShieldCheckLine,
   RiCalendarCheckLine,
   RiHistoryLine,
   RiRefreshLine,
@@ -26,7 +24,6 @@ import {
   SubmissionQueueTable,
   SubmissionDetailsDrawer,
   ReviewFormModal,
-  OnboardingApprovalsView,
   ReviewSchedulerModal,
   ReviewScheduleView,
   ReviewHistoryView,
@@ -107,41 +104,15 @@ const RecentReviewsActivity = ({ submissions, history }) => {
 };
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
-const buildTabs = (pendingSubmissions, pendingOnboarding) => [
+const buildTabs = (pendingSubmissions) => [
   { id: 'dashboard',   label: 'Overview',     icon: RiDashboardLine },
   { id: 'submissions', label: 'Queue',        icon: RiFileTextLine,     badge: pendingSubmissions },
-  { id: 'onboarding',  label: 'Onboarding',   icon: RiShieldCheckLine,  badge: pendingOnboarding },
   { id: 'schedule',    label: 'Schedule',     icon: RiCalendarCheckLine },
   { id: 'history',     label: 'History',      icon: RiHistoryLine },
 ];
 
-const normalizeReviewStatus = (value, fallback = 'pending') => {
-  const status = String(value || fallback).toLowerCase();
-  if (status === 'pending-review') return 'pending';
-  if (status === 'needs-revision') return 'resubmission_required';
-  return status;
-};
-
-const getOnboardingReviewItems = (queue = []) =>
-  queue.flatMap((intern) => {
-    const docs = (intern.documents || intern.steps || [])
-      .filter((item) => item?.submitted || item?.document || item?.review_status)
-      .map((item) => ({
-        status: normalizeReviewStatus(item.review_status || item.status || item.document?.review_status),
-      }));
-
-    const details = Object.values(intern.onboarding_details || {})
-      .filter((detail) => detail?.status || detail?.review_status)
-      .map((detail) => ({
-        status: normalizeReviewStatus(detail.review_status),
-      }));
-
-    return [...docs, ...details];
-  });
-
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const ReviewManagementPage = () => {
-  const location = useLocation();
   const {
     // State
     activeTab,
@@ -155,7 +126,6 @@ const ReviewManagementPage = () => {
     selectedSubmissionIds,
     filters,
     activeSort,
-    onboardingQueue,
     scheduledReviews,
     reviewHistory,
     historyFilters,
@@ -190,12 +160,10 @@ const ReviewManagementPage = () => {
     // Async
     loadDashboard,
     fetchSubmissions,
-    fetchOnboardingApprovals,
     fetchScheduledReviews,
     fetchReviewHistory,
     submitReview,
     saveReviewDraft: saveDraft,
-    updateOnboardingStep,
     createScheduledReview,
     cancelScheduledReview,
     bulkAction,
@@ -217,53 +185,24 @@ const ReviewManagementPage = () => {
     [scheduledReviews]
   );
 
-  const pendingOnboardingCount = useMemo(
-    () => getOnboardingReviewItems(onboardingQueue).filter((item) => item.status === 'pending').length,
-    [onboardingQueue]
-  );
-
-  const onboardingKpis = useMemo(() => {
-    const items = getOnboardingReviewItems(onboardingQueue);
-    return {
-      pending: items.filter((item) => item.status === 'pending').length,
-      approved: items.filter((item) => item.status === 'approved').length,
-      needsRevision: items.filter((item) => item.status === 'resubmission_required').length,
-      rejected: items.filter((item) => item.status === 'rejected').length,
-      reviewsDue: pendingOnboardingCount,
-      overdue: 0,
-    };
-  }, [onboardingQueue, pendingOnboardingCount]);
-
   const pendingSubmissionsCount = (submissions || []).filter((s) => s.status === 'pending-review').length;
-  const TABS = buildTabs(pendingSubmissionsCount, pendingOnboardingCount);
-  const visibleKpis = activeTab === 'onboarding' ? onboardingKpis : kpis;
+  const TABS = buildTabs(pendingSubmissionsCount);
+  const visibleKpis = kpis;
 
   // ── Initial & tab-driven data loading ─────────────────────────────────────
   useEffect(() => {
     loadDashboard();
     fetchReviewHistory();
-    if (location.pathname.includes('/supervisor/onboarding')) {
-      setActiveTab('onboarding');
-      fetchOnboardingApprovals();
-    }
-  }, [location.pathname]);
+    if (activeTab === 'onboarding') setActiveTab('dashboard');
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'submissions') fetchSubmissions();
-    if (activeTab === 'onboarding') fetchOnboardingApprovals();
     if (activeTab === 'schedule') fetchScheduledReviews();
     if (activeTab === 'history') fetchReviewHistory();
   }, [activeTab]);
 
-  useEffect(() => {
-    if (activeTab !== 'onboarding') return undefined;
-    const intervalId = window.setInterval(() => {
-      fetchOnboardingApprovals();
-    }, 8000);
-    return () => window.clearInterval(intervalId);
-  }, [activeTab, fetchOnboardingApprovals]);
-
-  // Interns list for scheduler (derived from onboarding queue or submissions)
+  // Interns list for scheduler (derived from review submissions)
   const internsList = useMemo(() => {
     const seen = new Set();
     const acc = [];
@@ -280,9 +219,8 @@ const ReviewManagementPage = () => {
       });
     };
     (submissions || []).forEach((s) => addIntern(s));
-    (onboardingQueue || []).forEach((intern) => addIntern(intern));
     return acc;
-  }, [submissions, onboardingQueue]);
+  }, [submissions]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -307,24 +245,6 @@ const ReviewManagementPage = () => {
       toast.success('Draft saved.');
     } catch {
       toast.error('Failed to save draft.');
-    }
-  };
-
-  const handleApproveOnboarding = async (internId, stepId, notes) => {
-    try {
-      await updateOnboardingStep(internId, stepId, 'approved', notes);
-      toast.success('Step approved successfully!');
-    } catch {
-      toast.error('Failed to approve step.');
-    }
-  };
-
-  const handleRejectOnboarding = async (internId, stepId, notes, decision = 'rejected') => {
-    try {
-      await updateOnboardingStep(internId, stepId, decision === 'resubmission_required' ? 'resubmission_required' : 'rejected', notes);
-      toast.success(decision === 'resubmission_required' ? 'Resubmission requested.' : 'Step rejected.');
-    } catch {
-      toast.error('Failed to reject step.');
     }
   };
 
@@ -392,7 +312,7 @@ const ReviewManagementPage = () => {
               Reviews
             </h1>
             <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-500)' }}>
-              Evaluate submissions, verify onboarding, and schedule 1-on-1s
+              Evaluate submissions, schedule reviews, and review decisions
             </p>
           </div>
         </div>
@@ -403,7 +323,6 @@ const ReviewManagementPage = () => {
             onClick={() => {
               loadDashboard();
               fetchReviewHistory();
-              if (activeTab === 'onboarding') fetchOnboardingApprovals();
             }}
             title="Refresh"
             style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5625rem 0.875rem', borderRadius: '0.75rem', border: '1px solid var(--color-neutral-200)', background: '#fff', color: 'var(--color-neutral-600)', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}
@@ -523,20 +442,6 @@ const ReviewManagementPage = () => {
               onSearch={setSearch}
               onFilterChange={setFilter}
               onClearFilters={clearFilters}
-            />
-          </motion.div>
-        )}
-
-        {/* ── ONBOARDING APPROVALS ─────────────────────────────────────────── */}
-        {activeTab === 'onboarding' && (
-          <motion.div key="onboarding" variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <ReviewKPISummary kpis={visibleKpis} isLoading={loading.onboarding && onboardingQueue.length === 0} />
-            <OnboardingApprovalsView
-              queue={onboardingQueue}
-              isLoading={loading.onboarding && onboardingQueue.length === 0}
-              actionLoading={loading.onboardingAction}
-              onApprove={handleApproveOnboarding}
-              onReject={handleRejectOnboarding}
             />
           </motion.div>
         )}

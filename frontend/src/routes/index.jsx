@@ -46,6 +46,7 @@ import InternManagementPage from '../pages/supervisor/InternManagement';
 import InternProfilePage from '../pages/supervisor/InternProfile';
 import TaskManagementPage from '../pages/supervisor/TaskManagement';
 import ReviewManagementPage from '../pages/supervisor/ReviewManagement';
+import OnboardingManagementPage from '../pages/supervisor/OnboardingManagement';
 import SupervisorNotificationsPage from '../pages/supervisor/SupervisorNotifications';
 import SupervisorProfilePage from '../pages/supervisor/SupervisorProfile';
 import ProjectManagementPage from '../pages/supervisor/ProjectManagement';
@@ -164,7 +165,7 @@ const router = createBrowserRouter([
           { path: ROUTES.SUPERVISOR_PROJECT_DETAILS, element: <ProjectDetailsPage /> },
           { path: ROUTES.SUPERVISOR_WEEKLY_REVIEW, element: <Navigate to={ROUTES.SUPERVISOR_TASKS} replace /> },
           { path: ROUTES.SUPERVISOR_REVIEWS,   element: <ReviewManagementPage /> },
-          { path: ROUTES.SUPERVISOR_ONBOARDING, element: <ReviewManagementPage /> },
+          { path: ROUTES.SUPERVISOR_ONBOARDING, element: <OnboardingManagementPage /> },
           { path: ROUTES.SUPERVISOR_REPORTS, element: <AnalyticsDashboardPage /> },
           { path: ROUTES.SUPERVISOR_REPORTS_BUILDER, element: <ReportBuilderPage /> },
           { path: ROUTES.SUPERVISOR_REPORTS_SAVED, element: <SavedReportsPage /> },

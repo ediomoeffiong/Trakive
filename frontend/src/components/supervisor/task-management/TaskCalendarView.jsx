@@ -4,7 +4,7 @@
  * priority dots, event cards, and task count indicators per day.
  */
 
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   RiArrowLeftSLine,
@@ -118,7 +118,7 @@ const DayCell = ({ day, month, year, isCurrentMonth, tasks = [], isToday, onDayC
       </span>
 
       {/* Task pills */}
-      {tasks.slice(0, MAX_SHOW).map((task, i) => (
+      {tasks.slice(0, MAX_SHOW).map((task) => (
         <div
           key={task.id}
           title={task.title}
@@ -278,7 +278,7 @@ const DayDetailPanel = ({ dateKey, tasks, onClose }) => {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 const TaskCalendarView = () => {
-  const { tasks, loading } = useSupervisorTaskStore();
+  const { tasks, allTasks, loading, fetchTasks } = useSupervisorTaskStore();
   const [viewMode, setViewMode] = useState('month'); // month | agenda
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
@@ -287,8 +287,13 @@ const TaskCalendarView = () => {
 
   const today = new Date();
   const todayKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
+  const calendarTasks = allTasks?.length ? allTasks : tasks;
 
-  const taskMap = useMemo(() => buildTaskMap(tasks), [tasks]);
+  useEffect(() => {
+    if (!calendarTasks.length) fetchTasks();
+  }, []);
+
+  const taskMap = useMemo(() => buildTaskMap(calendarTasks), [calendarTasks]);
 
   const calendarDays = useMemo(
     () => getCalendarDays(currentYear, currentMonth),
@@ -439,9 +444,9 @@ const TaskCalendarView = () => {
         {/* Stats footer */}
         <div style={{ padding: '0.75rem 1.25rem', borderTop: '1px solid var(--color-neutral-100)', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
           {[
-            { label: 'Overdue', count: tasks.filter((t) => t.status === 'overdue').length, color: '#ef4444' },
+            { label: 'Overdue', count: calendarTasks.filter((t) => t.status === 'overdue').length, color: '#ef4444' },
             { label: 'Due this month', count: Object.entries(taskMap).filter(([dk]) => { const [y, m] = dk.split('-').map(Number); return y === currentYear && m - 1 === currentMonth; }).length, color: '#3b82f6' },
-            { label: 'Completed this month', count: tasks.filter((t) => t.status === 'completed').length, color: '#10b981' },
+            { label: 'Completed this month', count: calendarTasks.filter((t) => t.status === 'completed').length, color: '#10b981' },
           ].map(({ label, count, color }) => (
             <span key={label} style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
               <strong style={{ color, fontSize: '0.9375rem' }}>{count}</strong> {label}

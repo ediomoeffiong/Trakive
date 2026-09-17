@@ -29,6 +29,12 @@ const updateProject = asyncHandler(async (req, res) => {
   return sendSuccess(res, { message: 'Project updated successfully', data: result });
 });
 
+const createProjectTask = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const result = await ProjectService.createProjectTask(id, req.body, req.user);
+  return sendSuccess(res, { statusCode: 201, message: 'Project task created successfully', data: result });
+});
+
 const deleteProject = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const result = await ProjectService.deleteProject(id, req.user);
@@ -67,6 +73,7 @@ module.exports = {
   getProject,
   listProjects,
   updateProject,
+  createProjectTask,
   deleteProject,
   approveProject,
   rejectProject,

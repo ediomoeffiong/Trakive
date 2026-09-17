@@ -16,7 +16,6 @@ import {
   RiFileUploadLine,
   RiCalendarEventLine,
   RiDashboardLine,
-  RiDownloadLine,
   RiRefreshLine,
   RiCalendarCheckLine,
 } from 'react-icons/ri';

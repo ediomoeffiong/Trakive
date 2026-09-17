@@ -74,6 +74,19 @@ export function ProposeProjectDrawer({ isOpen, onClose, onSuccess, project = nul
         due_date: toDateInputValue(project.due_date),
         notes: project.notes || '',
       });
+      setMilestones([{ title: '', due_date: '' }]);
+      projectService.getMilestones(project.id)
+        .then((r) => {
+          const items = (r.data || []).map((m) => ({
+            id: m.id,
+            title: m.title || '',
+            due_date: toDateInputValue(m.due_date),
+            description: m.description || '',
+            status: m.status || 'pending',
+          }));
+          setMilestones(items.length > 0 ? items : [{ title: '', due_date: '' }]);
+        })
+        .catch(() => setMilestones([{ title: '', due_date: '' }]));
       return;
     }
 
@@ -200,7 +213,7 @@ export function ProposeProjectDrawer({ isOpen, onClose, onSuccess, project = nul
         </div>
 
         {/* Milestones */}
-        {!isEditing && <div style={fieldStyle}>
+        <div style={fieldStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
             <label style={{ ...labelStyle, marginBottom: 0 }}>Milestones</label>
             <button type="button" onClick={addMilestone} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', color: 'var(--color-primary-600)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
@@ -218,7 +231,7 @@ export function ProposeProjectDrawer({ isOpen, onClose, onSuccess, project = nul
               )}
             </div>
           ))}
-        </div>}
+        </div>
 
         {/* Notes */}
         <div style={fieldStyle}>

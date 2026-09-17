@@ -108,6 +108,11 @@ const SubmissionCard = ({ submission }) => {
   const handleReview = () => {
     toast.success(`Opening review for ${submission.internName}...`);
   };
+  const submittedLabel = submission.submittedAt
+    ? new Date(submission.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : submission.dueDate
+      ? `Due ${new Date(submission.dueDate + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      : 'No submission yet';
 
   return (
     <motion.div
@@ -135,8 +140,7 @@ const SubmissionCard = ({ submission }) => {
               {submission.internName}
             </p>
             <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
-              Attempt #{submission.attemptNumber} ·{' '}
-              {new Date(submission.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+              {submission.attemptNumber > 0 ? `Attempt #${submission.attemptNumber}` : 'No attempt'} · {submittedLabel}
               {submission.isLate && <span style={{ color: '#ef4444', fontWeight: 700 }}> · Late</span>}
             </p>
           </div>
@@ -229,9 +233,9 @@ const SubmissionMonitoringView = () => {
 
   const statusCounts = {
     submitted:        submissions.filter((s) => s.status === 'submitted').length,
-    pending:          0,
-    late:             submissions.filter((s) => s.isLate).length,
-    'not-started':    0,
+    pending:          submissions.filter((s) => s.status === 'pending').length,
+    late:             submissions.filter((s) => s.isLate || s.status === 'late').length,
+    'not-started':    submissions.filter((s) => s.status === 'not-started').length,
     reviewed:         submissions.filter((s) => s.status === 'reviewed').length,
     'needs-revision': submissions.filter((s) => s.status === 'needs-revision').length,
   };
@@ -259,7 +263,7 @@ const SubmissionMonitoringView = () => {
         <h3 style={{ margin: '0 0 0.875rem', fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>
           Submission Overview
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: '0.875rem', width: '100%' }}>
           {Object.entries(statusCounts).map(([status, count]) => (
             <StatusSummaryCard
               key={status}

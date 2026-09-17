@@ -8,9 +8,9 @@ import toast from 'react-hot-toast';
 import {
   RiArrowLeftLine, RiTimeLine, RiUserLine,
   RiCalendarLine, RiGroupLine, RiFlagLine, RiHistoryLine,
-  RiTaskLine, RiEditLine, RiExternalLinkLine,
+  RiTaskLine, RiEditLine, RiExternalLinkLine, RiAddLine, RiStickyNoteLine,
 } from 'react-icons/ri';
-import { Card, Button, ProgressBar, Skeleton, EmptyState } from '../components/ui';
+import { Card, Button, ProgressBar, Skeleton, EmptyState, Drawer } from '../components/ui';
 import { ROUTES } from '../constants';
 import { projectService } from '../services/projectService';
 import { ProjectStatusBadge, ProjectPriorityBadge } from '../components/projects/ProjectStatusBadge';
@@ -40,6 +40,27 @@ const TASK_STATUS_COLORS = {
   revision_requested: { color: 'var(--color-danger-600)',  bg: 'var(--color-danger-50)'   },
 };
 
+const PRIORITY_OPTIONS = [
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+  { value: 'urgent', label: 'Urgent' },
+];
+
+const inputStyle = {
+  width: '100%',
+  padding: '0.6rem 0.75rem',
+  border: '1px solid var(--color-neutral-200)',
+  borderRadius: '0.5rem',
+  fontSize: '0.875rem',
+  background: 'var(--color-neutral-0, #fff)',
+  color: 'var(--color-neutral-900)',
+  outline: 'none',
+  boxSizing: 'border-box',
+};
+const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-neutral-700)', marginBottom: '0.4rem' };
+const fieldStyle = { display: 'flex', flexDirection: 'column' };
+
 function TabBar({ active, onChange }) {
   return (
     <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid var(--color-neutral-100)', marginBottom: '1.5rem' }}>
@@ -62,6 +83,159 @@ function TabBar({ active, onChange }) {
   );
 }
 
+function AddProjectTaskDrawer({ isOpen, onClose, onSuccess, project, milestones, isSupervisor, currentUserId }) {
+  const members = Array.isArray(project?.members) ? project.members : [];
+  const defaultAssignee = isSupervisor ? (members[0]?.intern_id || '') : (currentUserId || '');
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    assignee_id: defaultAssignee,
+    milestone_id: '',
+    priority: 'medium',
+    due_date: '',
+    notes: '',
+  });
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setForm({
+      title: '',
+      description: '',
+      assignee_id: defaultAssignee,
+      milestone_id: '',
+      priority: 'medium',
+      due_date: '',
+      notes: '',
+    });
+  }, [isOpen, defaultAssignee]);
+
+  const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.title.trim()) return toast.error('Task title is required');
+    if (isSupervisor && !form.assignee_id) return toast.error('Select an assignee for this project task');
+
+    setLoading(true);
+    try {
+      await projectService.createProjectTask(project.id, {
+        ...form,
+        assignee_id: isSupervisor ? form.assignee_id || undefined : undefined,
+        milestone_id: form.milestone_id || undefined,
+        due_date: form.due_date || undefined,
+        notes: form.notes || undefined,
+      });
+      toast.success('Task added to project');
+      onSuccess?.();
+      onClose();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to add task');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Drawer isOpen={isOpen} onClose={onClose} title="Add Project Task" width="min(460px, 100vw)">
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem 0' }}>
+        <div style={fieldStyle}>
+          <label style={labelStyle}>Task Title <span style={{ color: 'var(--color-danger-500)' }}>*</span></label>
+          <input style={inputStyle} value={form.title} onChange={set('title')} placeholder="e.g. Build project dashboard" required />
+        </div>
+        <div style={fieldStyle}>
+          <label style={labelStyle}>Description</label>
+          <textarea style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }} value={form.description} onChange={set('description')} placeholder="Optional details..." />
+        </div>
+        {isSupervisor && members.length > 0 && (
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Assignee <span style={{ color: 'var(--color-danger-500)' }}>*</span></label>
+            <select style={inputStyle} value={form.assignee_id} onChange={set('assignee_id')} required>
+              <option value="">Select intern</option>
+              {members.map((m) => (
+                <option key={m.intern_id} value={m.intern_id}>{[m.first_name, m.last_name].filter(Boolean).join(' ') || m.email || 'Intern'}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {isSupervisor && members.length === 0 && (
+          <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-neutral-500)' }}>
+            Add a project member before creating tasks.
+          </p>
+        )}
+        {milestones.length > 0 && (
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Milestone</label>
+            <select style={inputStyle} value={form.milestone_id} onChange={set('milestone_id')}>
+              <option value="">No milestone</option>
+              {milestones.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
+            </select>
+          </div>
+        )}
+        <div className="drawer-form-grid-2">
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Priority</label>
+            <select style={inputStyle} value={form.priority} onChange={set('priority')}>
+              {PRIORITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Due Date</label>
+            <input style={inputStyle} type="date" value={form.due_date} onChange={set('due_date')} />
+          </div>
+        </div>
+        <div style={fieldStyle}>
+          <label style={labelStyle}>Notes</label>
+          <input style={inputStyle} value={form.notes} onChange={set('notes')} placeholder="Any extra notes..." />
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid var(--color-neutral-100)', flexWrap: 'wrap' }}>
+          <Button variant="ghost" onClick={onClose} type="button">Cancel</Button>
+          <Button type="submit" loading={loading} disabled={isSupervisor && members.length === 0}>Add Task</Button>
+        </div>
+      </form>
+    </Drawer>
+  );
+}
+
+function AddProjectNoteDrawer({ isOpen, onClose, onSuccess, project }) {
+  const [loading, setLoading] = useState(false);
+  const [notes, setNotes] = useState(project?.notes || '');
+
+  useEffect(() => {
+    if (isOpen) setNotes(project?.notes || '');
+  }, [isOpen, project?.notes]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await projectService.updateProject(project.id, { notes });
+      toast.success('Project notes saved');
+      onSuccess?.();
+      onClose();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to save notes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Drawer isOpen={isOpen} onClose={onClose} title={project?.notes ? 'Edit Note' : 'Add Note'} width="min(460px, 100vw)">
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem 0' }}>
+        <div style={fieldStyle}>
+          <label style={labelStyle}>Project Note</label>
+          <textarea style={{ ...inputStyle, minHeight: '180px', resize: 'vertical' }} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Capture project context, decisions, or follow-up notes..." />
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid var(--color-neutral-100)', flexWrap: 'wrap' }}>
+          <Button variant="ghost" onClick={onClose} type="button">Cancel</Button>
+          <Button type="submit" loading={loading}>Save Note</Button>
+        </div>
+      </form>
+    </Drawer>
+  );
+}
+
 export default function ProjectDetailsPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
@@ -76,6 +250,8 @@ export default function ProjectDetailsPage() {
   const [tab, setTab] = useState('Overview');
   const [approvalModal, setApprovalModal] = useState(false);
   const [editingProject, setEditingProject] = useState(false);
+  const [addingTask, setAddingTask] = useState(false);
+  const [addingNote, setAddingNote] = useState(false);
 
   const fetchProject = useCallback(async () => {
     setLoading(true);
@@ -123,6 +299,7 @@ export default function ProjectDetailsPage() {
   const backRoute = isSupervisor ? ROUTES.SUPERVISOR_PROJECTS : ROUTES.PROJECTS;
   const currentUserId = user?.id || user?.user_id;
   const canEditProject = !isSupervisor && project.creator_id === currentUserId && ['pending_approval', 'active'].includes(project.status);
+  const canAddProjectTask = ['active', 'pending_approval'].includes(project.status);
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -269,6 +446,13 @@ export default function ProjectDetailsPage() {
       {/* TASKS */}
       {tab === 'Tasks' && (
         <div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+            {canAddProjectTask && (
+              <Button onClick={() => setAddingTask(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <RiAddLine /> Add Task
+              </Button>
+            )}
+          </div>
           {tasks.length === 0 ? (
             <EmptyState icon={<RiTaskLine style={{ fontSize: '2rem', color: 'var(--color-neutral-300)' }} />} title="No tasks" description="No tasks have been added to this project" />
           ) : (
@@ -340,13 +524,20 @@ export default function ProjectDetailsPage() {
 
       {/* NOTES */}
       {tab === 'Notes' && (
-        <Card>
-          {project.notes ? (
-            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-700)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{project.notes}</p>
-          ) : (
-            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-400)', fontStyle: 'italic' }}>No notes have been added to this project.</p>
-          )}
-        </Card>
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+            <Button onClick={() => setAddingNote(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <RiStickyNoteLine /> {project.notes ? 'Edit Note' : 'Add Note'}
+            </Button>
+          </div>
+          <Card>
+            {project.notes ? (
+              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-700)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{project.notes}</p>
+            ) : (
+              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-400)', fontStyle: 'italic' }}>No notes have been added to this project.</p>
+            )}
+          </Card>
+        </div>
       )}
 
       {/* Approval modal (supervisor) */}
@@ -360,7 +551,22 @@ export default function ProjectDetailsPage() {
         isOpen={editingProject}
         onClose={() => setEditingProject(false)}
         project={project}
-        onSuccess={() => { setEditingProject(false); fetchProject(); }}
+        onSuccess={() => { setEditingProject(false); fetchProject(); fetchMilestones(); }}
+      />
+      <AddProjectTaskDrawer
+        isOpen={addingTask}
+        onClose={() => setAddingTask(false)}
+        project={project}
+        milestones={milestones}
+        isSupervisor={isSupervisor}
+        currentUserId={currentUserId}
+        onSuccess={() => { fetchTasks(); fetchProject(); fetchMilestones(); }}
+      />
+      <AddProjectNoteDrawer
+        isOpen={addingNote}
+        onClose={() => setAddingNote(false)}
+        project={project}
+        onSuccess={fetchProject}
       />
     </div>
   );

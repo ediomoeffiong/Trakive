@@ -39,6 +39,7 @@ router.get(
     return sendSuccess(res, { message: 'Project tasks retrieved', data: tasks });
   })
 );
+router.post('/:id/tasks', ProjectController.createProjectTask);
 
 // ── Approval workflow ─────────────────────────────────────────────────────────
 router.post(

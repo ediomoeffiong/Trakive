@@ -216,7 +216,23 @@ export const projectService = {
         if (idx !== -1) {
           const previousStatus = list[idx].status;
           const shouldReturnToReview = list[idx].source === 'intern_proposed' && ['active', 'pending_approval'].includes(previousStatus);
-          list[idx] = { ...list[idx], ...data, status: shouldReturnToReview ? 'pending_approval' : (data.status || list[idx].status) };
+          const nextMilestones = Array.isArray(data.milestones)
+            ? data.milestones
+                .filter((m) => m.title?.trim())
+                .map((m, i) => ({
+                  id: m.id || `m-${Date.now()}-${i}`,
+                  title: m.title,
+                  due_date: m.due_date || '',
+                  description: m.description || '',
+                  status: m.status || 'pending',
+                }))
+            : list[idx].milestones;
+          list[idx] = {
+            ...list[idx],
+            ...data,
+            milestones: nextMilestones,
+            status: shouldReturnToReview ? 'pending_approval' : (data.status || list[idx].status),
+          };
           list[idx].approval_history = list[idx].approval_history || [];
           if (shouldReturnToReview) {
             list[idx].approval_history.push({ action: previousStatus === 'active' ? 'resubmitted' : 'submitted', created_at: new Date().toISOString() });
@@ -329,6 +345,44 @@ export const projectService = {
         const list = getLocalProjects();
         const found = list.find((p) => p.id === projectId);
         return { status: 'success', data: found?.tasks || [] };
+      }
+      throw err;
+    }
+  },
+
+  createProjectTask: async (projectId, data) => {
+    try {
+      return await api.post(`/projects/${projectId}/tasks`, data).then((r) => r.data);
+    } catch (err) {
+      if (isNetworkError(err)) {
+        const list = getLocalProjects();
+        const idx = list.findIndex((p) => p.id === projectId);
+        if (idx !== -1) {
+          const assignee = (list[idx].members || []).find((m) => m.intern_id === data.assignee_id);
+          const milestone = (list[idx].milestones || []).find((m) => m.id === data.milestone_id);
+          const task = {
+            id: `task-${Date.now()}`,
+            title: data.title,
+            description: data.description || '',
+            priority: data.priority || 'medium',
+            status: data.status || 'todo',
+            due_date: data.due_date || '',
+            project_id: projectId,
+            milestone_id: data.milestone_id || '',
+            milestone_title: milestone?.title || '',
+            assignee_id: data.assignee_id || '',
+            assignee_first_name: assignee?.first_name || '',
+            assignee_last_name: assignee?.last_name || '',
+            weekly_note: data.notes || '',
+            created_at: new Date().toISOString(),
+          };
+          list[idx].tasks = [...(list[idx].tasks || []), task];
+          const total = list[idx].tasks.length;
+          const completed = list[idx].tasks.filter((t) => t.status === 'completed').length;
+          list[idx].progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+          saveLocalProjects(list);
+          return { status: 'success', data: task };
+        }
       }
       throw err;
     }

@@ -3,6 +3,8 @@ const ProjectModel = require('../models/project.model');
 const ProfileModel = require('../models/profile.model');
 const NotificationModel = require('../models/notification.model');
 const AuditLogModel = require('../models/auditLog.model');
+const MilestoneModel = require('../models/milestone.model');
+const TaskModel = require('../models/task.model');
 const { getPaginationParams, formatPaginatedResponse } = require('../utils/pagination');
 
 const ProjectService = {
@@ -72,6 +74,40 @@ const ProjectService = {
     }
 
     throw ApiError.forbidden('Access denied');
+  },
+
+  async _syncMilestones(projectId, milestones = []) {
+    if (!Array.isArray(milestones)) return;
+
+    const existing = await MilestoneModel.findByProjectId(projectId);
+    const existingIds = new Set(existing.map((m) => m.id));
+    const incomingIds = new Set(milestones.map((m) => m.id).filter(Boolean));
+
+    for (let i = 0; i < milestones.length; i++) {
+      const milestone = milestones[i];
+      const title = milestone.title?.trim();
+      if (!title) continue;
+
+      const data = {
+        title,
+        description: milestone.description || null,
+        start_date: milestone.start_date || null,
+        due_date: milestone.due_date || null,
+        order_index: i,
+      };
+
+      if (milestone.id && existingIds.has(milestone.id)) {
+        await MilestoneModel.update(milestone.id, data);
+      } else {
+        await MilestoneModel.create({ project_id: projectId, ...data });
+      }
+    }
+
+    for (const milestone of existing) {
+      if (!incomingIds.has(milestone.id)) {
+        await MilestoneModel.delete(milestone.id);
+      }
+    }
   },
 
   /**
@@ -150,6 +186,8 @@ const ProjectService = {
 
     // Add approval history
     await ProjectModel.addApprovalHistory(project.id, 'submitted', requestingUser.id);
+
+    await this._syncMilestones(project.id, milestones);
 
     // Notify each assigned intern
     for (const internId of internIds) {
@@ -231,6 +269,8 @@ const ProjectService = {
 
     // Add approval history
     await ProjectModel.addApprovalHistory(project.id, 'submitted', requestingUser.id);
+
+    await this._syncMilestones(project.id, milestones);
 
     // Notify supervisor
     if (supervisorProfileId) {
@@ -382,6 +422,10 @@ const ProjectService = {
     if (data.project_link_url !== undefined) updates.project_link_url = data.project_link_url;
 
     await ProjectModel.update(projectId, updates);
+
+    if (Array.isArray(data.milestones)) {
+      await this._syncMilestones(projectId, data.milestones);
+    }
     await ProjectModel.addApprovalHistory(projectId, 'resubmitted', requestingUser.id);
 
     // Notify supervisor
@@ -399,6 +443,82 @@ const ProjectService = {
     }
 
     return ProjectModel.findById(projectId);
+  },
+
+  /**
+   * Create a task directly from a project's Tasks tab.
+   */
+  async createProjectTask(projectId, data, requestingUser) {
+    const project = await ProjectModel.findById(projectId);
+    if (!project) throw ApiError.notFound('Project not found');
+
+    await this._authorizeProjectAccess(project, requestingUser);
+
+    if (!data.title || !data.title.trim()) {
+      throw ApiError.badRequest('Task title is required');
+    }
+
+    const role = (requestingUser.role_name || '').toLowerCase();
+    const members = Array.isArray(project.members) ? project.members : [];
+    let assigneeId = data.assignee_id || null;
+
+    if (role === 'intern') {
+      const isMember = members.some((m) => m.intern_id === requestingUser.id);
+      if (!isMember && project.creator_id !== requestingUser.id) {
+        throw ApiError.forbidden('You are not a member of this project');
+      }
+      assigneeId = requestingUser.id;
+    } else {
+      if (!assigneeId && members.length === 1) {
+        assigneeId = members[0].intern_id;
+      }
+      if (!assigneeId) {
+        throw ApiError.badRequest('Select an assignee for this project task');
+      }
+      if (assigneeId && !members.some((m) => m.intern_id === assigneeId)) {
+        throw ApiError.badRequest('Assignee must be a member of this project');
+      }
+    }
+
+    if (data.milestone_id) {
+      const milestone = await MilestoneModel.findById(data.milestone_id);
+      if (!milestone || milestone.project_id !== projectId) {
+        throw ApiError.badRequest('Milestone does not belong to this project');
+      }
+    }
+
+    const task = await TaskModel.create({
+      organization_id: project.organization_id,
+      department_id: project.department_id || requestingUser.department_id || null,
+      creator_id: requestingUser.id,
+      assignee_id: assigneeId,
+      title: data.title.trim(),
+      description: data.description || null,
+      priority: data.priority || 'medium',
+      status: data.status || 'todo',
+      due_date: data.due_date || null,
+      project_id: projectId,
+      milestone_id: data.milestone_id || null,
+      task_source: 'project_task',
+      weekly_note: data.notes || null,
+    });
+
+    await ProjectModel.recalculateProgress(projectId);
+    if (data.milestone_id) {
+      await MilestoneModel.recalculateProgress(data.milestone_id);
+    }
+
+    if (assigneeId && assigneeId !== requestingUser.id) {
+      await NotificationModel.create({
+        userId: assigneeId,
+        title: 'New Project Task',
+        message: `A task was added to "${project.title}": ${task.title}.`,
+        type: 'task',
+        linkUrl: `/dashboard/projects/${projectId}`,
+      });
+    }
+
+    return TaskModel.findById(task.id);
   },
 
   /**
@@ -488,6 +608,10 @@ const ProjectService = {
     }
 
     await ProjectModel.update(projectId, updates);
+
+    if (Array.isArray(data.milestones)) {
+      await this._syncMilestones(projectId, data.milestones);
+    }
 
     if (role === 'intern') {
       await ProjectModel.addApprovalHistory(
