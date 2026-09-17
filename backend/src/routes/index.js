@@ -4,6 +4,16 @@ const { getHealth } = require('../controllers/health.controller');
 
 const router = express.Router();
 
+router.get('/', (req, res) => {
+  res.json({
+    name: 'Trakive API',
+    status: 'running',
+    v1: '/api/v1',
+    healthCheck: '/api/health',
+    versionedHealthCheck: '/api/v1/health',
+  });
+});
+
 // Mount v1 router under /v1
 router.use('/v1', v1Router);
 

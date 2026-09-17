@@ -99,5 +99,7 @@ export const sanitizeDepartments = (departments = []) => {
     });
   });
 
-  return STANDARD_DEPARTMENTS.map((department) => byName.get(department.name) || department);
+  // Only return departments that exist in the API. Fallback `dept-*` ids are
+  // frontend placeholders and 404 if sent to GET /departments/:id/staff.
+  return STANDARD_DEPARTMENTS.map((department) => byName.get(department.name)).filter(Boolean);
 };

@@ -18,10 +18,34 @@ export const STORAGE_KEYS = {
   THEME: 'trakive_theme',
 };
 
+const API_PREFIX = '/api/v1';
+
+const stripTrailingSlashes = (value) => String(value || '').replace(/\/+$/, '');
+
+/**
+ * Ensure the client always talks to the versioned API.
+ * Production env is often set to the Render origin without `/api/v1`, which
+ * produces 404s like POST /auth/login instead of POST /api/v1/auth/login.
+ */
+export const resolveApiBaseUrl = (
+  raw = import.meta.env.VITE_API_BASE_URL,
+  { isProd = import.meta.env.PROD } = {}
+) => {
+  const value = stripTrailingSlashes(raw);
+  if (!value) {
+    return isProd ? API_PREFIX : `http://localhost:5000${API_PREFIX}`;
+  }
+  if (value.endsWith(API_PREFIX) || value.endsWith('/api/v1')) {
+    return value;
+  }
+  if (value.endsWith('/api')) {
+    return `${value}/v1`;
+  }
+  return `${value}${API_PREFIX}`;
+};
+
 /** API base URL — pulled from env, uses localhost only during local dev. */
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.PROD ? '/api/v1' : 'http://localhost:5000/api/v1');
+export const API_BASE_URL = resolveApiBaseUrl();
 
 /** Supported themes */
 export const THEMES = {

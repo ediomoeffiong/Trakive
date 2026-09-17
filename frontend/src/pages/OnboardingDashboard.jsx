@@ -68,6 +68,7 @@ const REQUIRED_DOCUMENTS = [
 ];
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const CATEGORIES = [
   { id: 'internship_info', name: 'Internship Info', icon: RiFolderUserLine, color: '#3b82f6' },
@@ -157,6 +158,16 @@ export default function OnboardingDashboard() {
           const match = list.find((d) => d.id === info.department_id);
           if (match) {
             setInfo((prev) => ({ ...prev, department_name: match.name }));
+          } else if (list.length > 0) {
+            const preferred =
+              list.find((d) => /fifthlab/i.test(d.name || '') && isFifthLabDomain) ||
+              list.find((d) => d.id === user?.department_id) ||
+              list[0];
+            setInfo((prev) => ({
+              ...prev,
+              department_id: preferred.id,
+              department_name: preferred.name,
+            }));
           }
         }
       } catch (err) {
@@ -225,9 +236,14 @@ export default function OnboardingDashboard() {
   useEffect(() => {
     let isMounted = true;
     const fetchTeam = async () => {
+      const departmentId = String(info.department_id || '').trim();
+      if (!UUID_PATTERN.test(departmentId)) {
+        setLoadingTeam(false);
+        return;
+      }
       setLoadingTeam(true);
       try {
-        const res = await api.get(`/departments/${info.department_id}/staff`);
+        const res = await api.get(`/departments/${departmentId}/staff`);
         if (res.data && res.data.data && Array.isArray(res.data.data.staff) && res.data.data.staff.length > 0 && isMounted) {
           const formatted = res.data.data.staff.map((u, idx) => ({
             id: u.id,

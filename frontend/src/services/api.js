@@ -7,8 +7,19 @@
 import axios from 'axios';
 import { API_BASE_URL, STORAGE_KEYS } from '../constants';
 
+const joinUrl = (base, path) => {
+  if (!path) return base;
+  if (/^https?:\/\//i.test(path)) return path;
+  const cleanBase = String(base || '').replace(/\/+$/, '');
+  const cleanPath = String(path).replace(/^\/+/, '');
+  return `${cleanBase}/${cleanPath}`;
+};
+
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  // Requests are resolved to absolute URLs in the interceptor below. Keeping
+  // baseURL empty avoids production bundles or Axios URL merging from dropping
+  // the `/api/v1` prefix when a service passes paths like `/projects`.
+  baseURL: undefined,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
@@ -67,6 +78,10 @@ api.interceptors.request.use(
     const token = getBearerToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (config.url && !/^https?:\/\//i.test(config.url)) {
+      config.url = joinUrl(config.baseURL || API_BASE_URL, config.url);
+      config.baseURL = undefined;
     }
     return config;
   },
