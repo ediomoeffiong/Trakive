@@ -42,4 +42,6 @@ const rewriteUnprefixedApi = (req, res, next) => {
   return next();
 };
 
+rewriteUnprefixedApi.API_V1_ROOTS = API_V1_ROOTS;
+
 module.exports = rewriteUnprefixedApi;

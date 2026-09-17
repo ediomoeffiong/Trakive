@@ -7,8 +7,13 @@ const requestLogger = require('./middleware/requestLogger.middleware');
 const notFoundHandler = require('./middleware/notFound.middleware');
 const errorHandler = require('./middleware/error.middleware');
 const apiRoutes = require('./routes');
+const v1Routes = require('./routes/v1');
 
 const app = express();
+const unprefixedApiMounts = Array.from(
+  rewriteUnprefixedApi.API_V1_ROOTS,
+  (root) => `/${root}`
+);
 
 // Render (and similar hosts) terminate TLS and proxy to localhost.
 app.set('trust proxy', 1);
@@ -41,6 +46,16 @@ app.use(requestLogger);
 
 // Mount main API routes under /api
 app.use('/api', apiRoutes);
+
+// Backwards-compatible aliases for older production frontend bundles that call
+// the Render origin without `/api/v1` (for example `/projects` or `/auth/login`).
+app.use(
+  unprefixedApiMounts,
+  (req, res, next) => {
+    req.url = `${req.baseUrl}${req.url === '/' ? '' : req.url}`;
+    v1Routes(req, res, next);
+  }
+);
 
 // Root endpoint redirect / simple info
 app.get('/', (req, res) => {

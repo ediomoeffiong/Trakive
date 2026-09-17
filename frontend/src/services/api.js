@@ -16,7 +16,10 @@ const joinUrl = (base, path) => {
 };
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  // Requests are resolved to absolute URLs in the interceptor below. Keeping
+  // baseURL empty avoids production bundles or Axios URL merging from dropping
+  // the `/api/v1` prefix when a service passes paths like `/projects`.
+  baseURL: undefined,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
@@ -76,9 +79,8 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // Axios 1.x URL combining can drop `/api/v1` when the path starts with `/`.
-    if (config.baseURL && config.url && !/^https?:\/\//i.test(config.url)) {
-      config.url = joinUrl(config.baseURL, config.url);
+    if (config.url && !/^https?:\/\//i.test(config.url)) {
+      config.url = joinUrl(config.baseURL || API_BASE_URL, config.url);
       config.baseURL = undefined;
     }
     return config;
