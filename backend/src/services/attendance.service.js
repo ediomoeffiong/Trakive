@@ -505,26 +505,42 @@ async function listInternHistory(user, filters = {}) {
   const internship = filters.internship_record_id
     ? await InternshipRecordModel.findById(filters.internship_record_id)
     : await getActiveInternship(internId);
-  if (!internship) return { records: [], corrections: [], stats: { required_days: 0, attendance_percentage: 0 } };
+  if (filters.internship_record_id && (!internship || internship.user_id !== internId)) {
+    throw ApiError.forbidden('Attendance access denied for this internship record');
+  }
 
   const startDate = filters.start_date || `${localParts(new Date(), DEFAULT_TIMEZONE).date.slice(0, 8)}01`;
   const endDate = filters.end_date || localParts(new Date(), DEFAULT_TIMEZONE).date;
-  const records = await query(
-    `SELECT a.*, o.name AS office_name
-     FROM attendance a
-     LEFT JOIN attendance_offices o ON o.id = a.office_id
-     WHERE a.internship_record_id = $1 AND a.date BETWEEN $2 AND $3
-     ORDER BY a.date DESC`,
-    [internship.id, startDate, endDate]
-  );
+
+  const records = internship
+    ? await query(
+      `SELECT a.*, o.name AS office_name
+       FROM attendance a
+       LEFT JOIN attendance_offices o ON o.id = a.office_id
+       WHERE a.internship_record_id = $1 AND a.date BETWEEN $2 AND $3
+       ORDER BY a.date DESC`,
+      [internship.id, startDate, endDate]
+    )
+    : { rows: [] };
+
+  const correctionParams = [internId, startDate, endDate];
+  let correctionWhere = 'intern_id = $1 AND date BETWEEN $2 AND $3';
+  if (internship) {
+    correctionParams.push(internship.id);
+    correctionWhere = `(${correctionWhere} OR internship_record_id = $4)`;
+  }
   const corrections = await query(
-    `SELECT * FROM attendance_correction_requests
-     WHERE internship_record_id = $1
+    `SELECT *
+     FROM attendance_correction_requests
+     WHERE ${correctionWhere}
      ORDER BY created_at DESC
      LIMIT 50`,
-    [internship.id]
+    correctionParams
   );
-  const stats = await calculateScoreForInternship(internship.id, startDate, endDate);
+
+  const stats = internship
+    ? await calculateScoreForInternship(internship.id, startDate, endDate)
+    : { required_days: 0, credited_days: 0, attendance_percentage: 0 };
   return { records: records.rows, corrections: corrections.rows, stats };
 }
 

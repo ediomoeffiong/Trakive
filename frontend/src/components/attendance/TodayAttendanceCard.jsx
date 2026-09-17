@@ -36,11 +36,29 @@ function makeLocationError(code, message) {
   return error;
 }
 
-function getLocation() {
+async function getLocationPermissionState() {
+  if (!navigator.permissions?.query) return null;
+  try {
+    const permission = await navigator.permissions.query({ name: 'geolocation' });
+    return permission.state;
+  } catch {
+    return null;
+  }
+}
+
+async function getLocation() {
+  const permissionState = await getLocationPermissionState();
+  if (permissionState === 'denied') {
+    throw makeLocationError(
+      LOCATION_ERROR.DENIED,
+      'Location permission is blocked for Trakive. Enable location access in your browser site settings, then tap Check In again.',
+    );
+  }
+
   return new Promise((resolve, reject) => {
     if (typeof window !== 'undefined' && !window.isSecureContext) {
       reject(makeLocationError(
-        LOCATION_ERROR.DENIED,
+        LOCATION_ERROR.UNAVAILABLE,
         'Location check-in requires HTTPS or localhost. Open Trakive from a secure URL and try again.',
       ));
       return;
@@ -49,7 +67,10 @@ function getLocation() {
       reject(makeLocationError(LOCATION_ERROR.UNSUPPORTED, 'Geolocation is not available in this browser.'));
       return;
     }
-    navigator.geolocation.getCurrentPosition(resolve, reject, {
+    navigator.geolocation.getCurrentPosition(resolve, (error) => {
+      error.permissionState = permissionState;
+      reject(error);
+    }, {
       enableHighAccuracy: true,
       timeout: 15000,
       maximumAge: 0,
@@ -75,6 +96,9 @@ const getAttendanceErrorMessage = (err) => {
   }
   if (err.code === 1 || err.code === LOCATION_ERROR.DENIED) {
     if (/HTTPS|secure URL/i.test(err.message || '')) return err.message;
+    if (err.permissionState === 'granted') {
+      return 'Trakive has browser location access, but your device or operating system still denied the location lookup. Turn on device location services for this browser, then try again.';
+    }
     return 'Location permission is blocked for Trakive. Enable location access in your browser site settings, then tap Check In again.';
   }
   if (err.code === 2 || err.code === LOCATION_ERROR.UNAVAILABLE) {

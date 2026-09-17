@@ -660,6 +660,10 @@ const OnboardingService = {
     let mimeType = data.mime_type;
     let title = data.title;
 
+    if (!data.file) {
+      throw ApiError.badRequest('A PDF file upload is required for onboarding documents');
+    }
+
     if (data.file) {
       if (!ALLOWED_DOCUMENT_MIME_TYPES.has(data.file.mimetype)) {
         throw ApiError.badRequest('Only PDF, JPG, and PNG files are allowed');
