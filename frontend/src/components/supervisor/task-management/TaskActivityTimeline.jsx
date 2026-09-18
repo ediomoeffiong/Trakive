@@ -46,8 +46,11 @@ const TaskActivityTimeline = ({ timeline = [], isLoading = false }) => {
 
   if (!timeline || timeline.length === 0) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-neutral-400)', fontSize: '0.875rem' }}>
-        No timeline events recorded yet.
+      <div style={{ padding: '1.25rem 0.5rem', textAlign: 'center' }}>
+        <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>No timeline events yet</p>
+        <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.45 }}>
+          Assignment, submission, and review events for this task will appear here.
+        </p>
       </div>
     );
   }

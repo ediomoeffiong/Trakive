@@ -9,7 +9,7 @@ import {
   RiCloseCircleLine, RiTimeLine, RiLoader4Line, RiUser3Line,
   RiRefreshLine, RiCalendarCheckLine,
 } from 'react-icons/ri';
-import { Card, Button, EmptyState, Skeleton, Modal } from '../../components/ui';
+import { Card, Button, EmptyState, Skeleton, Modal, Avatar } from '../../components/ui';
 import { weeklyPlanService } from '../../services/weeklyPlanService';
 
 // ── Week helpers ──────────────────────────────────────────────────────────────
@@ -128,7 +128,7 @@ function ReviewModal({ plan, onClose, onComplete }) {
 }
 
 // ── Intern plan card ──────────────────────────────────────────────────────────
-function InternPlanCard({ plan, onReview }) {
+function InternPlanCard({ plan, onReview, onTaskClick }) {
   const [expanded, setExpanded] = useState(false);
   const statusCfg = PLAN_STATUS_STYLES[plan.status] || PLAN_STATUS_STYLES.open;
   const stats = plan.stats || {};
@@ -136,13 +136,15 @@ function InternPlanCard({ plan, onReview }) {
   const canReview = plan.status === 'submitted';
 
   return (
-    <Card style={{ padding: '1.1rem 1.25rem', marginBottom: '0.75rem' }}>
+    <Card style={{ padding: '1.1rem 1.25rem', marginBottom: '0.75rem', width: '100%' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', gap: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'var(--color-primary-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary-700)', flexShrink: 0 }}>
-            {(plan.intern_first_name || '?')[0].toUpperCase()}
-          </div>
+          <Avatar
+            name={`${plan.intern_first_name || ''} ${plan.intern_last_name || ''}`.trim() || plan.intern_email}
+            src={plan.intern_avatar || plan.internAvatar || plan.avatar_url}
+            size="md"
+          />
           <div>
             <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-neutral-900)' }}>
               {plan.intern_first_name} {plan.intern_last_name}
@@ -203,7 +205,11 @@ function InternPlanCard({ plan, onReview }) {
                     const eow = EOW_STYLES[t.end_of_week_status];
                     const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—';
                     return (
-                      <tr key={t.id} style={{ borderBottom: '1px solid var(--color-neutral-100)' }}>
+                      <tr
+                        key={t.id}
+                        onClick={() => onTaskClick?.(t, plan)}
+                        style={{ borderBottom: '1px solid var(--color-neutral-100)', cursor: onTaskClick ? 'pointer' : 'default' }}
+                      >
                         <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600, color: 'var(--color-neutral-900)', maxWidth: '180px' }}>
                           <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
                         </td>
@@ -231,7 +237,7 @@ function InternPlanCard({ plan, onReview }) {
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
-export default function WeeklyReview() {
+export default function WeeklyReview({ onTaskClick }) {
   const [weekStart, setWeekStart] = useState(getMondayOfWeek());
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -259,7 +265,7 @@ export default function WeeklyReview() {
   const submitted = plans.filter((p) => p.status === 'submitted').length;
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+    <div style={{ width: '100%', maxWidth: '100%', margin: 0, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
@@ -353,14 +359,17 @@ export default function WeeklyReview() {
           ))}
         </div>
       ) : plans.length === 0 ? (
-        <EmptyState
-          icon={<RiCalendarCheckLine style={{ fontSize: '2.5rem', color: 'var(--color-neutral-300)' }} />}
-          title="No submissions this week"
-          description="No interns have submitted their weekly report for this period"
-        />
+        <Card style={{ width: '100%' }}>
+          <EmptyState
+            variant="wide"
+            icon={<RiCalendarCheckLine style={{ fontSize: '2rem', color: 'var(--color-neutral-400)' }} />}
+            title="No submissions this week"
+            description="No interns have submitted their weekly report for this period. New submissions will appear here as full-width cards you can review one intern at a time."
+          />
+        </Card>
       ) : (
         plans.map((plan) => (
-          <InternPlanCard key={plan.id} plan={plan} onReview={setReviewTarget} />
+          <InternPlanCard key={plan.id} plan={plan} onReview={setReviewTarget} onTaskClick={onTaskClick} />
         ))
       )}
 

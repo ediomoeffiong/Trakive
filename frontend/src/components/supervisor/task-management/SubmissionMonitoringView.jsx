@@ -19,6 +19,7 @@ import {
 } from 'react-icons/ri';
 import { useSupervisorTaskStore } from '../../../store/useSupervisorTaskStore';
 import { SubmissionMonitoringSkeleton } from './TaskSkeletonLoaders';
+import { Avatar } from '../../ui';
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -132,8 +133,8 @@ const SubmissionCard = ({ submission }) => {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#4f46e5', color: '#fff', fontSize: '0.8125rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {submission.internInitials}
+          <div style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+            <Avatar name={submission.internName} src={submission.internAvatar} size="md" />
           </div>
           <div>
             <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
@@ -161,6 +162,22 @@ const SubmissionCard = ({ submission }) => {
       <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#4f46e5', background: '#eef2ff', padding: '0.25rem 0.625rem', borderRadius: '0.375rem', display: 'inline-block', alignSelf: 'flex-start' }}>
         {submission.taskTitle}
       </p>
+
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-neutral-600)', background: 'var(--color-neutral-100)', padding: '0.2rem 0.5rem', borderRadius: '9999px' }}>
+          {submission.progress ?? 0}% complete
+        </span>
+        {submission.estimatedHours != null && (
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-neutral-500)', background: 'var(--color-neutral-50)', padding: '0.2rem 0.5rem', borderRadius: '9999px', border: '1px solid var(--color-neutral-200)' }}>
+            {submission.estimatedHours}h estimated
+          </span>
+        )}
+        {submission.assignedCount != null && (
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-neutral-500)', background: 'var(--color-neutral-50)', padding: '0.2rem 0.5rem', borderRadius: '9999px', border: '1px solid var(--color-neutral-200)' }}>
+            {submission.assignedCount} assigned
+          </span>
+        )}
+      </div>
 
       {/* Note */}
       {submission.submissionNote && (

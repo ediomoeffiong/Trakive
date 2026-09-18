@@ -15,10 +15,6 @@ const PRIORITY_BADGES = {
 };
 
 const UpcomingDeadlines = ({ deadlines = [] }) => {
-  if (!deadlines || deadlines.length === 0) {
-    return <EmptyStates type="no-deadlines" message="No pending task deadlines for your interns." />;
-  }
-
   return (
     <div
       style={{
@@ -27,6 +23,7 @@ const UpcomingDeadlines = ({ deadlines = [] }) => {
         padding: '1.25rem',
         border: '1px solid var(--color-neutral-200)',
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+        minHeight: '100%',
       }}
     >
       <div style={{ marginBottom: '1.25rem' }}>
@@ -38,10 +35,19 @@ const UpcomingDeadlines = ({ deadlines = [] }) => {
         </p>
       </div>
 
+      {(!deadlines || deadlines.length === 0) ? (
+        <EmptyStates
+          type="no-deadlines"
+          compact
+          title="No upcoming deadlines"
+          message="Assigned intern tasks with due dates will appear here as soon as they are created."
+        />
+      ) : (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {deadlines.map((item, index) => {
-          const priorityStyle = PRIORITY_BADGES[item.priority] || PRIORITY_BADGES.Medium;
-          const isOverdue = item.isOverdue || item.status === 'Overdue';
+          const priorityKey = String(item.priority || 'Medium');
+          const priorityStyle = PRIORITY_BADGES[priorityKey] || PRIORITY_BADGES[priorityKey.charAt(0).toUpperCase() + priorityKey.slice(1).toLowerCase()] || PRIORITY_BADGES.Medium;
+          const isOverdue = item.isOverdue || item.status === 'Overdue' || item.status === 'overdue';
 
           return (
             <motion.div
@@ -69,7 +75,7 @@ const UpcomingDeadlines = ({ deadlines = [] }) => {
                     {item.taskTitle}
                   </p>
                   <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>
-                    Assigned to <span style={{ fontWeight: 600, color: 'var(--color-neutral-700)' }}>{item.internName}</span>
+                    Assigned to <span style={{ fontWeight: 600, color: 'var(--color-neutral-700)' }}>{item.internName || item.assignee || 'Unassigned'}</span>
                   </p>
                 </div>
               </div>
@@ -85,7 +91,7 @@ const UpcomingDeadlines = ({ deadlines = [] }) => {
                     color: priorityStyle.text,
                   }}
                 >
-                  {item.priority}
+                  {priorityKey.charAt(0).toUpperCase() + priorityKey.slice(1)}
                 </span>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 600, color: isOverdue ? '#dc2626' : 'var(--color-neutral-600)' }}>
@@ -97,6 +103,7 @@ const UpcomingDeadlines = ({ deadlines = [] }) => {
           );
         })}
       </div>
+      )}
     </div>
   );
 };

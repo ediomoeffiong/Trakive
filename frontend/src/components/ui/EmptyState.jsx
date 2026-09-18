@@ -19,7 +19,10 @@ const EmptyState = ({
   description,
   action,
   className = '',
+  variant = 'centered',
 }) => {
+  const isWide = variant === 'wide';
+
   return (
     <motion.div
       className={className}
@@ -28,12 +31,14 @@ const EmptyState = ({
       transition={{ duration: 0.35, ease: 'easeOut' }}
       style={{
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textAlign: 'center',
-        padding: '3rem 1.5rem',
-        gap: '1rem',
+        flexDirection: isWide ? 'row' : 'column',
+        alignItems: isWide ? 'flex-start' : 'center',
+        justifyContent: isWide ? 'flex-start' : 'center',
+        textAlign: isWide ? 'left' : 'center',
+        padding: isWide ? '1.5rem' : '3rem 1.5rem',
+        gap: isWide ? '1.25rem' : '1rem',
+        width: '100%',
+        boxSizing: 'border-box',
       }}
     >
       {/* Icon container */}
@@ -57,36 +62,37 @@ const EmptyState = ({
         </span>
       )}
 
-      {/* Title */}
-      <h3
-        style={{
-          margin: 0,
-          fontSize: '1.0625rem',
-          fontWeight: 600,
-          color: 'var(--color-neutral-800)',
-          lineHeight: 1.4,
-        }}
-      >
-        {title}
-      </h3>
-
-      {/* Description */}
-      {description && (
-        <p
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: isWide ? 'flex-start' : 'center', gap: '0.5rem', width: '100%' }}>
+        <h3
           style={{
             margin: 0,
-            fontSize: '0.875rem',
-            color: 'var(--color-neutral-500)',
-            maxWidth: '32ch',
-            lineHeight: 1.6,
+            fontSize: '1.0625rem',
+            fontWeight: 600,
+            color: 'var(--color-neutral-800)',
+            lineHeight: 1.4,
+            width: '100%',
           }}
         >
-          {description}
-        </p>
-      )}
+          {title}
+        </h3>
 
-      {/* Action */}
-      {action && <div style={{ marginTop: '0.5rem' }}>{action}</div>}
+        {description && (
+          <p
+            style={{
+              margin: 0,
+              fontSize: '0.875rem',
+              color: 'var(--color-neutral-500)',
+              maxWidth: isWide ? 'none' : '40ch',
+              lineHeight: 1.6,
+              width: '100%',
+            }}
+          >
+            {description}
+          </p>
+        )}
+
+        {action && <div style={{ marginTop: '0.5rem' }}>{action}</div>}
+      </div>
     </motion.div>
   );
 };

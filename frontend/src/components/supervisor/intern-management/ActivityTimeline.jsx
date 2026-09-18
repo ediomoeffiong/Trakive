@@ -32,7 +32,19 @@ const ActivityTimeline = ({ activities = [], isLoading = false }) => {
   if (isLoading) return <InternTimelineLoader />;
 
   if (!activities || activities.length === 0) {
-    return <InternEmptyState type="no-activity" />;
+    return (
+      <div
+        style={{
+          background: '#ffffff',
+          borderRadius: '1rem',
+          padding: '1.25rem',
+          border: '1px solid var(--color-neutral-200)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.04)',
+        }}
+      >
+        <InternEmptyState type="no-activity" />
+      </div>
+    );
   }
 
   return (

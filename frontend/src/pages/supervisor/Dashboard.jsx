@@ -17,10 +17,7 @@ import {
   QuickActions,
   ActivityFeed,
   UpcomingDeadlines,
-  PendingApprovalsWidget,
-  ReviewRemindersWidget,
   RecentlyAssignedWidget,
-  OrgAnnouncementsWidget,
   TeamPerformanceSummaryWidget,
   DashboardSkeleton,
 } from '../../components/supervisor';
@@ -285,19 +282,9 @@ const SupervisorDashboardPage = () => {
         </div>
       </section>
 
-      {/* 6. Supervisor Widgets Grid */}
-      <section aria-label="Supervisor Widgets">
-        <div style={{ marginBottom: '1rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
-            Operational Widgets
-          </h3>
-        </div>
-
+      <section aria-label="Team widgets">
         <div className="sup-dash-widgets">
-          <PendingApprovalsWidget approvals={widgets.pendingApprovals} />
-          <ReviewRemindersWidget reminders={widgets.reviewReminders} />
           <RecentlyAssignedWidget interns={widgets.recentlyAssigned} />
-          <OrgAnnouncementsWidget announcements={widgets.announcements} />
           <TeamPerformanceSummaryWidget summary={widgets.teamSummary} />
         </div>
       </section>

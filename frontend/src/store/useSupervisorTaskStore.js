@@ -11,6 +11,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { taskManagementService } from '../services/taskManagementService';
+import { useAppStore } from './useAppStore';
 
 const initialFilters = {
   search: '',
@@ -39,10 +40,12 @@ export const useSupervisorTaskStore = create(
 
       // ── Submission State ──────────────────────────────────────────────────
       submissions: [],
+      taskSubmissions: [],
       activeSubmissionTaskId: null,
 
       // ── Timeline State ────────────────────────────────────────────────────
       taskTimeline: [],
+      taskComments: [],
 
       // ── Dashboard Metrics ─────────────────────────────────────────────────
       kpis: [],
@@ -83,6 +86,7 @@ export const useSupervisorTaskStore = create(
         templates: false,
         submissions: false,
         timeline: false,
+        comments: false,
         action: false,   // create/update/delete/duplicate
       },
 
@@ -174,7 +178,7 @@ export const useSupervisorTaskStore = create(
         set({ isDetailsDrawerOpen: true, selectedTask: task }),
 
       closeDetailsDrawer: () =>
-        set({ isDetailsDrawerOpen: false, selectedTask: null, taskTimeline: [] }),
+        set({ isDetailsDrawerOpen: false, selectedTask: null, taskTimeline: [], taskComments: [] }),
 
       openAssignModal: (task = null) => {
         if (task) set({ selectedTask: task });
@@ -247,6 +251,7 @@ export const useSupervisorTaskStore = create(
           const res = await taskManagementService.createTask(taskData);
           set((s) => ({
             tasks: [res.task, ...s.tasks],
+            allTasks: [res.task, ...(s.allTasks || [])],
             totalTasks: s.totalTasks + 1,
             loading: { ...s.loading, action: false },
             isCreateModalOpen: false,
@@ -266,13 +271,21 @@ export const useSupervisorTaskStore = create(
         set((s) => ({ loading: { ...s.loading, action: true }, errors: { ...s.errors, action: null } }));
         try {
           const res = await taskManagementService.updateTask(taskId, updateData);
-          set((s) => ({
-            tasks: s.tasks.map((t) => (t.id === taskId ? res.task : t)),
-            selectedTask: s.selectedTask?.id === taskId ? res.task : s.selectedTask,
-            loading: { ...s.loading, action: false },
-            isCreateModalOpen: false,
-            editingTask: null,
-          }));
+          set((s) => {
+            const viewingArchived = s.activeTab === 'archived' || s.filters.status === 'archived';
+            const nextAll = (s.allTasks || s.tasks).map((t) => (t.id === taskId ? res.task : t));
+            const nextTasks = viewingArchived
+              ? nextAll.filter((t) => t.status === 'archived')
+              : (s.tasks.map((t) => (t.id === taskId ? res.task : t))).filter((t) => t.status !== 'archived');
+            return {
+              tasks: nextTasks,
+              allTasks: nextAll,
+              selectedTask: s.selectedTask?.id === taskId ? res.task : s.selectedTask,
+              loading: { ...s.loading, action: false },
+              isCreateModalOpen: false,
+              editingTask: null,
+            };
+          });
           return res.task;
         } catch (err) {
           set((s) => ({ loading: { ...s.loading, action: false }, errors: { ...s.errors, action: err.message || 'Failed to update task' } }));
@@ -289,6 +302,7 @@ export const useSupervisorTaskStore = create(
           await taskManagementService.deleteTask(taskId);
           set((s) => ({
             tasks: s.tasks.filter((t) => t.id !== taskId),
+            allTasks: (s.allTasks || []).filter((t) => t.id !== taskId),
             totalTasks: s.totalTasks - 1,
             selectedTaskIds: s.selectedTaskIds.filter((id) => id !== taskId),
             loading: { ...s.loading, action: false },
@@ -308,6 +322,7 @@ export const useSupervisorTaskStore = create(
           const res = await taskManagementService.duplicateTask(taskId);
           set((s) => ({
             tasks: [res.task, ...s.tasks],
+            allTasks: [res.task, ...(s.allTasks || [])],
             totalTasks: s.totalTasks + 1,
             loading: { ...s.loading, action: false },
           }));
@@ -333,6 +348,7 @@ export const useSupervisorTaskStore = create(
           if (action === 'delete') {
             set((s) => ({
               tasks: s.tasks.filter((t) => !selectedTaskIds.includes(t.id)),
+              allTasks: (s.allTasks || []).filter((t) => !selectedTaskIds.includes(t.id)),
               totalTasks: s.totalTasks - selectedTaskIds.length,
               selectedTaskIds: [],
               loading: { ...s.loading, action: false },
@@ -342,12 +358,16 @@ export const useSupervisorTaskStore = create(
               tasks: s.tasks.map((t) =>
                 selectedTaskIds.includes(t.id) ? { ...t, status: value } : t
               ),
+              allTasks: (s.allTasks || s.tasks).map((t) =>
+                selectedTaskIds.includes(t.id) ? { ...t, status: value } : t
+              ),
               selectedTaskIds: [],
               loading: { ...s.loading, action: false },
             }));
           } else if (action === 'archive') {
             set((s) => ({
-              tasks: s.tasks.map((t) =>
+              tasks: s.tasks.filter((t) => !selectedTaskIds.includes(t.id)),
+              allTasks: (s.allTasks || s.tasks).map((t) =>
                 selectedTaskIds.includes(t.id) ? { ...t, status: 'archived' } : t
               ),
               selectedTaskIds: [],
@@ -411,11 +431,11 @@ export const useSupervisorTaskStore = create(
         set((s) => ({ loading: { ...s.loading, submissions: true }, errors: { ...s.errors, submissions: null } }));
         try {
           const res = await taskManagementService.fetchSubmissions(taskId);
-          set((s) => ({
-            submissions: res.submissions,
-            activeSubmissionTaskId: taskId,
-            loading: { ...s.loading, submissions: false },
-          }));
+          set((s) => (
+            taskId
+              ? { taskSubmissions: res.submissions, activeSubmissionTaskId: taskId, loading: { ...s.loading, submissions: false } }
+              : { submissions: res.submissions, loading: { ...s.loading, submissions: false } }
+          ));
         } catch (err) {
           set((s) => ({ loading: { ...s.loading, submissions: false }, errors: { ...s.errors, submissions: err.message } }));
         }
@@ -432,6 +452,28 @@ export const useSupervisorTaskStore = create(
         } catch {
           set((s) => ({ loading: { ...s.loading, timeline: false } }));
         }
+      },
+
+      fetchTaskComments: async (taskId) => {
+        set((s) => ({ loading: { ...s.loading, comments: true } }));
+        try {
+          const res = await taskManagementService.fetchTaskComments(taskId);
+          set((s) => ({ taskComments: res.comments, loading: { ...s.loading, comments: false } }));
+        } catch {
+          set((s) => ({ taskComments: [], loading: { ...s.loading, comments: false } }));
+        }
+      },
+
+      addTaskComment: async (taskId, message) => {
+        const user = useAppStore.getState()?.user;
+        const res = await taskManagementService.addTaskComment(taskId, {
+          message,
+          authorName: user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Supervisor',
+          authorRole: user?.role || user?.role_name || 'Supervisor',
+          avatar: user?.avatarUrl || user?.avatar_url || user?.avatar || null,
+        });
+        set((s) => ({ taskComments: [...(s.taskComments || []), res.comment] }));
+        return res.comment;
       },
 
       /**

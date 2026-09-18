@@ -22,6 +22,33 @@ const isPendingTaskReview = (task) => {
   return ['submitted', 'in-review', 'under-review', 'pending-review', 'in_review'].includes(status);
 };
 
+const formatRelative = (value) => {
+  if (!value) return 'Recently';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  const mins = Math.round((Date.now() - date.getTime()) / 60000);
+  if (mins < 60) return `${Math.max(1, mins)}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+};
+
+const formatDueDate = (value) => {
+  if (!value) return '';
+  const date = new Date(String(value).includes('T') ? value : `${String(value).slice(0, 10)}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+const taskStatus = (task) => String(task?.status || '').toLowerCase().replace(/_/g, '-');
+const assigneeName = (task) =>
+  task.assignee_name ||
+  [task.assignee_first_name, task.assignee_last_name].filter(Boolean).join(' ') ||
+  task.internName ||
+  'Unassigned intern';
+
 export const supervisorService = {
   async fetchDashboard() {
     try {
@@ -135,19 +162,35 @@ export const supervisorService = {
 
   async fetchActivity() {
     try {
-      const res = await api.get('/audit-logs', { params: { limit: 10 } });
-      const logs = res.data?.data || res.data || [];
-      return {
-        activities: logs.map(l => ({
-          id: l.id,
-          user: l.user_name || 'System',
-          action: l.action,
-          target: l.entity_type,
-          time: new Date(l.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          date: l.created_at,
-          avatar: l.user_avatar || null,
-        }))
-      };
+      const res = await api.get('/tasks', { params: { page: 1, limit: 100, sort: 'updated_at:desc' } });
+      const tasks = unwrapList(res);
+      const activities = [...tasks]
+        .sort((a, b) => String(b.updated_at || b.updatedAt || b.created_at || '').localeCompare(String(a.updated_at || a.updatedAt || a.created_at || '')))
+        .slice(0, 8)
+        .map((task) => {
+          const status = taskStatus(task);
+          const user = assigneeName(task);
+          const meta =
+            status === 'completed' || status === 'reviewed'
+              ? { type: 'review', title: 'Completed', badgeColor: 'green', verb: 'completed' }
+              : status === 'pending-review' || status === 'submitted' || status === 'in-review'
+                ? { type: 'submission', title: 'Submitted', badgeColor: 'blue', verb: 'submitted' }
+                : status === 'overdue'
+                  ? { type: 'assignment', title: 'Overdue', badgeColor: 'amber', verb: 'is overdue on' }
+                  : { type: 'assignment', title: 'Assigned', badgeColor: 'purple', verb: 'was assigned' };
+
+          return {
+            id: task.id,
+            user,
+            avatar: task.assignee_avatar || task.avatar_url || null,
+            type: meta.type,
+            title: meta.title,
+            description: `${user} ${meta.verb} "${task.title || 'a task'}"`,
+            time: formatRelative(task.updated_at || task.updatedAt || task.created_at),
+            badgeColor: meta.badgeColor,
+          };
+        });
+      return { activities };
     } catch {
       return { activities: [] };
     }
@@ -155,18 +198,35 @@ export const supervisorService = {
 
   async fetchDeadlines() {
     try {
-      const res = await api.get('/tasks', { params: { status: 'todo,in_progress', limit: 10 } });
-      const tasks = res.data?.data || res.data || [];
-      return {
-        deadlines: tasks.filter(t => t.due_date).map(t => ({
-          id: t.id,
-          title: t.title,
-          assignee: t.assignee_name || 'Unassigned',
-          dueDate: t.due_date,
-          priority: t.priority || 'normal',
-          status: t.status,
-        }))
-      };
+      const res = await api.get('/tasks', { params: { page: 1, limit: 100, sort: 'due_date:asc' } });
+      const tasks = unwrapList(res);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const deadlines = tasks
+        .filter((task) => task.due_date || task.dueDate)
+        .filter((task) => !['completed', 'archived', 'cancelled'].includes(taskStatus(task)))
+        .map((task) => {
+          const dueRaw = task.due_date || task.dueDate;
+          const due = new Date(`${String(dueRaw).slice(0, 10)}T00:00:00`);
+          const isOverdue = !Number.isNaN(due.getTime()) && due < today;
+          const priority = String(task.priority || 'medium');
+          return {
+            id: task.id,
+            taskTitle: task.title,
+            internName: assigneeName(task),
+            internAvatar: task.assignee_avatar || task.avatar_url || null,
+            dueDate: formatDueDate(dueRaw),
+            priority: priority.charAt(0).toUpperCase() + priority.slice(1),
+            status: isOverdue ? 'Overdue' : task.status,
+            isOverdue,
+            sortKey: Number.isNaN(due.getTime()) ? Number.MAX_SAFE_INTEGER : due.getTime(),
+          };
+        })
+        .sort((a, b) => a.sortKey - b.sortKey)
+        .slice(0, 8);
+
+      return { deadlines };
     } catch {
       return { deadlines: [] };
     }
@@ -174,15 +234,21 @@ export const supervisorService = {
 
   async fetchWidgets() {
     try {
-      const [queueRes, internsRes, weeklyRes] = await Promise.all([
+      const [queueRes, internsRes, weeklyRes, tasksRes] = await Promise.all([
         api.get('/onboarding/supervisor/queue').catch(() => ({ data: {} })),
         api.get('/interns', { params: { limit: 100 } }).catch(() => ({ data: {} })),
         api.get('/weekly-plans', { params: { limit: 100 } }).catch(() => ({ data: {} })),
+        api.get('/tasks', { params: { page: 1, limit: 100 } }).catch(() => ({ data: {} })),
       ]);
 
-      const queue = queueRes.data?.data || queueRes.data || [];
-      const interns = internsRes.data?.data?.items || internsRes.data?.items || internsRes.data?.data || [];
-      const weekly = weeklyRes.data?.data || weeklyRes.data || [];
+      const queue = unwrapList(queueRes);
+      const interns = Array.isArray(internsRes.data?.data?.items)
+        ? internsRes.data.data.items
+        : Array.isArray(internsRes.data?.items)
+          ? internsRes.data.items
+          : unwrapList(internsRes);
+      const weekly = unwrapList(weeklyRes);
+      const tasks = unwrapList(tasksRes);
 
       const queueItems = Array.isArray(queue) ? queue : [];
       const pendingApprovals = queueItems.map((item, idx) => ({
@@ -203,10 +269,15 @@ export const supervisorService = {
         urgency: 'warning',
       }));
 
-      const recentlyAssigned = interns.slice(0, 5).map((i, idx) => {
+      const recentlyAssigned = [...interns]
+        .sort((a, b) => String(b.created_at || b.createdAt || '').localeCompare(String(a.created_at || a.createdAt || '')))
+        .slice(0, 5)
+        .map((i, idx) => {
         const name = `${i.first_name || ''} ${i.last_name || ''}`.trim() || i.email;
+        const internId = i.user_id || i.id;
         return normalizePersonRecord({
-          id: i.user_id || i.id || `intern-${idx}`,
+          id: internId || `intern-${idx}`,
+          internId,
           name,
           department: normalizeDepartmentForPerson({ ...i, name }, i.department_name || 'Department'),
           assignedDate: i.created_at ? new Date(i.created_at).toLocaleDateString() : 'recently',
@@ -216,16 +287,44 @@ export const supervisorService = {
       });
 
       const totalCount = interns.length;
-      const readyCount = interns.filter(i => i.onboarding_ready).length;
-      const avgProgress = totalCount > 0 ? Math.round((readyCount / totalCount) * 100) : 0;
-      const topPerformer = interns[0] ? `${interns[0].first_name} ${interns[0].last_name}`.trim() : '—';
+      const readyCount = interns.filter((i) => i.onboarding_ready).length;
+      const activeTasks = tasks.filter((task) => !['archived', 'cancelled'].includes(taskStatus(task)));
+      const completedCount = activeTasks.filter((task) => ['completed', 'reviewed'].includes(taskStatus(task))).length;
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const overdueCount = activeTasks.filter((task) => taskStatus(task) === 'overdue' || (
+        (task.due_date || task.dueDate) &&
+        !['completed', 'archived'].includes(taskStatus(task)) &&
+        new Date(`${String(task.due_date || task.dueDate).slice(0, 10)}T00:00:00`) < startOfToday
+      )).length;
+      const completionRate = activeTasks.length ? Math.round((completedCount / activeTasks.length) * 100) : 0;
+      const onTimeRate = activeTasks.length ? Math.round(((activeTasks.length - overdueCount) / activeTasks.length) * 100) : 0;
+      const scores = interns
+        .map((intern) => Number(intern.performance_score || intern.performanceScore))
+        .filter((score) => Number.isFinite(score) && score > 0);
+      const avgScore = scores.length ? (scores.reduce((sum, score) => sum + score, 0) / scores.length) : 0;
+      const topIntern = [...interns]
+        .sort((a, b) => Number(b.performance_score || 0) - Number(a.performance_score || 0))[0];
+      const topName = topIntern
+        ? `${topIntern.first_name || ''} ${topIntern.last_name || ''}`.trim() || topIntern.email || '—'
+        : '—';
 
       return {
         pendingApprovals,
         reviewReminders,
         recentlyAssigned,
         announcements: [],
-        teamSummary: { totalInterns: totalCount, avgProgress, topPerformer },
+        teamSummary: {
+          completionRate: `${completionRate}%`,
+          onTimeRate: `${onTimeRate}%`,
+          satisfactionScore: totalCount
+            ? (avgScore ? `${avgScore.toFixed(1)}/5` : `${readyCount}/${totalCount} ready`)
+            : '—',
+          topPerformingDept: topName,
+          totalInterns: totalCount,
+          avgProgress: completionRate,
+          topPerformer: topName,
+        },
       };
     } catch {
       return {
@@ -233,7 +332,7 @@ export const supervisorService = {
         reviewReminders: [],
         recentlyAssigned: [],
         announcements: [],
-        teamSummary: { totalInterns: 0, avgProgress: 0, topPerformer: '—' },
+        teamSummary: { completionRate: '0%', onTimeRate: '0%', satisfactionScore: '—', topPerformingDept: '—' },
       };
     }
   },

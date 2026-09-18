@@ -4,6 +4,7 @@
  * Includes: Pending Approvals, Review Reminders, Recently Assigned Interns, Org Announcements, Team Performance Summary.
  */
 
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -12,9 +13,10 @@ import {
   RiUserAddLine,
   RiMegaphoneLine,
   RiTrophyLine,
-  RiArrowRightSLine,
 } from 'react-icons/ri';
 import Avatar from '../ui/Avatar';
+import EmptyStates from './EmptyStates';
+import { ROUTES } from '../../constants';
 
 export const PendingApprovalsWidget = ({ approvals = [] }) => {
   return (
@@ -112,6 +114,14 @@ export const ReviewRemindersWidget = ({ reminders = [] }) => {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+        {reminders.length === 0 && (
+          <EmptyStates
+            type="no-reviews"
+            compact
+            title="No review reminders"
+            message="Submitted weekly reports that still need your attention will show up here."
+          />
+        )}
         {reminders.map((rem, idx) => (
           <div
             key={rem.id || rem.intern_id || `reminder-${idx}`}
@@ -144,6 +154,8 @@ export const ReviewRemindersWidget = ({ reminders = [] }) => {
 };
 
 export const RecentlyAssignedWidget = ({ interns = [] }) => {
+  const navigate = useNavigate();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -167,17 +179,43 @@ export const RecentlyAssignedWidget = ({ interns = [] }) => {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {interns.map((item, idx) => (
-          <div
-            key={item.id || item.user_id || `intern-${idx}`}
+        {interns.length === 0 ? (
+          <EmptyStates
+            type="no-interns"
+            compact
+            title="No recently assigned interns"
+            message="Interns assigned to you will appear here. Open a profile from this list once they are on your team."
+          />
+        ) : interns.map((item, idx) => {
+          const internId = item.internId || item.user_id || item.id;
+          return (
+          <button
+            key={internId || `intern-${idx}`}
+            type="button"
+            onClick={() => internId && navigate(ROUTES.SUPERVISOR_INTERN_DETAILS.replace(':internId', internId))}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.75rem',
+              width: '100%',
+              textAlign: 'left',
+              background: 'transparent',
+              border: '1px solid transparent',
+              borderRadius: '0.75rem',
+              padding: '0.35rem 0.4rem',
+              cursor: internId ? 'pointer' : 'default',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--color-neutral-50)';
+              e.currentTarget.style.borderColor = 'var(--color-neutral-200)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.borderColor = 'transparent';
             }}
           >
             <Avatar name={item.name} src={item.avatar} size="md" />
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-900)' }}>
                 {item.name}
               </p>
@@ -185,8 +223,9 @@ export const RecentlyAssignedWidget = ({ interns = [] }) => {
                 {item.department} • Assigned {item.assignedDate || item.assignedAt || 'recently'}
               </p>
             </div>
-          </div>
-        ))}
+          </button>
+          );
+        })}
       </div>
     </motion.div>
   );
@@ -216,6 +255,14 @@ export const OrgAnnouncementsWidget = ({ announcements = [] }) => {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {announcements.length === 0 && (
+          <EmptyStates
+            type="no-activity"
+            compact
+            title="No announcements yet"
+            message="Organization updates from HR and department leads will appear in this card."
+          />
+        )}
         {announcements.map((ann, idx) => (
           <div
             key={ann.id || `announcement-${idx}`}
@@ -254,31 +301,31 @@ export const TeamPerformanceSummaryWidget = ({ summary = {} }) => {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-        <RiTrophyLine style={{ color: '#fbbf24', fontSize: '1.25rem' }} />
+        <RiTrophyLine style={{ color: '#ffffff', fontSize: '1.25rem' }} />
         <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#ffffff' }}>
           Team Performance Summary
         </h4>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-        <div style={{ background: 'rgba(255, 255, 255, 0.1)', borderRadius: '0.5rem', padding: '0.625rem' }}>
-          <p style={{ margin: 0, fontSize: '0.75rem', color: '#c7d2fe' }}>Task Completion</p>
-          <p style={{ margin: '0.2rem 0 0 0', fontSize: '1.25rem', fontWeight: 800 }}>{summary.completionRate || '92%'}</p>
+        <div style={{ background: 'rgba(255, 255, 255, 0.12)', borderRadius: '0.5rem', padding: '0.625rem' }}>
+          <p style={{ margin: 0, fontSize: '0.75rem', color: '#ffffff' }}>Task Completion</p>
+          <p style={{ margin: '0.2rem 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#ffffff' }}>{summary.completionRate || '0%'}</p>
         </div>
 
-        <div style={{ background: 'rgba(255, 255, 255, 0.1)', borderRadius: '0.5rem', padding: '0.625rem' }}>
-          <p style={{ margin: 0, fontSize: '0.75rem', color: '#c7d2fe' }}>On-Time Rate</p>
-          <p style={{ margin: '0.2rem 0 0 0', fontSize: '1.25rem', fontWeight: 800 }}>{summary.onTimeRate || '88%'}</p>
+        <div style={{ background: 'rgba(255, 255, 255, 0.12)', borderRadius: '0.5rem', padding: '0.625rem' }}>
+          <p style={{ margin: 0, fontSize: '0.75rem', color: '#ffffff' }}>On-Time Rate</p>
+          <p style={{ margin: '0.2rem 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#ffffff' }}>{summary.onTimeRate || '0%'}</p>
         </div>
 
-        <div style={{ background: 'rgba(255, 255, 255, 0.1)', borderRadius: '0.5rem', padding: '0.625rem' }}>
-          <p style={{ margin: 0, fontSize: '0.75rem', color: '#c7d2fe' }}>Satisfaction</p>
-          <p style={{ margin: '0.2rem 0 0 0', fontSize: '1.25rem', fontWeight: 800 }}>{summary.satisfactionScore || '4.7/5'}</p>
+        <div style={{ background: 'rgba(255, 255, 255, 0.12)', borderRadius: '0.5rem', padding: '0.625rem' }}>
+          <p style={{ margin: 0, fontSize: '0.75rem', color: '#ffffff' }}>Satisfaction</p>
+          <p style={{ margin: '0.2rem 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#ffffff' }}>{summary.satisfactionScore || '—'}</p>
         </div>
 
-        <div style={{ background: 'rgba(255, 255, 255, 0.1)', borderRadius: '0.5rem', padding: '0.625rem' }}>
-          <p style={{ margin: 0, fontSize: '0.75rem', color: '#c7d2fe' }}>Top Performing</p>
-          <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8125rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{summary.topPerformingDept || 'UI/UX Design'}</p>
+        <div style={{ background: 'rgba(255, 255, 255, 0.12)', borderRadius: '0.5rem', padding: '0.625rem' }}>
+          <p style={{ margin: 0, fontSize: '0.75rem', color: '#ffffff' }}>Top Performing</p>
+          <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8125rem', fontWeight: 700, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{summary.topPerformingDept || '—'}</p>
         </div>
       </div>
     </motion.div>

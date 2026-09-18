@@ -20,6 +20,11 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import EmptyStates from './EmptyStates';
+
+const ChartEmpty = ({ title, message }) => (
+  <EmptyStates type="no-activity" compact title={title} message={message} />
+);
 
 export const PerformanceTrendChart = ({ data = [] }) => {
   return (
@@ -44,6 +49,12 @@ export const PerformanceTrendChart = ({ data = [] }) => {
         </p>
       </div>
 
+      {(!data || data.length === 0) ? (
+        <ChartEmpty
+          title="No performance trend yet"
+          message="Weekly intern scores will chart here once reviews are recorded."
+        />
+      ) : (
       <div style={{ width: '100%', height: 260 }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
@@ -81,6 +92,7 @@ export const PerformanceTrendChart = ({ data = [] }) => {
           </LineChart>
         </ResponsiveContainer>
       </div>
+      )}
     </motion.div>
   );
 };
@@ -108,6 +120,12 @@ export const TaskDistributionChart = ({ data = [] }) => {
         </p>
       </div>
 
+      {(!data || data.length === 0) ? (
+        <ChartEmpty
+          title="No task distribution yet"
+          message="Completed and in-progress tasks will show here once work is assigned."
+        />
+      ) : (
       <div style={{ width: '100%', height: 260 }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -130,6 +148,7 @@ export const TaskDistributionChart = ({ data = [] }) => {
           </BarChart>
         </ResponsiveContainer>
       </div>
+      )}
     </motion.div>
   );
 };
@@ -157,6 +176,12 @@ export const ReviewStatusDonutChart = ({ data = [] }) => {
         </p>
       </div>
 
+      {(!data || data.length === 0 || data.every((entry) => !entry.value)) ? (
+        <ChartEmpty
+          title="No review status data"
+          message="Review outcomes will appear here after intern evaluations are completed."
+        />
+      ) : (
       <div style={{ width: '100%', height: 260 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -186,6 +211,7 @@ export const ReviewStatusDonutChart = ({ data = [] }) => {
           </PieChart>
         </ResponsiveContainer>
       </div>
+      )}
     </motion.div>
   );
 };
@@ -213,6 +239,12 @@ export const OnboardingProgressChart = ({ data = [] }) => {
         </p>
       </div>
 
+      {(!data || data.length === 0) ? (
+        <ChartEmpty
+          title="No onboarding progress yet"
+          message="Intern pathway stages will fill in as onboarding work is completed."
+        />
+      ) : (
       <div style={{ width: '100%', height: 260 }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ top: 10, right: 20, left: 30, bottom: 0 }}>
@@ -235,6 +267,7 @@ export const OnboardingProgressChart = ({ data = [] }) => {
           </BarChart>
         </ResponsiveContainer>
       </div>
+      )}
     </motion.div>
   );
 };

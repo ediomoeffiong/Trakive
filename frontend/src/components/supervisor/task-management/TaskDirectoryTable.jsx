@@ -24,6 +24,7 @@ import {
 } from 'react-icons/ri';
 import TaskEmptyState from './TaskEmptyStates';
 import { TaskTableSkeleton } from './TaskSkeletonLoaders';
+import { Avatar } from '../../ui';
 
 // ── Status style map ──────────────────────────────────────────────────────────
 const STATUS_STYLES = {
@@ -60,20 +61,15 @@ const InternAvatarStack = ({ interns = [], max = 3 }) => {
             width: '26px',
             height: '26px',
             borderRadius: '50%',
-            background: COLORS[i % COLORS.length],
-            color: '#fff',
-            fontSize: '0.6875rem',
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            overflow: 'hidden',
             border: '2px solid #fff',
             marginLeft: i > 0 ? '-6px' : 0,
             zIndex: visible.length - i,
             flexShrink: 0,
+            background: COLORS[i % COLORS.length],
           }}
         >
-          {intern.initials}
+          <Avatar name={intern.name} src={intern.avatar} size="xs" />
         </div>
       ))}
       {extra > 0 && (

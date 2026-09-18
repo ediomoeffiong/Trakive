@@ -5,8 +5,6 @@
  */
 
 import {
-  mockDashboardMetrics,
-  mockSummaryReportCards,
   mockFilterOptions,
   mockTasks,
   mockReviews,
@@ -52,6 +50,69 @@ const onboardingRateFromStatus = (status, completionRate) => {
 const currentUserName = (user) =>
   user?.name || [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Current User';
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const dateOnly = (date) => date.toISOString().slice(0, 10);
+
+const getDateRangeParams = (dateRange) => {
+  if (!dateRange || dateRange === 'all_time') return {};
+
+  const now = new Date();
+  const start = new Date(now);
+
+  if (dateRange === 'this_week') {
+    const day = start.getDay();
+    start.setDate(start.getDate() - day);
+  } else if (dateRange === 'this_month') {
+    start.setDate(1);
+  } else if (dateRange === 'last_30') {
+    start.setDate(start.getDate() - 30);
+  } else if (dateRange === 'last_90') {
+    start.setDate(start.getDate() - 90);
+  } else if (dateRange === 'ytd') {
+    start.setMonth(0, 1);
+  } else {
+    return {};
+  }
+
+  return {
+    startDate: dateOnly(start),
+    endDate: dateOnly(now),
+  };
+};
+
+const normalizeTaskStatus = (status) => {
+  const normalized = String(status || '').trim().toLowerCase();
+  const statusMap = {
+    completed: 'completed',
+    'in progress': 'in_progress',
+    'pending review': 'submitted',
+    overdue: 'overdue',
+  };
+  return statusMap[normalized] || null;
+};
+
+const buildAnalyticsParams = (filters = {}) => {
+  const params = {
+    ...getDateRangeParams(filters.dateRange),
+  };
+
+  if (UUID_PATTERN.test(filters.departmentId || filters.department || '')) {
+    params.departmentId = filters.departmentId || filters.department;
+  }
+  if (UUID_PATTERN.test(filters.supervisorId || filters.supervisor || '')) {
+    params.supervisorId = filters.supervisorId || filters.supervisor;
+  }
+  if (UUID_PATTERN.test(filters.internId || filters.intern || '')) {
+    params.internId = filters.internId || filters.intern;
+  }
+
+  const status = normalizeTaskStatus(filters.status || filters.taskStatus);
+  if (status && status !== 'overdue') params.status = status;
+
+  return params;
+};
+
 const calcTrend = (current, previous, suffix = '%') => {
   const c = Number(current || 0);
   const p = Number(previous || 0);
@@ -60,11 +121,12 @@ const calcTrend = (current, previous, suffix = '%') => {
   return `${delta >= 0 ? '+' : ''}${Math.round(delta)}${suffix}`;
 };
 
-const fetchLiveDashboardMetrics = async () => {
+const fetchLiveDashboardMetrics = async (filters = {}) => {
+  const params = buildAnalyticsParams(filters);
   const [dashboardRes, taskRes, performanceRes] = await Promise.all([
-    api.get('/analytics/dashboard'),
-    api.get('/analytics/tasks').catch(() => null),
-    api.get('/analytics/performance').catch(() => null),
+    api.get('/analytics/dashboard', { params }),
+    api.get('/analytics/tasks', { params }).catch(() => null),
+    api.get('/analytics/performance', { params }).catch(() => null),
   ]);
 
   const data = unwrap(dashboardRes);
@@ -107,7 +169,7 @@ const fetchLiveDashboardMetrics = async () => {
         name: topIntern.name || currentUserName(user),
         role: data.role === 'intern' ? 'Intern' : 'Intern',
         department: topIntern.department_name || user?.department || user?.department_name || 'FifthLab',
-        avatar: user?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+        avatar: topIntern.avatar_url || topIntern.avatar || null,
         metricLabel: 'Overall Score',
         metricValue: `${Math.round(Number(topIntern.overall_score ?? completionRate ?? 0))}%`,
       }
@@ -116,7 +178,7 @@ const fetchLiveDashboardMetrics = async () => {
         name: currentUserName(user),
         role: data.role === 'intern' ? 'Intern' : 'Workspace',
         department: user?.department || user?.department_name || 'FifthLab',
-        avatar: user?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+        avatar: user?.avatar_url || user?.avatarUrl || user?.avatar || null,
         metricLabel: 'Overall Score',
         metricValue: `${Math.round(Number(completionRate || 0))}%`,
       };
@@ -126,7 +188,7 @@ const fetchLiveDashboardMetrics = async () => {
         badge: data.role === 'intern' ? 'Productivity Growth' : 'Most Improved',
         name: improvedIntern.name || currentUserName(user),
         role: improvedIntern.department_name || user?.department || user?.department_name || 'Intern',
-        avatar: user?.avatar_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+        avatar: improvedIntern.avatar_url || improvedIntern.avatar || null,
         metricLabel: 'Month-over-month completed task growth',
         metricValue: `${Number(improvedIntern.productivity_growth_pct || 0) >= 0 ? '+' : ''}${Math.round(Number(improvedIntern.productivity_growth_pct || 0))}%`,
       }
@@ -134,7 +196,7 @@ const fetchLiveDashboardMetrics = async () => {
         badge: 'Productivity Growth',
         name: currentUserName(user),
         role: user?.department || user?.department_name || 'Intern',
-        avatar: user?.avatar_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+        avatar: user?.avatar_url || user?.avatarUrl || user?.avatar || null,
         metricLabel: 'Productivity index change',
         metricValue: calcTrend(currentMonthProductivity, previousMonthProductivity),
       };
@@ -143,7 +205,7 @@ const fetchLiveDashboardMetrics = async () => {
     badge: data.role === 'supervisor' ? 'Your Review Load' : 'Review Throughput',
     name: currentUserName(user),
     role: user?.role_name || user?.role || 'Supervisor',
-    avatar: user?.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+    avatar: user?.avatar_url || user?.avatarUrl || user?.avatar || null,
     assignedCount: activeInterns,
     reviewVelocity: `${pendingReviews} pending review${pendingReviews === 1 ? '' : 's'}`,
   };
@@ -203,10 +265,11 @@ const fetchLiveDashboardMetrics = async () => {
   };
 };
 
-const fetchLiveChartData = async () => {
+const fetchLiveChartData = async (filters = {}) => {
+  const params = buildAnalyticsParams(filters);
   const [dashboardRes, taskRes] = await Promise.all([
-    api.get('/analytics/dashboard'),
-    api.get('/analytics/tasks').catch(() => null),
+    api.get('/analytics/dashboard', { params }),
+    api.get('/analytics/tasks', { params }).catch(() => null),
   ]);
 
   const data = unwrap(dashboardRes);
@@ -368,12 +431,8 @@ export const analyticsService = {
    * @param {object} filters
    */
   async getDashboardMetrics(filters = {}) {
-    try {
-      const live = await fetchLiveDashboardMetrics();
-      if (live) return live;
-    } catch {
-      // Fall through to local/mock data so intern analytics still renders.
-    }
+    const live = await fetchLiveDashboardMetrics(filters);
+    if (live) return live;
 
     await delay(300);
 
@@ -406,7 +465,7 @@ export const analyticsService = {
         name: top.name || top.fullName || 'Active Intern',
         role: top.track || top.role || 'Intern',
         department: user?.department || 'FifthLab',
-        avatar: top.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+        avatar: top.avatar || top.avatarUrl || top.avatar_url || null,
         metricLabel: 'Tasks Completed',
         metricValue: `${completedTasks} tasks`,
       };
@@ -420,7 +479,7 @@ export const analyticsService = {
         badge: 'Top Supervisor',
         name: sup.name || 'Supervisor',
         role: sup.department || 'Supervisor',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+        avatar: sup.avatar || sup.avatarUrl || sup.avatar_url || null,
         assignedCount: activeInternsCount,
         reviewVelocity: `${completedReviews} reviews`,
       };
@@ -492,12 +551,8 @@ export const analyticsService = {
    * @param {object} filters
    */
   async getChartData(filters = {}) {
-    try {
-      const live = await fetchLiveChartData();
-      if (live) return live;
-    } catch {
-      // Fall through to local/mock data so intern analytics still renders.
-    }
+    const live = await fetchLiveChartData(filters);
+    if (live) return live;
 
     await delay(350);
 
@@ -708,7 +763,7 @@ export const analyticsService = {
   /**
    * Fetch automated AI system insights.
    */
-  async getAIInsights(filters = {}) {
+  async getAIInsights(_filters = {}) {
     await delay(300);
     if (!isDemoUser()) {
       const tasks = getStoredItems('trakive_tasks');

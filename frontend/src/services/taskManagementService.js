@@ -7,8 +7,13 @@
 import { mockSupervisorTasks } from '../data/supervisorTasks';
 import { mockTaskTemplates } from '../data/taskTemplates';
 import { mockTaskSubmissions } from '../data/taskSubmissions';
+import { mockTaskComments } from '../data/taskComments';
+import { mockUserDirectory } from '../data/users';
 import { getTaskTimeline } from '../data/taskTimeline';
 import api from './api';
+
+const LOCAL_TASKS_KEY = 'trakive_supervisor_tasks_local';
+const LOCAL_COMMENTS_KEY = 'trakive_supervisor_task_comments';
 
 // ── Simulated network delay ──────────────────────────────────────────────────
 const DELAY_MS = 350;
@@ -39,6 +44,103 @@ const toDateKey = (value) => {
 
 const initialsFor = (name = '') =>
   name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'IN';
+
+let internAvatarIndex = null;
+
+const readLocalTasks = () => {
+  if (typeof localStorage === 'undefined') return [];
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LOCAL_TASKS_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeLocalTasks = (tasks) => {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem(LOCAL_TASKS_KEY, JSON.stringify(tasks));
+};
+
+const upsertLocalTask = (task) => {
+  const local = readLocalTasks().filter((item) => String(item.id) !== String(task.id));
+  writeLocalTasks([{ ...task, _local: true }, ...local]);
+};
+
+const markLocalDeleted = (taskId) => {
+  const local = readLocalTasks().filter((item) => String(item.id) !== String(taskId));
+  writeLocalTasks([{ id: taskId, _deleted: true }, ...local]);
+};
+
+const mergeLocalTasks = (remoteTasks = []) => {
+  const byId = new Map(remoteTasks.map((task) => [String(task.id), task]));
+  readLocalTasks().forEach((localTask) => {
+    const key = String(localTask.id);
+    if (localTask._deleted) {
+      byId.delete(key);
+      return;
+    }
+    const existing = byId.get(key);
+    byId.set(key, existing ? { ...existing, ...localTask } : localTask);
+  });
+  return Array.from(byId.values());
+};
+
+const readLocalComments = () => {
+  if (typeof localStorage === 'undefined') return {};
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LOCAL_COMMENTS_KEY) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const writeLocalComments = (store) => {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem(LOCAL_COMMENTS_KEY, JSON.stringify(store));
+};
+
+const buildInternAvatarIndex = async () => {
+  if (internAvatarIndex) return internAvatarIndex;
+  internAvatarIndex = {};
+
+  const indexAvatar = (id, email, name, avatar) => {
+    if (!avatar) return;
+    if (id) internAvatarIndex[String(id)] = internAvatarIndex[String(id)] || avatar;
+    if (email) internAvatarIndex[String(email).toLowerCase()] = internAvatarIndex[String(email).toLowerCase()] || avatar;
+    if (name) internAvatarIndex[String(name).toLowerCase()] = internAvatarIndex[String(name).toLowerCase()] || avatar;
+  };
+
+  mockUserDirectory.forEach((user) => indexAvatar(user.id, user.email, user.name, user.avatar));
+
+  try {
+    const res = await api.get('/interns', { params: { limit: 100 } });
+    const { items } = unwrapApiList(res);
+    items.forEach((intern) => {
+      const name = intern.name || intern.fullName || [intern.first_name, intern.last_name].filter(Boolean).join(' ');
+      indexAvatar(
+        intern.user_id || intern.id,
+        intern.email,
+        name,
+        intern.avatar_url || intern.avatarUrl || intern.avatar
+      );
+    });
+  } catch {
+    // Keep directory fallback if intern list is unavailable.
+  }
+
+  return internAvatarIndex;
+};
+
+const lookupAvatar = (intern = {}, index = internAvatarIndex || {}) =>
+  intern.avatar ||
+  intern.avatarUrl ||
+  intern.avatar_url ||
+  index[String(intern.id || '')] ||
+  index[String(intern.email || intern.assigneeEmail || '').toLowerCase()] ||
+  index[String(intern.name || '').toLowerCase()] ||
+  null;
 
 const normalizeStatus = (status, dueDate) => {
   const raw = String(status || 'todo').toLowerCase().replace(/_/g, '-');
@@ -79,16 +181,38 @@ const completionForStatus = (status, fallback = 0) => {
   return 0;
 };
 
-const normalizeTask = (raw = {}) => {
+const normalizeTask = (raw = {}, avatarIndex = internAvatarIndex || {}) => {
   const dueDate = toDateKey(raw.dueDate || raw.due_date);
   const assigneeName = raw.assigneeName || raw.assignee_name ||
     [raw.assignee_first_name, raw.assignee_last_name].filter(Boolean).join(' ') ||
     raw.internName || raw.intern_name || '';
-  const assignedInterns = Array.isArray(raw.assignedInterns)
+  const assigneeEmail = raw.assigneeEmail || raw.assignee_email || raw.internEmail || '';
+  const assigneeId = raw.assignee_id || raw.intern_id || raw.assigneeId || raw.id;
+  const assignedInterns = (Array.isArray(raw.assignedInterns)
     ? raw.assignedInterns
     : assigneeName
-      ? [{ id: raw.assignee_id || raw.intern_id || raw.assigneeId || 'intern', name: assigneeName, initials: initialsFor(assigneeName) }]
-      : [];
+      ? [{
+          id: assigneeId || 'intern',
+          name: assigneeName,
+          email: assigneeEmail,
+          initials: initialsFor(assigneeName),
+          avatar: raw.assignee_avatar || raw.assigneeAvatar || raw.avatar_url || raw.avatar,
+        }]
+      : []
+  ).map((intern) => {
+    const name = intern.name || intern.fullName || '';
+    return {
+      ...intern,
+      id: intern.id || intern.internId || intern.user_id || intern.assignee_id || intern.email || name,
+      name,
+      initials: intern.initials || initialsFor(name),
+      avatar: lookupAvatar({
+        ...intern,
+        name,
+        email: intern.email || intern.assigneeEmail || assigneeEmail,
+      }, avatarIndex),
+    };
+  });
   const status = normalizeStatus(raw.status, dueDate);
   const completionPercentage = completionForStatus(status, raw.completionPercentage ?? raw.progress);
 
@@ -134,19 +258,22 @@ const getStoredTasks = () => {
 };
 
 const syncTaskStore = async () => {
+  const avatarIndex = await buildInternAvatarIndex();
+  let remoteTasks = [];
+
   try {
     const response = await api.get('/tasks', { params: { page: 1, limit: 100, sort: 'due_date:asc' } });
     const { items } = unwrapApiList(response);
-    if (items.length > 0) {
-      tasksStore = items.map(normalizeTask);
-      return tasksStore;
-    }
+    if (items.length > 0) remoteTasks = items;
   } catch {
     // Offline or unauthenticated demo mode falls through to local data.
   }
 
-  const fallbackTasks = [...mockSupervisorTasks, ...getStoredTasks()];
-  tasksStore = fallbackTasks.map(normalizeTask);
+  if (remoteTasks.length === 0) {
+    remoteTasks = [...mockSupervisorTasks, ...getStoredTasks()];
+  }
+
+  tasksStore = mergeLocalTasks(remoteTasks).map((task) => normalizeTask(task, avatarIndex));
   return tasksStore;
 };
 
@@ -220,8 +347,11 @@ function applyFilters(tasks, filters = {}) {
   if (filters.status && filters.status !== 'all') {
     result = result.filter((t) => {
       if (filters.status === 'active') return isActiveTask(t) && !['completed', 'overdue', 'pending-review'].includes(t.status);
+      if (filters.status === 'archived') return t.status === 'archived';
       return t.status === filters.status;
     });
+  } else {
+    result = result.filter((t) => t.status !== 'archived');
   }
 
   if (filters.priority && filters.priority !== 'all') {
@@ -322,6 +452,7 @@ export const taskManagementService = {
       assignedInterns: taskData.assignedInterns || [],
     });
     tasksStore = [newTask, ...tasksStore];
+    upsertLocalTask(newTask);
     return { task: newTask };
   },
 
@@ -334,7 +465,8 @@ export const taskManagementService = {
     await delay(350);
     const index = tasksStore.findIndex((t) => t.id === taskId);
     if (index === -1) throw new Error(`Task ${taskId} not found`);
-    tasksStore[index] = { ...tasksStore[index], ...updateData };
+    tasksStore[index] = normalizeTask({ ...tasksStore[index], ...updateData });
+    upsertLocalTask(tasksStore[index]);
     return { task: tasksStore[index] };
   },
 
@@ -347,6 +479,7 @@ export const taskManagementService = {
     const before = tasksStore.length;
     tasksStore = tasksStore.filter((t) => t.id !== taskId);
     if (tasksStore.length === before) throw new Error(`Task ${taskId} not found`);
+    markLocalDeleted(taskId);
     return { success: true, taskId };
   },
 
@@ -358,17 +491,18 @@ export const taskManagementService = {
     await delay(350);
     const original = tasksStore.find((t) => t.id === taskId);
     if (!original) throw new Error(`Task ${taskId} not found`);
-    const duplicate = {
+    const duplicate = normalizeTask({
       ...JSON.parse(JSON.stringify(original)),
-      id: `task-${String(++nextId).padStart(3, '0')}`,
+      id: `task-copy-${Date.now()}`,
       title: `${original.title} (Copy)`,
-      status: 'draft',
-      assignedInterns: [],
+      status: original.status === 'archived' ? 'draft' : original.status,
+      assignedInterns: original.assignedInterns || [],
       submissionCount: 0,
       completionPercentage: 0,
       createdDate: new Date().toISOString().split('T')[0],
-    };
+    });
     tasksStore = [duplicate, ...tasksStore];
+    upsertLocalTask(duplicate);
     return { task: duplicate };
   },
 
@@ -387,12 +521,15 @@ export const taskManagementService = {
 
       if (actionData.action === 'delete') {
         tasksStore = tasksStore.filter((t) => t.id !== taskId);
+        markLocalDeleted(taskId);
         results.push({ taskId, success: true });
       } else if (actionData.action === 'status') {
         tasksStore[index] = { ...tasksStore[index], status: actionData.value };
+        upsertLocalTask(tasksStore[index]);
         results.push({ taskId, success: true, task: tasksStore[index] });
       } else if (actionData.action === 'archive') {
         tasksStore[index] = { ...tasksStore[index], status: 'archived' };
+        upsertLocalTask(tasksStore[index]);
         results.push({ taskId, success: true, task: tasksStore[index] });
       }
     }
@@ -443,38 +580,48 @@ export const taskManagementService = {
     const tasks = await syncTaskStore();
     await delay(120);
     const derived = tasks
+      .filter((task) => task.status !== 'archived' && task.status !== 'draft')
       .filter((task) => !taskId || task.id === taskId)
       .map((task) => {
+        const intern = task.assignedInterns[0] || {};
         const submitted = ['pending-review', 'completed', 'needs-revision'].includes(task.status);
-        const isLate = task.status === 'overdue';
+        const isLate = task.status === 'overdue' || (submitted && task.dueDate && new Date(`${task.dueDate}T23:59:59`) < new Date());
         const status =
           task.status === 'completed' ? 'reviewed'
           : task.status === 'needs-revision' ? 'needs-revision'
           : task.status === 'pending-review' ? 'submitted'
           : task.status === 'overdue' ? 'late'
-          : task.completionPercentage > 0 ? 'pending'
+          : ['assigned', 'in-progress'].includes(task.status) ? 'pending'
           : 'not-started';
 
         return {
           id: `sub-${task.id}`,
           taskId: task.id,
           taskTitle: task.title,
-          internName: task.assignedInterns[0]?.name || 'Unassigned intern',
-          internInitials: task.assignedInterns[0]?.initials || 'IN',
+          internName: intern.name || 'Unassigned intern',
+          internInitials: intern.initials || 'IN',
+          internAvatar: intern.avatar || null,
           status,
-          attemptNumber: submitted ? 1 : 0,
+          attemptNumber: submitted ? Math.max(1, Number(task.submissionCount || 1)) : 0,
           submittedAt: submitted ? (task.updatedAt || task.createdDate || task.dueDate) : null,
           dueDate: task.dueDate,
           isLate,
-          score: task.status === 'completed' ? 100 : null,
-          submissionNote: submitted ? task.submissionRequirements || task.description : '',
+          score: task.status === 'completed' ? (task.completionPercentage || 100) : null,
+          progress: Number(task.completionPercentage || 0),
+          estimatedHours: task.estimatedHours,
+          assignedCount: task.totalAssigned || task.assignedInterns.length,
+          submissionNote: submitted ? (task.submissionRequirements || task.description) : '',
           links: [],
           feedback: null,
           reviewedBy: null,
         };
       });
-    const filtered = mockTaskSubmissions.length > 0 ? mockTaskSubmissions : derived;
-    return { submissions: filtered };
+    const extras = (mockTaskSubmissions || []).filter((item) => !taskId || item.taskId === taskId);
+    const byId = new Map(derived.map((item) => [item.id, item]));
+    extras.forEach((item) => {
+      if (!byId.has(item.id)) byId.set(item.id, item);
+    });
+    return { submissions: Array.from(byId.values()) };
   },
 
   /**
@@ -484,6 +631,32 @@ export const taskManagementService = {
   fetchTaskTimeline: async (taskId) => {
     await delay(250);
     return { timeline: getTaskTimeline(taskId) };
+  },
+
+  fetchTaskComments: async (taskId) => {
+    await delay(80);
+    const local = readLocalComments();
+    const seeded = mockTaskComments[taskId] || [];
+    const stored = local[taskId] || [];
+    const byId = new Map();
+    [...seeded, ...stored].forEach((comment) => byId.set(comment.id, comment));
+    return { comments: Array.from(byId.values()).sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp))) };
+  },
+
+  addTaskComment: async (taskId, commentData = {}) => {
+    await delay(150);
+    const newComment = {
+      id: `c-${taskId}-${Date.now()}`,
+      authorName: commentData.authorName || 'Supervisor',
+      authorRole: commentData.authorRole || 'Supervisor',
+      avatar: commentData.avatar || null,
+      timestamp: new Date().toISOString(),
+      message: String(commentData.message || '').trim(),
+    };
+    const store = readLocalComments();
+    store[taskId] = [...(store[taskId] || []), newComment];
+    writeLocalComments(store);
+    return { comment: newComment };
   },
 
   /**

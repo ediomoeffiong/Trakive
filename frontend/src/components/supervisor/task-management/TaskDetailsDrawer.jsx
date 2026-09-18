@@ -23,10 +23,12 @@ import {
   RiMessageLine,
   RiFileTextLine,
   RiDownloadLine,
+  RiSendPlane2Line,
 } from 'react-icons/ri';
 import TaskActivityTimeline from './TaskActivityTimeline';
 import { TaskDetailsSkeleton } from './TaskSkeletonLoaders';
 import { useSupervisorTaskStore } from '../../../store/useSupervisorTaskStore';
+import { Avatar } from '../../ui';
 
 const STATUS_STYLES = {
   draft:            { bg: '#f1f5f9', text: '#475569', label: 'Draft' },
@@ -151,8 +153,11 @@ const InternsTab = ({ task }) => {
 
   if (!task.assignedInterns || task.assignedInterns.length === 0) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-neutral-400)', fontSize: '0.875rem' }}>
-        No interns assigned to this task yet.
+      <div style={{ padding: '1.25rem 0.75rem', textAlign: 'center' }}>
+        <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>No interns assigned</p>
+        <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.45 }}>
+          Assign this task to an intern from the board or assignment modal.
+        </p>
       </div>
     );
   }
@@ -161,8 +166,8 @@ const InternsTab = ({ task }) => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
       {task.assignedInterns.map((intern) => (
         <div key={intern.id} style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.875rem', background: '#fff', borderRadius: '0.875rem', border: '1px solid var(--color-neutral-200)' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#4f46e5', color: '#fff', fontSize: '0.875rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {intern.initials}
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+            <Avatar name={intern.name} src={intern.avatar} size="md" />
           </div>
           <div style={{ flex: 1 }}>
             <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>{intern.name}</p>
@@ -184,7 +189,16 @@ const InternsTab = ({ task }) => {
 
 const SubmissionsTab = ({ taskId, submissions = [], isLoading }) => {
   if (isLoading) return <div style={{ padding: '1rem', color: 'var(--color-neutral-400)', fontSize: '0.875rem' }}>Loading submissions...</div>;
-  if (submissions.length === 0) return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-neutral-400)', fontSize: '0.875rem' }}>No submissions yet.</div>;
+  if (submissions.length === 0) {
+    return (
+      <div style={{ padding: '1.25rem 0.75rem', textAlign: 'center' }}>
+        <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>No submissions yet</p>
+        <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.45 }}>
+          Intern work submitted against this task will appear here for review.
+        </p>
+      </div>
+    );
+  }
 
   const STATUS_COLORS = { submitted: '#3b82f6', reviewed: '#10b981', 'needs-revision': '#ef4444', late: '#f59e0b' };
 
@@ -194,8 +208,8 @@ const SubmissionsTab = ({ taskId, submissions = [], isLoading }) => {
         <div key={sub.id} style={{ background: '#fff', borderRadius: '0.875rem', padding: '1rem', border: '1px solid var(--color-neutral-200)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.625rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#7c3aed', color: '#fff', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {sub.internInitials}
+              <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden' }}>
+                <Avatar name={sub.internName} src={sub.internAvatar} size="sm" />
               </div>
               <div>
                 <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>{sub.internName}</p>
@@ -235,14 +249,105 @@ const SubmissionsTab = ({ taskId, submissions = [], isLoading }) => {
   );
 };
 
-const CommentsTab = () => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-    <div style={{ padding: '0.875rem 1rem', background: '#faf5ff', borderRadius: '0.875rem', border: '1px solid #e9d5ff' }}>
-      <p style={{ margin: 0, fontSize: '0.8125rem', color: '#6d28d9', fontWeight: 600 }}>💬 Comments are coming soon!</p>
-      <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#7c3aed' }}>Real-time supervisor–intern comment threads will be available in the next module update.</p>
+const CommentsTab = ({ taskId }) => {
+  const { taskComments, loading, fetchTaskComments, addTaskComment } = useSupervisorTaskStore();
+  const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (taskId) fetchTaskComments(taskId);
+  }, [taskId, fetchTaskComments]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const message = draft.trim();
+    if (!message || sending) return;
+    setSending(true);
+    try {
+      await addTaskComment(taskId, message);
+      setDraft('');
+      toast.success('Comment posted.');
+    } catch {
+      toast.error('Could not post comment.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (loading.comments) {
+    return <div style={{ padding: '1rem', color: 'var(--color-neutral-400)', fontSize: '0.875rem' }}>Loading comments...</div>;
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      {taskComments.length === 0 ? (
+        <div style={{ padding: '1.5rem', textAlign: 'center', background: 'var(--color-neutral-50)', borderRadius: '0.875rem', border: '1px solid var(--color-neutral-200)' }}>
+          <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>No comments yet</p>
+          <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>Start a discussion with the assigned intern.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {taskComments.map((comment) => (
+            <div key={comment.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+              <Avatar name={comment.authorName} src={comment.avatar} size="sm" />
+              <div style={{ flex: 1, padding: '0.75rem 0.875rem', background: 'var(--color-neutral-50)', border: '1px solid var(--color-neutral-100)', borderRadius: '0 0.75rem 0.75rem 0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <div>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>{comment.authorName}</span>
+                    {comment.authorRole && (
+                      <span style={{ marginLeft: '0.4rem', fontSize: '0.6875rem', color: 'var(--color-neutral-400)' }}>{comment.authorRole}</span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.6875rem', color: 'var(--color-neutral-400)', whiteSpace: 'nowrap' }}>
+                    {new Date(comment.timestamp).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-700)', lineHeight: 1.55 }}>{comment.message}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-neutral-100)' }}>
+        <input
+          type="text"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder="Write a comment…"
+          style={{
+            flex: 1,
+            padding: '0.6rem 0.85rem',
+            borderRadius: '0.75rem',
+            border: '1px solid var(--color-neutral-200)',
+            fontSize: '0.8125rem',
+            outline: 'none',
+          }}
+        />
+        <button
+          type="submit"
+          disabled={sending || !draft.trim()}
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '0.75rem',
+            border: 'none',
+            background: '#00b4d8',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: sending || !draft.trim() ? 'not-allowed' : 'pointer',
+            opacity: sending || !draft.trim() ? 0.5 : 1,
+          }}
+          aria-label="Post comment"
+        >
+          <RiSendPlane2Line />
+        </button>
+      </form>
     </div>
-  </div>
-);
+  );
+};
 
 // ── Main Drawer ───────────────────────────────────────────────────────────────
 const TaskDetailsDrawer = ({
@@ -252,6 +357,7 @@ const TaskDetailsDrawer = ({
   onEdit,
   onAssign,
   onDuplicate,
+  onArchive,
   submissions = [],
   isLoadingSubmissions = false,
   timeline = [],
@@ -335,7 +441,7 @@ const TaskDetailsDrawer = ({
                       {task.priority?.charAt(0).toUpperCase() + task.priority?.slice(1)} Priority
                     </span>
                   </div>
-                  <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                  <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', color: '#fff' }}>
                     {task.title}
                   </h2>
                 </div>
@@ -346,33 +452,33 @@ const TaskDetailsDrawer = ({
 
               {/* Quick meta */}
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.75rem', color: '#c7d2fe', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <span style={{ fontSize: '0.75rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                   <RiCalendarLine /> Due {task.dueDate}
                 </span>
-                <span style={{ fontSize: '0.75rem', color: '#c7d2fe', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <span style={{ fontSize: '0.75rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                   <RiTimeLine /> {task.estimatedHours}h estimated
                 </span>
-                <span style={{ fontSize: '0.75rem', color: '#c7d2fe' }}>
+                <span style={{ fontSize: '0.75rem', color: '#fff' }}>
                   {task.assignedInterns?.length || 0} intern(s) · {task.submissionCount} submission(s)
                 </span>
               </div>
 
               {/* Quick actions */}
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.875rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.875rem', flexWrap: 'wrap' }}>
                 {[
                   { label: 'Edit', icon: RiEdit2Line, onClick: () => { onEdit?.(task); onClose(); } },
                   { label: 'Assign', icon: RiUserAddLine, onClick: () => { onAssign?.(task); onClose(); } },
                   { label: 'Duplicate', icon: RiFileCopyLine, onClick: () => { onDuplicate?.(task); } },
-                  { label: 'Archive', icon: RiArchiveLine, onClick: () => { toast.success('Task archived.'); onClose(); } },
+                  { label: 'Archive', icon: RiArchiveLine, onClick: () => { onArchive?.(task); onClose(); } },
                 ].map(({ label, icon: Icon, onClick }) => (
                   <motion.button
                     key={label}
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={onClick}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#c7d2fe', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.75rem', borderRadius: '0.5rem', background: '#fff', border: 'none', color: '#00b4d8', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
                   >
-                    <Icon style={{ fontSize: '0.875rem' }} /> {label}
+                    <Icon style={{ fontSize: '0.875rem', color: '#00b4d8' }} /> {label}
                   </motion.button>
                 ))}
               </div>
@@ -419,7 +525,7 @@ const TaskDetailsDrawer = ({
                   {activeTab === 'interns' && <InternsTab task={task} />}
                   {activeTab === 'submissions' && <SubmissionsTab taskId={task.id} submissions={submissions} isLoading={isLoadingSubmissions} />}
                   {activeTab === 'timeline' && <TaskActivityTimeline timeline={timeline} isLoading={isLoadingTimeline} />}
-                  {activeTab === 'comments' && <CommentsTab />}
+                  {activeTab === 'comments' && <CommentsTab taskId={task.id} />}
                 </motion.div>
               </AnimatePresence>
             </div>

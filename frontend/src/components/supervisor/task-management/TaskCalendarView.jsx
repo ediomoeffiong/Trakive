@@ -75,7 +75,7 @@ const getCalendarDays = (year, month) => {
 const formatDateKey = (y, m, d) =>
   `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 
-const DayCell = ({ day, month, year, isCurrentMonth, tasks = [], isToday, onDayClick, selectedDate }) => {
+const DayCell = ({ day, month, year, isCurrentMonth, tasks = [], isToday, onDayClick, onTaskClick, selectedDate }) => {
   const dateKey = formatDateKey(year, month, day);
   const isSelected = selectedDate === dateKey;
   const MAX_SHOW = 2;
@@ -122,6 +122,10 @@ const DayCell = ({ day, month, year, isCurrentMonth, tasks = [], isToday, onDayC
         <div
           key={task.id}
           title={task.title}
+          onClick={(event) => {
+            event.stopPropagation();
+            onTaskClick?.(task);
+          }}
           style={{
             fontSize: '0.625rem',
             fontWeight: 700,
@@ -133,6 +137,7 @@ const DayCell = ({ day, month, year, isCurrentMonth, tasks = [], isToday, onDayC
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
             borderLeft: `2.5px solid ${PRIORITY_COLORS[task.priority] || '#94a3b8'}`,
+            cursor: 'pointer',
           }}
         >
           {task.title}
@@ -149,7 +154,7 @@ const DayCell = ({ day, month, year, isCurrentMonth, tasks = [], isToday, onDayC
   );
 };
 
-const AgendaView = ({ taskMap, year, month }) => {
+const AgendaView = ({ taskMap, year, month, onTaskClick }) => {
   const entries = Object.entries(taskMap)
     .filter(([dateKey]) => {
       const [y, m] = dateKey.split('-').map(Number);
@@ -178,6 +183,7 @@ const AgendaView = ({ taskMap, year, month }) => {
             {tasks.map((task) => (
               <div
                 key={task.id}
+                onClick={() => onTaskClick?.(task)}
                 style={{
                   padding: '0.625rem 0.875rem',
                   background: '#fff',
@@ -188,6 +194,7 @@ const AgendaView = ({ taskMap, year, month }) => {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: '0.5rem',
+                  cursor: 'pointer',
                 }}
               >
                 <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-neutral-800)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -211,7 +218,7 @@ const AgendaView = ({ taskMap, year, month }) => {
 };
 
 // ── Selected Day Panel ────────────────────────────────────────────────────────
-const DayDetailPanel = ({ dateKey, tasks, onClose }) => {
+const DayDetailPanel = ({ dateKey, tasks, onClose, onTaskClick }) => {
   if (!tasks || tasks.length === 0) return null;
   const date = new Date(dateKey + 'T12:00:00');
 
@@ -252,12 +259,14 @@ const DayDetailPanel = ({ dateKey, tasks, onClose }) => {
         {tasks.map((task) => (
           <div
             key={task.id}
+            onClick={() => onTaskClick?.(task)}
             style={{
               padding: '0.625rem',
               background: 'var(--color-neutral-50)',
               borderRadius: '0.625rem',
               border: '1px solid var(--color-neutral-100)',
               borderLeft: `3px solid ${PRIORITY_COLORS[task.priority] || '#94a3b8'}`,
+              cursor: 'pointer',
             }}
           >
             <p style={{ margin: '0 0 0.25rem', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-800)', lineHeight: 1.3 }}>{task.title}</p>
@@ -278,7 +287,7 @@ const DayDetailPanel = ({ dateKey, tasks, onClose }) => {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 const TaskCalendarView = () => {
-  const { tasks, allTasks, loading, fetchTasks } = useSupervisorTaskStore();
+  const { tasks, allTasks, loading, fetchTasks, openDetailsDrawer } = useSupervisorTaskStore();
   const [viewMode, setViewMode] = useState('month'); // month | agenda
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
@@ -421,13 +430,14 @@ const TaskCalendarView = () => {
                         isToday={isToday}
                         selectedDate={selectedDate}
                         onDayClick={handleDayClick}
+                        onTaskClick={openDetailsDrawer}
                       />
                     );
                   })}
                 </div>
               </>
             ) : (
-              <AgendaView taskMap={taskMap} year={currentYear} month={currentMonth} />
+              <AgendaView taskMap={taskMap} year={currentYear} month={currentMonth} onTaskClick={openDetailsDrawer} />
             )}
           </div>
 
@@ -435,7 +445,7 @@ const TaskCalendarView = () => {
           <AnimatePresence>
             {selectedDate && selectedDateTasks.length > 0 && (
               <div style={{ padding: '1rem 1rem 1rem 0' }}>
-                <DayDetailPanel dateKey={selectedDate} tasks={selectedDateTasks} onClose={() => setSelectedDate(null)} />
+                <DayDetailPanel dateKey={selectedDate} tasks={selectedDateTasks} onClose={() => setSelectedDate(null)} onTaskClick={openDetailsDrawer} />
               </div>
             )}
           </AnimatePresence>

@@ -13,6 +13,7 @@ import {
   RiBuildingLine,
   RiUserStarLine,
 } from 'react-icons/ri';
+import Avatar from '../ui/Avatar';
 
 
 export const ReportSummaryGrid = ({ summaryCards }) => {
@@ -52,10 +53,10 @@ export const ReportSummaryGrid = ({ summaryCards }) => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1rem' }}>
-            <img
+            <Avatar
               src={bestPerformingIntern.avatar}
-              alt={bestPerformingIntern.name}
-              style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }}
+              name={bestPerformingIntern.name}
+              size="lg"
             />
             <div>
               <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
@@ -93,10 +94,10 @@ export const ReportSummaryGrid = ({ summaryCards }) => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1rem' }}>
-            <img
+            <Avatar
               src={mostImprovedIntern.avatar}
-              alt={mostImprovedIntern.name}
-              style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }}
+              name={mostImprovedIntern.name}
+              size="lg"
             />
             <div>
               <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
@@ -134,10 +135,10 @@ export const ReportSummaryGrid = ({ summaryCards }) => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1rem' }}>
-            <img
+            <Avatar
               src={supervisorPerformance.avatar}
-              alt={supervisorPerformance.name}
-              style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }}
+              name={supervisorPerformance.name}
+              size="lg"
             />
             <div>
               <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>

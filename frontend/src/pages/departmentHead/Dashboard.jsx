@@ -145,6 +145,14 @@ const ActivityFeed = ({ activities = [] }) => {
   return (
     <div style={{ background: '#fff', borderRadius: '1rem', padding: '1.25rem', border: '1px solid var(--color-neutral-200)', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
       <h4 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-800)' }}>Recent Department Activity</h4>
+      {(!activities || activities.length === 0) ? (
+        <div style={{ padding: '0.75rem 0.25rem', textAlign: 'center' }}>
+          <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>No recent activity</p>
+          <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.45 }}>
+            Reviews, approvals, and task updates from this department will appear here.
+          </p>
+        </div>
+      ) : (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
         {activities.map((act, i) => {
           const style = TYPE_COLORS[act.type] || TYPE_COLORS.task;
@@ -163,6 +171,7 @@ const ActivityFeed = ({ activities = [] }) => {
           );
         })}
       </div>
+      )}
     </div>
   );
 };

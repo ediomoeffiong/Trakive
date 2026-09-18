@@ -78,7 +78,12 @@ const RecentReviewsActivity = ({ submissions, history }) => {
     <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', padding: '1.25rem', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
       <h3 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-800)' }}>Recent Review Activity</h3>
       {items.length === 0 ? (
-        <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-400)' }}>No recent activity.</p>
+        <div style={{ padding: '0.5rem 0', textAlign: 'center' }}>
+          <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>No recent activity</p>
+          <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.45 }}>
+            Approved, pending, and revised intern reviews will appear here.
+          </p>
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {items.map((item) => (
@@ -397,7 +402,12 @@ const ReviewManagementPage = () => {
                   <button onClick={() => setActiveTab('schedule')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: ACCENT_COLOR, fontSize: '0.8125rem', fontWeight: 700 }}>View all →</button>
                 </div>
                 {upcomingReviews.length === 0 ? (
-                  <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-400)' }}>No upcoming reviews scheduled.</p>
+                  <div style={{ padding: '0.5rem 0', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>No upcoming reviews</p>
+                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.45 }}>
+                      Scheduled intern reviews will show here with dates and names.
+                    </p>
+                  </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
                     {upcomingReviews.slice(0, 4).map((r) => (

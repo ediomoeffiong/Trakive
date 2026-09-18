@@ -18,6 +18,7 @@ import {
   RiDashboardLine,
   RiRefreshLine,
   RiCalendarCheckLine,
+  RiArchiveLine,
 } from 'react-icons/ri';
 
 import { useSupervisorTaskStore } from '../../store/useSupervisorTaskStore';
@@ -51,6 +52,7 @@ const TABS = [
   { id: 'submissions', label: 'Submitted', icon: RiFileUploadLine },
   { id: 'weekly',      label: 'Weekly',    icon: RiCalendarCheckLine },
   { id: 'calendar',    label: 'Calendar',  icon: RiCalendarEventLine },
+  { id: 'archived',    label: 'Archived',  icon: RiArchiveLine },
   { id: 'templates',   label: 'Templates', icon: RiLayoutGridLine },
 ];
 
@@ -70,7 +72,14 @@ const ActivityFeed = ({ items = [] }) => {
         Recent Activity
       </h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {items.map((item) => {
+        {items.length === 0 ? (
+          <div style={{ padding: '1.25rem 0.5rem', textAlign: 'center' }}>
+            <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>No recent activity</p>
+            <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.45 }}>
+              Intern submissions, assignments, and completed tasks will appear here.
+            </p>
+          </div>
+        ) : items.map((item) => {
           const style = TYPE_STYLES[item.type] || TYPE_STYLES.assigned;
           return (
             <motion.div
@@ -118,7 +127,14 @@ const UpcomingDeadlines = ({ deadlines = [] }) => {
         Upcoming Deadlines
       </h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-        {deadlines.map((item) => (
+        {deadlines.length === 0 ? (
+          <div style={{ padding: '1.25rem 0.5rem', textAlign: 'center' }}>
+            <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>No upcoming deadlines</p>
+            <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.45 }}>
+              Tasks with due dates will show here so you can follow up before they become overdue.
+            </p>
+          </div>
+        ) : deadlines.map((item) => (
           <div
             key={item.id}
             style={{
@@ -170,6 +186,7 @@ const TaskManagementPage = () => {
     // State
     activeTab,
     tasks,
+    allTasks,
     totalTasks,
     totalPages,
     currentPage,
@@ -184,6 +201,7 @@ const TaskManagementPage = () => {
     upcomingDeadlines,
     templates,
     submissions,
+    taskSubmissions,
     taskTimeline,
     isCreateModalOpen,
     isDetailsDrawerOpen,
@@ -262,7 +280,7 @@ const TaskManagementPage = () => {
   }, [queryString]);
 
   useEffect(() => {
-    if (activeTab === 'directory' || activeTab === 'calendar') fetchTasks();
+    if (activeTab === 'directory' || activeTab === 'calendar' || activeTab === 'archived') fetchTasks();
     if (activeTab === 'submissions') fetchSubmissions();
     if (activeTab === 'templates') fetchTemplates();
   }, [activeTab]);
@@ -307,6 +325,36 @@ const TaskManagementPage = () => {
   const handleAssignTask = (task) => {
     openAssignModal(task);
   };
+
+  const handleWeeklyTaskClick = (weeklyTask, plan) => {
+    const catalog = allTasks?.length ? allTasks : tasks;
+    const match = catalog.find((task) =>
+      String(task.id) === String(weeklyTask.id) ||
+      String(task.raw?.id) === String(weeklyTask.id) ||
+      (weeklyTask.title && task.title === weeklyTask.title)
+    );
+    const internName = `${plan?.intern_first_name || ''} ${plan?.intern_last_name || ''}`.trim();
+    handleViewTask(match || {
+      id: weeklyTask.id,
+      title: weeklyTask.title || 'Weekly task',
+      description: weeklyTask.description || weeklyTask.weekly_note || '',
+      status: weeklyTask.status || 'assigned',
+      priority: weeklyTask.priority || 'medium',
+      dueDate: weeklyTask.due_date || weeklyTask.dueDate,
+      estimatedHours: weeklyTask.estimatedHours || 4,
+      submissionCount: 0,
+      assignedInterns: internName
+        ? [{
+            id: plan?.intern_id,
+            name: internName,
+            initials: internName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase(),
+            avatar: plan?.intern_avatar || plan?.internAvatar,
+          }]
+        : [],
+    });
+  };
+
+  const archivedTasks = (allTasks?.length ? allTasks : tasks).filter((task) => task.status === 'archived');
 
   const handleBulkAction = async (action) => {
     if (action === 'export') {
@@ -644,8 +692,8 @@ const TaskManagementPage = () => {
 
         {/* ── WEEKLY REPORTS ────────────────────────────────────────────────── */}
         {activeTab === 'weekly' && (
-          <motion.div key="weekly" variants={pageVariants} initial="initial" animate="animate" exit="exit">
-            <WeeklyReview />
+          <motion.div key="weekly" variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ width: '100%', minWidth: 0 }}>
+            <WeeklyReview onTaskClick={handleWeeklyTaskClick} />
           </motion.div>
         )}
 
@@ -653,6 +701,39 @@ const TaskManagementPage = () => {
         {activeTab === 'calendar' && (
           <motion.div key="calendar" variants={pageVariants} initial="initial" animate="animate" exit="exit">
             <TaskCalendarView />
+          </motion.div>
+        )}
+
+        {activeTab === 'archived' && (
+          <motion.div key="archived" variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800, color: 'var(--color-neutral-800)' }}>Archived tasks</h2>
+              <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--color-neutral-500)' }}>
+                Tasks you archived remain available here and can still be opened, duplicated, or deleted.
+              </p>
+            </div>
+            <TaskDirectoryTable
+              tasks={archivedTasks}
+              isLoading={loading.tasks}
+              selectedTaskIds={selectedTaskIds}
+              onToggleSelect={toggleSelectTask}
+              onSelectAll={selectAllTasks}
+              onClearSelection={clearSelection}
+              onView={handleViewTask}
+              onEdit={handleEditTask}
+              onDuplicate={handleDuplicateTask}
+              onAssign={handleAssignTask}
+              onArchive={handleArchiveTask}
+              onDelete={handleDeleteTask}
+              activeSort={activeSort}
+              onSortChange={setSort}
+              currentPage={1}
+              totalPages={1}
+              totalTasks={archivedTasks.length}
+              pageSize={Math.max(archivedTasks.length, 1)}
+              emptyType="no-archived"
+              onCreateFirst={() => openCreateModal()}
+            />
           </motion.div>
         )}
 
@@ -767,7 +848,7 @@ const TaskManagementPage = () => {
       <TaskDetailsDrawer
         isOpen={isDetailsDrawerOpen}
         task={selectedTask}
-        submissions={submissions.filter((s) => s.taskId === selectedTask?.id)}
+        submissions={taskSubmissions.filter((s) => s.taskId === selectedTask?.id)}
         isLoadingSubmissions={loading.submissions}
         timeline={taskTimeline}
         isLoadingTimeline={loading.timeline}
@@ -775,6 +856,7 @@ const TaskManagementPage = () => {
         onEdit={handleEditTask}
         onAssign={handleAssignTask}
         onDuplicate={handleDuplicateTask}
+        onArchive={handleArchiveTask}
       />
 
       {/* ── Assign Task Modal ─────────────────────────────────────────────────── */}

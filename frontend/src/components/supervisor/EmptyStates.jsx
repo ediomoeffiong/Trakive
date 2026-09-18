@@ -45,7 +45,7 @@ const EMPTY_CONFIGS = {
   },
 };
 
-const EmptyStates = ({ type = 'no-interns', title, message }) => {
+const EmptyStates = ({ type = 'no-interns', title, message, compact = false }) => {
   const config = EMPTY_CONFIGS[type] || EMPTY_CONFIGS['no-interns'];
   const Icon = config.icon;
 
@@ -56,7 +56,7 @@ const EmptyStates = ({ type = 'no-interns', title, message }) => {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '2.5rem 1.5rem',
+        padding: compact ? '1.25rem 0.75rem' : '2.5rem 1.5rem',
         textAlign: 'center',
       }}
     >
@@ -70,17 +70,17 @@ const EmptyStates = ({ type = 'no-interns', title, message }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '1.75rem',
-          marginBottom: '1rem',
+          fontSize: compact ? '1.35rem' : '1.75rem',
+          marginBottom: compact ? '0.65rem' : '1rem',
         }}
       >
         <Icon />
       </div>
 
-      <h4 style={{ margin: '0 0 0.35rem 0', fontSize: '1rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
+      <h4 style={{ margin: '0 0 0.35rem 0', fontSize: compact ? '0.875rem' : '1rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
         {title || config.title}
       </h4>
-      <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-500)', maxWidth: '320px', lineHeight: 1.4 }}>
+      <p style={{ margin: 0, fontSize: compact ? '0.75rem' : '0.8125rem', color: 'var(--color-neutral-500)', maxWidth: '320px', lineHeight: 1.4 }}>
         {message || config.message}
       </p>
     </div>

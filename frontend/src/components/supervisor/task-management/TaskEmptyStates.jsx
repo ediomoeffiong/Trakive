@@ -54,6 +54,14 @@ const emptyConfigs = {
     subtitle: 'This task hasn\'t been assigned to any interns yet. Use the Assign button to get started.',
     ctaLabel: 'Assign Now',
   },
+  'no-archived': {
+    icon: RiTaskLine,
+    color: '#64748b',
+    bg: '#f1f5f9',
+    title: 'No Archived Tasks',
+    subtitle: 'Archived tasks will appear here. Use Archive on a task to move it out of the board.',
+    ctaLabel: null,
+  },
   'no-drafts': {
     icon: RiTaskLine,
     color: '#d97706',

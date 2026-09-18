@@ -230,6 +230,7 @@ const TaskModel = {
         t.title, t.description, t.priority, t.status, t.due_date, t.created_at, t.updated_at,
         c.first_name AS creator_first_name, c.last_name AS creator_last_name,
         a.first_name AS assignee_first_name, a.last_name AS assignee_last_name,
+        a.avatar_url AS assignee_avatar, a.email AS assignee_email,
         d.name AS department_name
       FROM tasks t
       LEFT JOIN users c ON c.id = t.creator_id

@@ -280,10 +280,17 @@ const Dashboard = () => {
     return 'Good Evening';
   };
 
-  const CardEmpty = ({ title }) => (
-    <p style={{ margin: 0, padding: '1.25rem 0.25rem', fontSize: '0.875rem', color: 'var(--color-neutral-500)', textAlign: 'center' }}>
-      {title}
-    </p>
+  const CardEmpty = ({ title, description }) => (
+    <div style={{ padding: '1.25rem 0.5rem', textAlign: 'center' }}>
+      <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>
+        {title}
+      </p>
+      {description ? (
+        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.45 }}>
+          {description}
+        </p>
+      ) : null}
+    </div>
   );
 
   // Task Filter helper
@@ -553,7 +560,7 @@ const Dashboard = () => {
             ) : (
               <Card header={<h5 style={{ margin: 0 }}>Weekly Productivity</h5>}>
                 {!chartData.hasProductivityData ? (
-                  <CardEmpty title="No productivity data this week" />
+                  <CardEmpty title="No productivity data this week" description="Completed tasks logged during the week will appear as a daily trend here." />
                 ) : (
                   <div style={{ height: '240px', marginTop: '1rem' }}>
                     <ResponsiveContainer width="100%" height="100%">
@@ -576,7 +583,7 @@ const Dashboard = () => {
             ) : (
               <Card header={<h5 style={{ margin: 0 }}>Task Distribution</h5>}>
                 {!chartData.hasDistributionData ? (
-                  <CardEmpty title="No tasks to distribute yet" />
+                  <CardEmpty title="No tasks to distribute yet" description="Once you have assigned or in-progress work, this chart will show how those tasks are split by status." />
                 ) : (
                   <>
                     <div style={{ height: '200px', marginTop: '1rem' }}>
@@ -639,7 +646,12 @@ const Dashboard = () => {
             {loadingTasks ? (
               <ListSkeleton rows={4} />
             ) : filteredTasks.length === 0 ? (
-              <CardEmpty title={taskFilter === 'all' ? 'No active tasks' : 'No tasks match this filter'} />
+              <CardEmpty
+                title={taskFilter === 'all' ? 'No active tasks' : 'No tasks match this filter'}
+                description={taskFilter === 'all'
+                  ? 'Tasks assigned to you will show up here with due dates and status.'
+                  : 'Try another status filter, or clear it to see all of your tasks.'}
+              />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
                 {filteredTasks.map((t) => (
@@ -724,7 +736,7 @@ const Dashboard = () => {
             {loadingTasks ? (
               <ListSkeleton rows={3} />
             ) : upcomingDeadlines.length === 0 ? (
-              <CardEmpty title="No current deadlines" />
+              <CardEmpty title="No current deadlines" description="Upcoming task due dates will appear here so you can plan your week." />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
                 {upcomingDeadlines.map((t) => {
@@ -758,7 +770,7 @@ const Dashboard = () => {
           ) : (
             <Card header={<h5 style={{ margin: 0 }}>Monthly Progress</h5>}>
               {!chartData.hasMonthlyData ? (
-                <CardEmpty title="No monthly progress yet" />
+                <CardEmpty title="No monthly progress yet" description="Weekly completion percentages will fill this chart as you close out tasks." />
               ) : (
                 <div style={{ height: '180px', marginTop: '1rem', width: '100%', minWidth: 0, overflow: 'hidden' }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -778,7 +790,7 @@ const Dashboard = () => {
             {loadingActivities ? (
               <ListSkeleton rows={3} />
             ) : activities.length === 0 ? (
-              <CardEmpty title="No recent activity" />
+              <CardEmpty title="No recent activity" description="Submissions, reviews, and task updates will show up in this timeline." />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', paddingLeft: '0.5rem' }}>
                 {/* Visual timeline bar */}
