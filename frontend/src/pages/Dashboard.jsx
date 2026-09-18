@@ -49,7 +49,6 @@ import {
   ProgressBar,
   CircularProgress,
   Skeleton,
-  EmptyState
 } from '../components/ui';
 import { useCurrentUser } from '../store';
 import { useDashboardStore } from '../store/useDashboardStore';
@@ -269,8 +268,9 @@ const Dashboard = () => {
   const [taskFilter, setTaskFilter] = useState('all');
 
   useEffect(() => {
+    if (!user?.id) return;
     fetchAllDashboardData();
-  }, [fetchAllDashboardData]);
+  }, [user?.id, fetchAllDashboardData]);
 
   // Greeting helper
   const getGreeting = () => {
@@ -280,11 +280,23 @@ const Dashboard = () => {
     return 'Good Evening';
   };
 
+  const CardEmpty = ({ title }) => (
+    <p style={{ margin: 0, padding: '1.25rem 0.25rem', fontSize: '0.875rem', color: 'var(--color-neutral-500)', textAlign: 'center' }}>
+      {title}
+    </p>
+  );
+
   // Task Filter helper
   const filteredTasks = tasks.filter((t) => {
     if (taskFilter === 'all') return true;
+    if (taskFilter === 'in-progress') return t.status === 'in-progress' || t.status === 'under-review';
     return t.status === taskFilter;
   });
+
+  const upcomingDeadlines = tasks
+    .filter((t) => t.status !== 'completed' && t.dueDateKey)
+    .sort((a, b) => String(a.dueDateKey).localeCompare(String(b.dueDateKey)))
+    .slice(0, 5);
 
   // KPI icon map
   const getKpiIcon = (label) => {
@@ -355,7 +367,7 @@ const Dashboard = () => {
       )}
 
       {/* ── 1. Welcome Section ────────────────────────────────────────────────── */}
-      <section style={{
+      <section className="accent-banner" style={{
         background: '#00b4d8',
         borderRadius: '1.125rem',
         padding: '1.75rem 2rem',
@@ -455,7 +467,9 @@ const Dashboard = () => {
                           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isUp ? 'var(--color-success-600)' : 'var(--color-danger-600)' }}>
                             {stat.trend}
                           </span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>vs last week</span>
+                          {String(stat.trend).includes('%') || String(stat.trend).startsWith('+') || String(stat.trend) === '0' ? (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>vs last week</span>
+                          ) : null}
                         </div>
                       </div>
                       <div style={{
@@ -508,19 +522,23 @@ const Dashboard = () => {
 
                 {/* Weekly Goal progress circular */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                  <CircularProgress value={progress.weeklyGoal?.value} size={90} variant="success" />
+                  <CircularProgress value={progress.weeklyGoal?.totalTasks ? progress.weeklyGoal?.value : 0} size={90} variant="success" />
                   <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.875rem', fontWeight: 600 }}>Weekly Goals</p>
                   <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
-                    {progress.weeklyGoal?.completedTasks} of {progress.weeklyGoal?.totalTasks} tasks done
+                    {progress.weeklyGoal?.totalTasks
+                      ? `${progress.weeklyGoal.completedTasks} of ${progress.weeklyGoal.totalTasks} weekly tasks done`
+                      : 'No weekly plan tasks yet'}
                   </p>
                 </div>
 
                 {/* Monthly completion progress */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                  <CircularProgress value={progress.monthlyCompletion?.value} size={90} variant="warning" />
+                  <CircularProgress value={progress.monthlyCompletion?.totalTasks ? progress.monthlyCompletion?.value : 0} size={90} variant="warning" />
                   <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.875rem', fontWeight: 600 }}>Monthly Milestones</p>
                   <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
-                    Overall target completion
+                    {progress.monthlyCompletion?.totalTasks
+                      ? `${progress.monthlyCompletion.completedTasks} of ${progress.monthlyCompletion.totalTasks} project milestones`
+                      : 'No project milestones yet'}
                   </p>
                 </div>
               </div>
@@ -534,17 +552,21 @@ const Dashboard = () => {
               <ChartSkeleton />
             ) : (
               <Card header={<h5 style={{ margin: 0 }}>Weekly Productivity</h5>}>
-                <div style={{ height: '240px', marginTop: '1rem' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData.productivity}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-neutral-100)" />
-                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-neutral-400)', fontSize: 11 }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-neutral-400)', fontSize: 11 }} />
-                      <ChartTooltip contentStyle={{ borderRadius: '8px', border: '1px solid var(--color-neutral-200)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
-                      <Line type="monotone" dataKey="tasks" stroke="var(--color-primary-600)" strokeWidth={3} activeDot={{ r: 6 }} dot={{ strokeWidth: 2, r: 4 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+                {!chartData.hasProductivityData ? (
+                  <CardEmpty title="No productivity data this week" />
+                ) : (
+                  <div style={{ height: '240px', marginTop: '1rem' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData.productivity}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-neutral-100)" />
+                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-neutral-400)', fontSize: 11 }} />
+                        <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: 'var(--color-neutral-400)', fontSize: 11 }} />
+                        <ChartTooltip contentStyle={{ borderRadius: '8px', border: '1px solid var(--color-neutral-200)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
+                        <Line type="monotone" dataKey="tasks" name="Tasks completed" stroke="#00b4d8" strokeWidth={3} activeDot={{ r: 6 }} dot={{ strokeWidth: 2, r: 4 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </Card>
             )}
 
@@ -553,34 +575,40 @@ const Dashboard = () => {
               <ChartSkeleton />
             ) : (
               <Card header={<h5 style={{ margin: 0 }}>Task Distribution</h5>}>
-                <div style={{ height: '200px', marginTop: '1rem' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={chartData.distribution}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={4}
-                        dataKey="value"
-                      >
-                        {chartData.distribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <ChartTooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1rem', marginTop: '0.5rem' }}>
-                  {chartData.distribution.map((d) => (
-                    <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: 'var(--color-neutral-600)' }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color }} />
-                      <span>{d.name} ({d.value})</span>
+                {!chartData.hasDistributionData ? (
+                  <CardEmpty title="No tasks to distribute yet" />
+                ) : (
+                  <>
+                    <div style={{ height: '200px', marginTop: '1rem' }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={chartData.distribution}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={4}
+                            dataKey="value"
+                          >
+                            {chartData.distribution.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <ChartTooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
                     </div>
-                  ))}
-                </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+                      {chartData.distribution.map((d) => (
+                        <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: 'var(--color-neutral-600)' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color }} />
+                          <span>{d.name} ({d.value})</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </Card>
             )}
           </div>
@@ -611,7 +639,7 @@ const Dashboard = () => {
             {loadingTasks ? (
               <ListSkeleton rows={4} />
             ) : filteredTasks.length === 0 ? (
-              <EmptyState title="No tasks found" description="There are no active tasks matching the selected filter." />
+              <CardEmpty title={taskFilter === 'all' ? 'No active tasks' : 'No tasks match this filter'} />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
                 {filteredTasks.map((t) => (
@@ -695,9 +723,11 @@ const Dashboard = () => {
           <Card header={<h5 style={{ margin: 0 }}>Upcoming Deadlines</h5>}>
             {loadingTasks ? (
               <ListSkeleton rows={3} />
+            ) : upcomingDeadlines.length === 0 ? (
+              <CardEmpty title="No current deadlines" />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-                {tasks.filter(t => t.status !== 'completed').slice(0, 3).map((t) => {
+                {upcomingDeadlines.map((t) => {
                   const isOverdue = t.remainingDays < 0;
                   return (
                     <div key={t.id} style={{ padding: '0.75rem', border: '1px solid var(--color-neutral-200)', borderRadius: '0.75rem', background: isOverdue ? 'var(--color-danger-50)' : '#fff' }}>
@@ -705,14 +735,14 @@ const Dashboard = () => {
                         <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-800)', wordBreak: 'break-word', display: 'block', maxWidth: '80%' }}>
                           {t.title}
                         </span>
-                        <Badge variant={t.priority === 'high' ? 'danger' : 'warning'}>
+                        <Badge variant={t.priority === 'high' || t.priority === 'urgent' ? 'danger' : 'warning'}>
                           {t.priority}
                         </Badge>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
                         <span>Due: {t.dueDate}</span>
-                        <span style={{ fontWeight: 600, color: isOverdue ? 'var(--color-danger-600)' : 'var(--color-primary-600)' }}>
-                          {isOverdue ? 'Overdue' : `${t.remainingDays} days left`}
+                        <span style={{ fontWeight: 600, color: isOverdue ? 'var(--color-danger-600)' : '#00b4d8' }}>
+                          {isOverdue ? 'Overdue' : t.remainingDays === 0 ? 'Due today' : `${t.remainingDays} days left`}
                         </span>
                       </div>
                     </div>
@@ -727,15 +757,19 @@ const Dashboard = () => {
             <ChartSkeleton />
           ) : (
             <Card header={<h5 style={{ margin: 0 }}>Monthly Progress</h5>}>
-              <div style={{ height: '180px', marginTop: '1rem', width: '100%', minWidth: 0, overflow: 'hidden' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData.monthly}>
-                    <XAxis dataKey="week" tick={{ fill: 'var(--color-neutral-400)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <ChartTooltip />
-                    <Bar dataKey="progress" fill="var(--color-primary-600)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              {!chartData.hasMonthlyData ? (
+                <CardEmpty title="No monthly progress yet" />
+              ) : (
+                <div style={{ height: '180px', marginTop: '1rem', width: '100%', minWidth: 0, overflow: 'hidden' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData.monthly}>
+                      <XAxis dataKey="week" tick={{ fill: 'var(--color-neutral-400)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <ChartTooltip formatter={(value) => [`${value}%`, 'Completion']} />
+                      <Bar dataKey="progress" fill="#00b4d8" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </Card>
           )}
 
@@ -743,6 +777,8 @@ const Dashboard = () => {
           <Card header={<h5 style={{ margin: 0 }}>Recent Activity</h5>}>
             {loadingActivities ? (
               <ListSkeleton rows={3} />
+            ) : activities.length === 0 ? (
+              <CardEmpty title="No recent activity" />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', paddingLeft: '0.5rem' }}>
                 {/* Visual timeline bar */}

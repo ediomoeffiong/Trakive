@@ -526,13 +526,14 @@ h1.app-topbar-heading {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
-  background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 50%, #f0f9ff 100%);
-  border: 1px solid #bfdbfe;
+  background: #00b4d8;
+  border: 1px solid #0096c7;
   border-radius: 16px;
   padding: 16px 20px;
   margin-bottom: 28px;
-  box-shadow: 0 4px 20px -4px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 4px 20px -4px rgba(0, 180, 216, 0.28);
   min-width: 0;
+  color: #ffffff;
 }
 
 .onboarding-up-next-copy {
@@ -584,6 +585,22 @@ h1.app-topbar-heading {
   white-space: normal;
   text-align: center;
   justify-content: center;
+}
+
+/* White buttons with brand-blue text, used on light-blue cards */
+.btn-on-accent {
+  background: #ffffff !important;
+  color: #00b4d8 !important;
+}
+
+.btn-on-accent:hover:not(:disabled) {
+  background: #f0fbfd !important;
+  color: #0096c7 !important;
+}
+
+.btn-on-accent svg,
+.btn-on-accent * {
+  color: inherit !important;
 }
 
 @media (min-width: 640px) {
@@ -2531,6 +2548,43 @@ a {
 .dark div[style*="display: flex"][style*="gap: 0.5rem"] > button:first-child[style*="background: rgb(255, 255, 255)"] {
   background-color: rgba(255, 255, 255, 0.15) !important;
 }
+.accent-banner,
+.accent-banner h1,
+.accent-banner h2,
+.accent-banner h3,
+.accent-banner p,
+.accent-banner span,
+.accent-banner strong {
+  color: #ffffff !important;
+}
+
+.accent-banner button,
+.accent-banner a,
+.onboarding-up-next button,
+.onboarding-up-next a {
+  background: #ffffff !important;
+  color: #00b4d8 !important;
+}
+
+.accent-banner button:hover,
+.accent-banner a:hover,
+.onboarding-up-next button:hover,
+.onboarding-up-next a:hover {
+  background: #f0fbfd !important;
+  color: #0096c7 !important;
+}
+
+.accent-banner button,
+.accent-banner a,
+.accent-banner button *,
+.accent-banner a *,
+.onboarding-up-next button,
+.onboarding-up-next a,
+.onboarding-up-next button *,
+.onboarding-up-next a * {
+  color: #00b4d8 !important;
+}
+
 /* Target only the runway banner */
 .task-runway-banner {
   background: #00b4d8 !important;

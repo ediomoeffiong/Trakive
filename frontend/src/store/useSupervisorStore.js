@@ -13,6 +13,7 @@ export const useSupervisorStore = create(
     (set, get) => ({
       // ── Store State ─────────────────────────────────────────────────────────────
       kpis: [],
+      banner: { internCount: 0, pendingReviews: 0, reviewsDue: 0 },
       interns: [],
       analytics: {
         performanceTrend: [],
@@ -107,6 +108,7 @@ export const useSupervisorStore = create(
 
           set({
             kpis: dashboardRes.kpis,
+            banner: dashboardRes.banner || { internCount: 0, pendingReviews: 0, reviewsDue: 0 },
             interns: internsRes.interns,
             analytics: analyticsRes,
             activities: activityRes.activities,

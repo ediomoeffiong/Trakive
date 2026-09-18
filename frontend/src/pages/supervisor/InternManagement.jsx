@@ -46,6 +46,12 @@ const InternManagementPage = () => {
   }, []);
 
   const supervisorName = user?.name?.split(' ')[0] ?? 'Supervisor';
+  const internCount = internList.length;
+  const activeCount = internList.filter((i) => i.status === 'Active').length;
+  const onboardingCount = internList.filter((i) => i.status === 'Pending Review' || Number(i.onboardingProgress) < 100).length;
+  const needsAttentionCount = internList.filter(
+    (i) => i.status === 'Needs Help' || (Number.isFinite(Number(i.performanceScore)) && Number(i.performanceScore) < 4.2),
+  ).length;
 
   return (
     <motion.div
@@ -60,6 +66,7 @@ const InternManagementPage = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
+        className="accent-banner"
         style={{
           background: '#00b4d8',
           borderRadius: '1.25rem',
@@ -111,18 +118,19 @@ const InternManagementPage = () => {
               background: 'rgba(255,255,255,0.15)',
               padding: '0.25rem 0.75rem',
               borderRadius: '99px',
+              color: '#ffffff',
               marginBottom: '0.625rem',
               display: 'inline-block',
             }}
           >
             Intern Management
           </span>
-          <h2 style={{ margin: '0.5rem 0 0.375rem 0', fontSize: '1.625rem', fontWeight: 800, lineHeight: 1.2 }}>
+          <h2 style={{ margin: '0.5rem 0 0.375rem 0', fontSize: '1.625rem', fontWeight: 800, lineHeight: 1.2, color: '#ffffff' }}>
             Your Intern Cohort, {supervisorName}
           </h2>
-          <p style={{ margin: 0, fontSize: '0.9375rem', color: '#c7d2fe', maxWidth: '500px' }}>
+          <p style={{ margin: 0, fontSize: '0.9375rem', color: '#ffffff', maxWidth: '520px', lineHeight: 1.55 }}>
             Track progress, manage profiles, assign tasks, and monitor performance across{' '}
-            <strong style={{ color: '#fff' }}>{internList.length} interns</strong> in your team.
+            <strong style={{ color: '#ffffff', fontWeight: 800 }}>{internCount} intern{internCount === 1 ? '' : 's'}</strong> in your team.
           </p>
         </div>
 
@@ -136,23 +144,23 @@ const InternManagementPage = () => {
           }}
         >
           {[
-            { label: 'Active', value: internList.filter((i) => i.status === 'Active').length, color: '#6ee7b7' },
-            { label: 'Need Help', value: internList.filter((i) => i.status === 'Needs Help').length, color: '#fca5a5' },
-            { label: 'On Leave', value: internList.filter((i) => i.status === 'On Leave').length, color: '#fcd34d' },
-          ].map(({ label, value, color }) => (
+            { label: 'Active', value: activeCount },
+            { label: 'Onboarding', value: onboardingCount },
+            { label: 'Needs Attention', value: needsAttentionCount },
+          ].map(({ label, value }) => (
             <div
               key={label}
               style={{
-                background: 'rgba(255,255,255,0.1)',
+                background: 'rgba(255,255,255,0.12)',
                 borderRadius: '0.75rem',
                 padding: '0.625rem 1rem',
                 textAlign: 'center',
-                border: '1px solid rgba(255,255,255,0.12)',
+                border: '1px solid rgba(255,255,255,0.18)',
                 minWidth: '70px',
               }}
             >
-              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color }}>{value}</p>
-              <p style={{ margin: 0, fontSize: '0.7rem', color: '#c7d2fe', fontWeight: 600 }}>{label}</p>
+              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#ffffff' }}>{value}</p>
+              <p style={{ margin: 0, fontSize: '0.7rem', color: '#ffffff', fontWeight: 700 }}>{label}</p>
             </div>
           ))}
         </div>

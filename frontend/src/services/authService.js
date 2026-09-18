@@ -57,8 +57,8 @@ const normalizeUser = (user, email, token, tokens = {}) => {
     accessToken: token,
     refreshToken: tokens.refreshToken,
     isFirstLogin: Boolean(user.isFirstLogin),
-    hasCompletedOnboarding: user.hasCompletedOnboarding ?? true,
-    profileCompleted: user.profileCompleted ?? true,
+    hasCompletedOnboarding: user.hasCompletedOnboarding ?? normalizeRole(user.role || user.role_name) !== 'Intern',
+    profileCompleted: user.profileCompleted ?? normalizeRole(user.role || user.role_name) !== 'Intern',
   });
 };
 

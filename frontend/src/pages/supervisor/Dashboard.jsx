@@ -150,6 +150,7 @@ const SupervisorDashboardPage = () => {
   const user = useCurrentUser();
   const {
     kpis,
+    banner,
     interns,
     analytics,
     activities,
@@ -172,8 +173,8 @@ const SupervisorDashboardPage = () => {
   }
 
   const supervisorName = user?.name?.split(' ')[0] ?? 'Supervisor';
-  const pendingReviewsCount = kpis.find((k) => k.id === 'pending-reviews')?.value ?? '0';
-  const reviewsDueCount = kpis.find((k) => k.id === 'reviews-due')?.value ?? '0';
+  const pendingReviewsCount = Number(banner?.pendingReviews ?? kpis.find((k) => k.id === 'pending-reviews')?.value ?? 0);
+  const reviewsDueCount = Number(banner?.reviewsDue ?? kpis.find((k) => k.id === 'reviews-due')?.value ?? 0);
 
   return (
     <motion.div
@@ -185,12 +186,13 @@ const SupervisorDashboardPage = () => {
     >
       {/* Welcome Banner */}
       <div
+        className="accent-banner"
         style={{
           background: '#00b4d8',
           borderRadius: '1.25rem',
           padding: '1.75rem 2rem',
           color: '#ffffff',
-          boxShadow: '0 8px 32px rgba(37, 99, 235, 0.22)',
+          boxShadow: '0 8px 32px rgba(0, 180, 216, 0.22)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -208,16 +210,24 @@ const SupervisorDashboardPage = () => {
               backgroundColor: 'rgba(255, 255, 255, 0.15)',
               padding: '0.25rem 0.625rem',
               borderRadius: '99px',
+              color: '#ffffff',
             }}
           >
             SUPERVISOR OVERVIEW
           </span>
-          <h2 style={{ margin: '0.5rem 0 0.25rem 0', fontSize: '1.75rem', fontWeight: 800 }}>
+          <h2 style={{ margin: '0.5rem 0 0.25rem 0', fontSize: '1.75rem', fontWeight: 800, color: '#ffffff' }}>
             Welcome back, {supervisorName}! 👋
           </h2>
-          <p style={{ margin: 0, fontSize: '0.9375rem', color: '#c7d2fe', maxWidth: '550px' }}>
-            You have <strong style={{ color: '#ffffff' }}>{pendingReviewsCount} pending task reviews</strong> and{' '}
-            <strong style={{ color: '#ffffff' }}>{reviewsDueCount} reviews due</strong> this week.
+          <p style={{ margin: 0, fontSize: '0.9375rem', color: '#ffffff', maxWidth: '560px', lineHeight: 1.55 }}>
+            You have{' '}
+            <strong style={{ color: '#ffffff', fontWeight: 800 }}>
+              {pendingReviewsCount} pending task review{pendingReviewsCount === 1 ? '' : 's'}
+            </strong>
+            {' '}and{' '}
+            <strong style={{ color: '#ffffff', fontWeight: 800 }}>
+              {reviewsDueCount} review{reviewsDueCount === 1 ? '' : 's'} due
+            </strong>
+            {' '}this week.
           </p>
         </div>
       </div>

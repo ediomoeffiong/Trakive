@@ -1,6 +1,6 @@
 /**
  * @file useDashboardStore.js
- * @description Zustand store for managing all Intern Dashboard UI and api mock states.
+ * @description Zustand store for the intern dashboard, hydrated from live APIs.
  */
 
 import { create } from 'zustand';
@@ -86,18 +86,43 @@ export const useDashboardStore = create((set, get) => ({
     }
   },
 
-  // Load all dashboard content
   fetchAllDashboardData: async () => {
-    // Fire all fetch requests concurrently or sequentially
-    const store = get();
-    await Promise.all([
-      store.fetchStats(),
-      store.fetchTasks(),
-      store.fetchActivities(),
-      store.fetchNotifications(),
-      store.fetchProgress(),
-      store.fetchChartData()
-    ]);
+    set({
+      loadingStats: true,
+      loadingTasks: true,
+      loadingActivities: true,
+      loadingNotifications: true,
+      loadingProgress: true,
+      loadingCharts: true,
+      error: null,
+    });
+    try {
+      const snapshot = await dashboardService.getDashboard();
+      set({
+        stats: snapshot.stats,
+        tasks: snapshot.tasks,
+        activities: snapshot.activities,
+        notifications: snapshot.notifications,
+        progress: snapshot.progress,
+        chartData: snapshot.chartData,
+        loadingStats: false,
+        loadingTasks: false,
+        loadingActivities: false,
+        loadingNotifications: false,
+        loadingProgress: false,
+        loadingCharts: false,
+      });
+    } catch (err) {
+      set({
+        error: err.message,
+        loadingStats: false,
+        loadingTasks: false,
+        loadingActivities: false,
+        loadingNotifications: false,
+        loadingProgress: false,
+        loadingCharts: false,
+      });
+    }
   },
 
   // Mark a notification as read locally

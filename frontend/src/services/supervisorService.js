@@ -1,24 +1,53 @@
 import api from './api';
 import { normalizeDepartmentForPerson, normalizePersonRecord } from '../utils/people';
 
+const unwrapList = (res) => {
+  const payload = res?.data?.data ?? res?.data ?? [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.items)) return payload.items;
+  if (Array.isArray(payload.data)) return payload.data;
+  return [];
+};
+
+const mondayIso = (date = new Date()) => {
+  const d = new Date(date);
+  const day = d.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setUTCDate(d.getUTCDate() + diff);
+  return d.toISOString().split('T')[0];
+};
+
+const isPendingTaskReview = (task) => {
+  const status = String(task?.status || '').toLowerCase().replace(/_/g, '-');
+  return ['submitted', 'in-review', 'under-review', 'pending-review', 'in_review'].includes(status);
+};
+
 export const supervisorService = {
   async fetchDashboard() {
     try {
-      const [internsRes, queueRes, projectsRes, weeklyRes] = await Promise.all([
+      const [internsRes, queueRes, projectsRes, weeklyRes, tasksRes] = await Promise.all([
         api.get('/interns', { params: { limit: 100 } }).catch(() => ({ data: {} })),
         api.get('/onboarding/supervisor/queue').catch(() => ({ data: {} })),
         api.get('/projects', { params: { limit: 100 } }).catch(() => ({ data: {} })),
         api.get('/weekly-plans', { params: { limit: 100 } }).catch(() => ({ data: {} })),
+        api.get('/tasks', { params: { page: 1, limit: 100 } }).catch(() => ({ data: {} })),
       ]);
 
-      const internsData = internsRes.data?.data?.items || internsRes.data?.items || internsRes.data?.data || [];
-      const queueData = queueRes.data?.data || queueRes.data || [];
-      const projectsData = projectsRes.data?.data || projectsRes.data || [];
-      const weeklyData = weeklyRes.data?.data || weeklyRes.data || [];
+      const internsData = unwrapList(internsRes);
+      const queueData = unwrapList(queueRes);
+      const projectsData = unwrapList(projectsRes);
+      const weeklyData = unwrapList(weeklyRes);
+      const tasksData = unwrapList(tasksRes);
 
       const activeProjects = projectsData.filter((p) => p.status === 'active' || p.status === 'in_progress').length;
-      const pendingReviews = queueData.length + weeklyData.filter((w) => w.status === 'submitted').length;
-      const reviewsDue = weeklyData.filter((w) => w.status === 'submitted').length;
+      const pendingTaskReviews = tasksData.filter(isPendingTaskReview).length + queueData.length;
+      const weekStart = mondayIso();
+      const reviewsDue = weeklyData.filter((w) => {
+        if (w.status !== 'submitted') return false;
+        const planWeek = String(w.week_start || w.weekStart || '').slice(0, 10);
+        return !planWeek || planWeek >= weekStart;
+      }).length;
+      const pendingReviews = pendingTaskReviews;
 
       return {
         kpis: [
@@ -27,6 +56,11 @@ export const supervisorService = {
           { id: 'pending-reviews', label: 'Pending Task Reviews', value: String(pendingReviews), trend: 'Requires action', trendType: pendingReviews === 0 ? 'positive' : 'urgent', iconName: 'RiCheckboxMultipleLine', color: 'amber', description: 'Onboarding and weekly reviews waiting', to: '/supervisor/reviews' },
           { id: 'reviews-due', label: 'Reviews Due This Week', value: String(reviewsDue), trend: 'Weekly reports', trendType: reviewsDue > 0 ? 'urgent' : 'positive', iconName: 'RiStarLine', color: 'purple', description: 'Submitted weekly reports to review', to: '/supervisor/weekly-review' },
         ],
+        banner: {
+          internCount: internsData.length,
+          pendingReviews,
+          reviewsDue,
+        },
       };
     } catch {
       return {
@@ -36,6 +70,7 @@ export const supervisorService = {
           { id: 'pending-reviews', label: 'Pending Task Reviews', value: '0', trend: 'Requires action', trendType: 'positive', iconName: 'RiCheckboxMultipleLine', color: 'amber', description: 'Onboarding and weekly reviews waiting', to: '/supervisor/reviews' },
           { id: 'reviews-due', label: 'Reviews Due This Week', value: '0', trend: 'Weekly reports', trendType: 'positive', iconName: 'RiStarLine', color: 'purple', description: 'Submitted weekly reports to review', to: '/supervisor/weekly-review' },
         ],
+        banner: { internCount: 0, pendingReviews: 0, reviewsDue: 0 },
       };
     }
   },
@@ -50,7 +85,7 @@ export const supervisorService = {
           limit: 100
         }
       });
-      const rawItems = res.data?.data?.items || res.data?.items || res.data?.data || [];
+      const rawItems = res.data?.data?.items || res.data?.items || (Array.isArray(res.data?.data) ? res.data.data : []) || [];
 
       const formattedInterns = rawItems.map((item) => {
         const name = `${item.first_name || ''} ${item.last_name || ''}`.trim() || item.email;

@@ -82,12 +82,13 @@ export default function AnalyticsDashboardPage() {
     >
       {/* ── Top Header Banner & Role Preview Switcher ─────────────────────────── */}
       <div
+        className="accent-banner"
         style={{
           background: '#00b4d8',
           borderRadius: '1.25rem',
           padding: '1.75rem 2rem',
           color: '#ffffff',
-          boxShadow: '0 8px 32px rgba(37, 99, 235, 0.22)',
+          boxShadow: '0 8px 32px rgba(0, 180, 216, 0.22)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -106,17 +107,30 @@ export default function AnalyticsDashboardPage() {
                 backgroundColor: 'rgba(255, 255, 255, 0.15)',
                 padding: '0.25rem 0.625rem',
                 borderRadius: '99px',
+                color: '#ffffff',
               }}
             >
               CENTRAL ANALYTICS ENGINE
             </span>
           </div>
 
-          <h2 style={{ margin: '0.25rem 0', fontSize: '1.75rem', fontWeight: 800 }}>
+          <h2 style={{ margin: '0.25rem 0', fontSize: '1.75rem', fontWeight: 800, color: '#ffffff' }}>
             Reports & Performance Intelligence
           </h2>
-          <p style={{ margin: 0, fontSize: '0.9375rem', color: 'rgba(255, 255, 255, 0.9)', maxWidth: '600px' }}>
-            Executive dashboards, productivity metrics, 7-skill evaluations, and AI automated insights.
+          <p style={{ margin: 0, fontSize: '0.9375rem', color: '#ffffff', maxWidth: '640px', lineHeight: 1.55 }}>
+            You currently have{' '}
+            <strong style={{ color: '#ffffff', fontWeight: 800 }}>
+              {Number(metrics?.activeInterns || 0)} active intern{Number(metrics?.activeInterns || 0) === 1 ? '' : 's'}
+            </strong>
+            ,{' '}
+            <strong style={{ color: '#ffffff', fontWeight: 800 }}>
+              {Number(metrics?.pendingReviews || 0)} pending review{Number(metrics?.pendingReviews || 0) === 1 ? '' : 's'}
+            </strong>
+            , and{' '}
+            <strong style={{ color: '#ffffff', fontWeight: 800 }}>
+              {Number(metrics?.completedTasks || 0)} completed task{Number(metrics?.completedTasks || 0) === 1 ? '' : 's'}
+            </strong>
+            .
           </p>
         </div>
 
@@ -130,7 +144,7 @@ export default function AnalyticsDashboardPage() {
               padding: '0.5rem 0.875rem',
               borderRadius: '0.5rem',
               backgroundColor: '#ffffff',
-              color: '#1e293b',
+              color: '#00b4d8',
               fontWeight: 700,
               fontSize: '0.8125rem',
               border: 'none',
@@ -147,11 +161,11 @@ export default function AnalyticsDashboardPage() {
               gap: '0.375rem',
               padding: '0.5rem 0.875rem',
               borderRadius: '0.5rem',
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              color: '#ffffff',
+              backgroundColor: '#ffffff',
+              color: '#00b4d8',
               fontWeight: 600,
               fontSize: '0.8125rem',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
+              border: 'none',
               cursor: 'pointer',
             }}
           >
@@ -165,8 +179,8 @@ export default function AnalyticsDashboardPage() {
               gap: '0.375rem',
               padding: '0.5rem 0.875rem',
               borderRadius: '0.5rem',
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              color: '#ffffff',
+              backgroundColor: '#ffffff',
+              color: '#00b4d8',
               fontWeight: 600,
               fontSize: '0.8125rem',
               border: '1px solid rgba(255, 255, 255, 0.2)',

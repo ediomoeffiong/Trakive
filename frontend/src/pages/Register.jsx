@@ -417,7 +417,7 @@ const Register = () => {
           </div>
         )}
 
-        <div style={{ marginTop: '2rem', display: 'flex', gap: '0.75rem' }}>
+        <div style={{ marginTop: '2rem', marginBottom: '0.25rem', display: 'flex', gap: '0.75rem' }}>
           {step > 1 && (
             <Button
               type="button"
@@ -453,7 +453,10 @@ const Register = () => {
         </div>
       </form>
 
-      <p className="mb-0 mt-6 text-center text-sm text-neutral-500">
+      <p
+        className="text-center text-sm text-neutral-500"
+        style={{ margin: '1.75rem 0 0', paddingTop: '0.25rem' }}
+      >
         Already have an account?{' '}
         <Link
           to={ROUTES.LOGIN}

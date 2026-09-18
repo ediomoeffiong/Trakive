@@ -381,10 +381,7 @@ export const internManagementService = {
       rawResult = enrichInternsWithLiveData(rawResult, extractItems(weeklyResponse), onboardingRecords);
     } catch (err) {
       console.warn('Failed to fetch real interns from backend API:', err);
-    }
-
-    if (rawResult.length === 0 && mockInternProfiles.length > 0) {
-      rawResult = mockInternProfiles.map((profile) => normalizePersonRecord(profile));
+      rawResult = [];
     }
 
     let result = rawResult;
