@@ -29,6 +29,8 @@ const STATUS_BG = {
   draft:            '#f1f5f9',
   assigned:         '#dbeafe',
   'in-progress':    '#e0e7ff',
+  submitted:        '#fef3c7',
+  'under-review':   '#ddd6fe',
   'pending-review': '#fef3c7',
   'needs-revision': '#fee2e2',
   completed:        '#d1fae5',
@@ -286,8 +288,8 @@ const DayDetailPanel = ({ dateKey, tasks, onClose, onTaskClick }) => {
 };
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-const TaskCalendarView = () => {
-  const { tasks, allTasks, loading, fetchTasks, openDetailsDrawer } = useSupervisorTaskStore();
+const TaskCalendarView = ({ tasks: customTasks, loading: customLoading, onTaskClick: customOnTaskClick }) => {
+  const supervisorStore = useSupervisorTaskStore();
   const [viewMode, setViewMode] = useState('month'); // month | agenda
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
@@ -296,11 +298,22 @@ const TaskCalendarView = () => {
 
   const today = new Date();
   const todayKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
-  const calendarTasks = allTasks?.length ? allTasks : tasks;
+  
+  const calendarTasks = customTasks !== undefined
+    ? customTasks
+    : (supervisorStore.allTasks?.length ? supervisorStore.allTasks : supervisorStore.tasks);
+
+  const isLoading = customLoading !== undefined
+    ? customLoading
+    : (supervisorStore.loading?.tasks ?? false);
+
+  const handleTaskClick = customOnTaskClick || supervisorStore.openDetailsDrawer;
 
   useEffect(() => {
-    if (!calendarTasks.length) fetchTasks();
-  }, []);
+    if (!customTasks && !calendarTasks.length && supervisorStore.fetchTasks) {
+      supervisorStore.fetchTasks();
+    }
+  }, [customTasks, calendarTasks.length]);
 
   const taskMap = useMemo(() => buildTaskMap(calendarTasks), [calendarTasks]);
 
@@ -330,7 +343,7 @@ const TaskCalendarView = () => {
     setSelectedDateTasks(dayTasks);
   };
 
-  if (loading.tasks) return <TaskCalendarSkeleton />;
+  if (isLoading) return <TaskCalendarSkeleton />;
 
   return (
     <motion.div
@@ -430,14 +443,14 @@ const TaskCalendarView = () => {
                         isToday={isToday}
                         selectedDate={selectedDate}
                         onDayClick={handleDayClick}
-                        onTaskClick={openDetailsDrawer}
+                        onTaskClick={handleTaskClick}
                       />
                     );
                   })}
                 </div>
               </>
             ) : (
-              <AgendaView taskMap={taskMap} year={currentYear} month={currentMonth} onTaskClick={openDetailsDrawer} />
+              <AgendaView taskMap={taskMap} year={currentYear} month={currentMonth} onTaskClick={handleTaskClick} />
             )}
           </div>
 
@@ -445,7 +458,7 @@ const TaskCalendarView = () => {
           <AnimatePresence>
             {selectedDate && selectedDateTasks.length > 0 && (
               <div style={{ padding: '1rem 1rem 1rem 0' }}>
-                <DayDetailPanel dateKey={selectedDate} tasks={selectedDateTasks} onClose={() => setSelectedDate(null)} onTaskClick={openDetailsDrawer} />
+                <DayDetailPanel dateKey={selectedDate} tasks={selectedDateTasks} onClose={() => setSelectedDate(null)} onTaskClick={handleTaskClick} />
               </div>
             )}
           </AnimatePresence>

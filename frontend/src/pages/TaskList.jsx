@@ -41,9 +41,9 @@ import {
   Skeleton, Avatar, EmptyState, Drawer, Card, Modal,
 } from '../components/ui';
 import { ROUTES } from '../constants';
-import { mockCategories } from '../data/categories';
 import { weeklyPlanService } from '../services/weeklyPlanService';
 import { AddWeeklyTaskDrawer } from '../components/projects/AddWeeklyTaskDrawer';
+import TaskCalendarView from '../components/supervisor/task-management/TaskCalendarView';
 
 // ─── Week Helpers ──────────────────────────────────────────────────────────────
 function toISODate(date) {
@@ -614,7 +614,7 @@ function QuickPreviewPanel({ task, onClose, onOpen }) {
 }
 
 // ─── Filter Sidebar ────────────────────────────────────────────────────────────
-function FilterSidebar({ tasks, filters, onCategory, onPriority, onReset }) {
+function FilterSidebar({ tasks, filters, onPriority, onReset }) {
   return (
     <div style={{
       width: '220px', flexShrink: 0,
@@ -624,43 +624,6 @@ function FilterSidebar({ tasks, filters, onCategory, onPriority, onReset }) {
       position: 'sticky', top: '88px', alignSelf: 'flex-start',
       display: 'flex', flexDirection: 'column', gap: '1.25rem',
     }}>
-      <div>
-        <h4 style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-neutral-400)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.625rem' }}>
-          Category
-        </h4>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-          {[{ id: 'all', label: 'All Categories', color: '#64748b' }, ...mockCategories.map(c => ({ id: c.id, label: c.label, color: CATEGORY_COLORS[c.id] ?? '#64748b' }))].map(cat => {
-            const count = cat.id === 'all' ? tasks.length : tasks.filter(t => t.category === cat.id).length;
-            const isActive = filters.category === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => onCategory(cat.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '0.5rem',
-                  padding: '0.5rem 0.625rem', borderRadius: '0.625rem', border: 'none',
-                  cursor: 'pointer', textAlign: 'left', width: '100%',
-                  background: isActive ? `${cat.color}15` : 'transparent',
-                  outline: isActive ? `1.5px solid ${cat.color}40` : 'none',
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--color-neutral-50)'; }}
-                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
-              >
-                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 600, color: isActive ? cat.color : 'var(--color-neutral-700)' }}>
-                  {cat.label}
-                </span>
-                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-neutral-400)' }}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div style={{ height: '1px', background: 'var(--color-neutral-100)' }} />
 
       <div>
         <h4 style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-neutral-400)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.625rem' }}>
@@ -816,10 +779,8 @@ export default function TaskList() {
   }, [weekStart]);
 
   useEffect(() => {
-    if (viewTab === 'weekly') {
-      fetchWeekData();
-    }
-  }, [viewTab, fetchWeekData]);
+    fetchWeekData();
+  }, [fetchWeekData]);
 
   // Ctrl+K shortcut for search
   useEffect(() => {
@@ -864,7 +825,6 @@ export default function TaskList() {
   const activeFilterCount = [
     filters.status !== 'all',
     filters.priority !== 'all',
-    filters.category !== 'all',
     !!filters.searchQuery,
   ].filter(Boolean).length;
 
@@ -886,7 +846,6 @@ export default function TaskList() {
     <FilterSidebar
       tasks={tasks}
       filters={filters}
-      onCategory={v => { setFilter('category', v); setMobileFilterOpen(false); }}
       onPriority={v => { setFilter('priority', v); setMobileFilterOpen(false); }}
       onReset={() => { resetFilters(); setMobileFilterOpen(false); }}
     />
@@ -912,32 +871,30 @@ export default function TaskList() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {viewTab === 'weekly' && !weeklyLocked && (
+          {!weeklyLocked && (
             <Button size="sm" variant="ghost" onClick={() => setAddingWeeklyTask(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <RiAddLine /> Add Weekly Task
             </Button>
           )}
-          {viewTab === 'weekly' && planStatus === 'open' && weeklyTasks.length > 0 && (
+          {planStatus === 'open' && weeklyTasks.length > 0 && (
             <Button size="sm" onClick={() => setSubmitModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <RiSendPlaneLine /> Submit Weekly Report
             </Button>
           )}
-          {viewTab === 'all' && (
-            <button
-              onClick={handleReset}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-                background: '#fff', border: '1px solid var(--color-neutral-200)',
-                borderRadius: '0.75rem', padding: '0.5rem 0.875rem',
-                fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-neutral-600)',
-                cursor: 'pointer', transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-neutral-50)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
-            >
-              <RiRefreshLine style={{ fontSize: '0.95rem' }} /> Refresh
-            </button>
-          )}
+          <button
+            onClick={handleReset}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+              background: '#fff', border: '1px solid var(--color-neutral-200)',
+              borderRadius: '0.75rem', padding: '0.5rem 0.875rem',
+              fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-neutral-600)',
+              cursor: 'pointer', transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-neutral-50)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
+          >
+            <RiRefreshLine style={{ fontSize: '0.95rem' }} /> Refresh
+          </button>
         </div>
       </motion.div>
 
@@ -956,22 +913,22 @@ export default function TaskList() {
             transition: 'all 0.15s ease',
           }}
         >
-          <RiTaskLine /> All Tasks
+          <RiTaskLine /> Tasks
         </button>
         <button
-          onClick={() => setViewTab('weekly')}
+          onClick={() => setViewTab('calendar')}
           style={{
             padding: '0.6rem 0.25rem',
             background: 'none', border: 'none',
             fontSize: '0.95rem', fontWeight: 700,
-            color: viewTab === 'weekly' ? 'var(--color-primary-600)' : 'var(--color-neutral-500)',
-            borderBottom: viewTab === 'weekly' ? '2.5px solid var(--color-primary-600)' : '2.5px solid transparent',
+            color: viewTab === 'calendar' ? 'var(--color-primary-600)' : 'var(--color-neutral-500)',
+            borderBottom: viewTab === 'calendar' ? '2.5px solid var(--color-primary-600)' : '2.5px solid transparent',
             marginBottom: '-2px', cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: '0.4rem',
             transition: 'all 0.15s ease',
           }}
         >
-          <RiCalendarCheckLine /> Weekly Planner & Review
+          <RiCalendarEventLine /> Calendar
         </button>
       </div>
 
@@ -1198,13 +1155,76 @@ export default function TaskList() {
               <FilterSidebar
                 tasks={tasks}
                 filters={filters}
-                onCategory={v => setFilter('category', v)}
                 onPriority={v => setFilter('priority', v)}
                 onReset={resetFilters}
               />
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
+              {/* Weekly Planner Banner Card */}
+              <Card padding="none" style={{ marginBottom: '1.25rem', background: '#fff', border: '1px solid var(--color-neutral-200)' }} contentStyle={{ padding: '1rem 1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <button
+                      onClick={() => setWeekStart(shiftWeek(weekStart, -1))}
+                      title="Previous week"
+                      style={{
+                        width: '32px', height: '32px', borderRadius: '0.5rem',
+                        border: '1px solid var(--color-neutral-200)', background: '#fff',
+                        cursor: 'pointer', color: 'var(--color-neutral-700)', fontSize: '1.1rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      <RiArrowLeftSLine />
+                    </button>
+                    <div>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Weekly Plan
+                      </span>
+                      <p style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-neutral-900)' }}>
+                        {formatWeekRange(weekStart)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setWeekStart(shiftWeek(weekStart, 1))}
+                      title="Next week"
+                      style={{
+                        width: '32px', height: '32px', borderRadius: '0.5rem',
+                        border: '1px solid var(--color-neutral-200)', background: '#fff',
+                        cursor: 'pointer', color: 'var(--color-neutral-700)', fontSize: '1.1rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      <RiArrowRightSLine />
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span style={{ display: 'inline-flex', padding: '0.2rem 0.65rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 600, color: planCfg.color, background: planCfg.bg }}>
+                      {planCfg.label}
+                    </span>
+                    {!loadingWeekly && (
+                      <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--color-neutral-600)' }}>
+                        {weeklyStats.completed}/{weeklyStats.total} Deliverables Done
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {weeklyPlan?.reviewer_feedback && (
+                  <div style={{ marginTop: '0.75rem', padding: '0.75rem', borderRadius: '0.5rem', background: 'var(--color-success-50)', border: '1px solid var(--color-success-100)', fontSize: '0.8rem', color: 'var(--color-success-700)' }}>
+                    <strong>Supervisor Feedback:</strong> {weeklyPlan.reviewer_feedback}
+                  </div>
+                )}
+
+                {planStatus === 'requires_changes' && (
+                  <div style={{ marginTop: '0.75rem', padding: '0.75rem', borderRadius: '0.5rem', background: '#fef3c7', border: '1px solid #fde68a', fontSize: '0.8rem', color: '#92400e', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>Supervisor requested changes. Update your tasks and resubmit.</span>
+                    <Button size="sm" onClick={() => setSubmitModal(true)}>Resubmit Report</Button>
+                  </div>
+                )}
+              </Card>
+
               {loadingTasks ? (
                 <TasksSkeleton layout={layout} />
               ) : filtered.length === 0 ? (
@@ -1276,139 +1296,34 @@ export default function TaskList() {
         </>
       )}
 
-      {/* ── VIEW 2: WEEKLY PLANNER & REVIEW ───────────────────────────── */}
-      {viewTab === 'weekly' && (
-        <div style={{ maxWidth: '960px', margin: '0 auto', width: '100%' }}>
-          {/* Week navigator */}
-          <Card padding="none" style={{ marginBottom: '1.25rem' }} contentStyle={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1.25rem' }}>
-            <button
-              onClick={() => setWeekStart(shiftWeek(weekStart, -1))}
-              title="Previous week"
-              style={{
-                width: '36px', height: '36px', borderRadius: '0.5rem',
-                border: '1px solid var(--color-neutral-200)', background: '#fff',
-                cursor: 'pointer', color: 'var(--color-neutral-700)', fontSize: '1.2rem',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-neutral-50)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
-            >
-              <RiArrowLeftSLine />
-            </button>
-            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: '1.05rem', color: 'var(--color-neutral-900)' }}>
-                {formatWeekRange(weekStart)}
-              </p>
-              <span style={{ display: 'inline-flex', padding: '0.2rem 0.65rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 600, color: planCfg.color, background: planCfg.bg }}>
-                {planCfg.label}
-              </span>
-            </div>
-            <button
-              onClick={() => setWeekStart(shiftWeek(weekStart, 1))}
-              title="Next week"
-              style={{
-                width: '36px', height: '36px', borderRadius: '0.5rem',
-                border: '1px solid var(--color-neutral-200)', background: '#fff',
-                cursor: 'pointer', color: 'var(--color-neutral-700)', fontSize: '1.2rem',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-neutral-50)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
-            >
-              <RiArrowRightSLine />
-            </button>
-          </Card>
-
-          {/* Stats row */}
-          {!loadingWeekly && weeklyTasks.length > 0 && (
-            <div className="weekly-stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.6rem', marginBottom: '1.25rem' }}>
-              {[
-                { label: 'Total', value: weeklyStats.total, color: 'var(--color-neutral-600)', bg: 'var(--color-neutral-50)' },
-                { label: 'Completed', value: weeklyStats.completed, color: 'var(--color-success-600)', bg: 'var(--color-success-50)' },
-                { label: 'Ongoing', value: weeklyStats.ongoing, color: '#d97706', bg: '#fef3c7' },
-                { label: 'Pending', value: weeklyStats.pending, color: 'var(--color-neutral-500)', bg: 'var(--color-neutral-100)' },
-                { label: 'Not Done', value: weeklyStats.not_done, color: 'var(--color-danger-600)', bg: 'var(--color-danger-50)' },
-              ].map((s) => (
-                <div key={s.label} style={{ padding: '0.65rem 0.75rem', borderRadius: '0.6rem', background: s.bg, textAlign: 'center' }}>
-                  <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: s.color }}>{s.value}</p>
-                  <p style={{ margin: 0, fontSize: '0.7rem', color: s.color, fontWeight: 600 }}>{s.label}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Task table */}
-          {loadingWeekly ? (
-            <Card style={{ padding: '1.25rem' }}>
-              {[1, 2, 3].map((i) => <Skeleton key={i} height="2.5rem" style={{ marginBottom: '0.5rem' }} />)}
-            </Card>
-          ) : weeklyTasks.length === 0 ? (
-            <EmptyState
-              icon={<RiTimeLine style={{ fontSize: '2.5rem', color: 'var(--color-neutral-300)' }} />}
-              title="No tasks scheduled for this week"
-              description="Add tasks to plan and track your weekly deliverables"
-              action={!weeklyLocked && <Button onClick={() => setAddingWeeklyTask(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><RiAddLine /> Add Weekly Task</Button>}
-            />
-          ) : (
-            <Card style={{ padding: 0, overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: 'var(--color-neutral-50)', borderBottom: '1px solid var(--color-neutral-100)' }}>
-                    {['Task', 'Project', 'Source', 'Due', 'Status'].map((h) => (
-                      <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: 'var(--color-neutral-600)', fontSize: '0.78rem' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {weeklyTasks.map((task) => (
-                    <WeeklyTaskRow key={task.id} task={task} locked={weeklyLocked} onStatusChange={fetchWeekData} />
-                  ))}
-                </tbody>
-              </table>
-            </Card>
-          )}
-
-          {/* Reviewed feedback */}
-          {weeklyPlan?.reviewer_feedback && (
-            <Card style={{ marginTop: '1rem', padding: '1rem', background: 'var(--color-success-50)', border: '1px solid var(--color-success-100)' }}>
-              <p style={{ margin: '0 0 0.25rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-success-700)' }}>Supervisor Feedback</p>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-success-700)', lineHeight: 1.5 }}>{weeklyPlan.reviewer_feedback}</p>
-            </Card>
-          )}
-
-          {/* Requires changes notice */}
-          {planStatus === 'requires_changes' && (
-            <div style={{ marginTop: '1rem', padding: '0.85rem 1rem', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '0.6rem', fontSize: '0.85rem', color: '#92400e' }}>
-              Your supervisor has requested changes. Update your tasks and resubmit.
-              <Button size="sm" style={{ marginLeft: '1rem' }} onClick={() => setSubmitModal(true)}>
-                Resubmit Report
-              </Button>
-            </div>
-          )}
-
-          {/* Add weekly task drawer */}
-          <AddWeeklyTaskDrawer
-            isOpen={addingWeeklyTask}
-            onClose={() => setAddingWeeklyTask(false)}
-            onSuccess={fetchWeekData}
-            weekStart={weekStart}
-          />
-
-          {/* Submit confirm modal */}
-          <Modal isOpen={submitModal} onClose={() => setSubmitModal(false)} title="Submit Weekly Report?" maxWidth="420px">
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-neutral-600)', lineHeight: 1.6, margin: '0 0 1.25rem' }}>
-              Your weekly report for <strong>{formatWeekRange(weekStart)}</strong> will be submitted to your supervisor for review.
-              You will not be able to edit task statuses after submission.
-            </p>
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <Button variant="ghost" onClick={() => setSubmitModal(false)}>Cancel</Button>
-              <Button onClick={handleSubmitReport} loading={submittingReport}>Submit Report</Button>
-            </div>
-          </Modal>
-        </div>
+      {/* ── VIEW 2: CALENDAR VIEW ─────────────────────────────────────── */}
+      {viewTab === 'calendar' && (
+        <TaskCalendarView
+          tasks={tasks}
+          loading={loadingTasks}
+          onTaskClick={(t) => handleOpen(t.id)}
+        />
       )}
+
+      {/* Add weekly task drawer */}
+      <AddWeeklyTaskDrawer
+        isOpen={addingWeeklyTask}
+        onClose={() => setAddingWeeklyTask(false)}
+        onSuccess={fetchWeekData}
+        weekStart={weekStart}
+      />
+
+      {/* Submit confirm modal */}
+      <Modal isOpen={submitModal} onClose={() => setSubmitModal(false)} title="Submit Weekly Report?" maxWidth="420px">
+        <p style={{ fontSize: '0.875rem', color: 'var(--color-neutral-600)', lineHeight: 1.6, margin: '0 0 1.25rem' }}>
+          Your weekly report for <strong>{formatWeekRange(weekStart)}</strong> will be submitted to your supervisor for review.
+          You will not be able to edit task statuses after submission.
+        </p>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+          <Button variant="ghost" onClick={() => setSubmitModal(false)}>Cancel</Button>
+          <Button onClick={handleSubmitReport} loading={submittingReport}>Submit Report</Button>
+        </div>
+      </Modal>
 
       {/* Mobile filter drawer */}
       <Drawer
