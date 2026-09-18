@@ -2535,17 +2535,19 @@ a {
 .task-runway-banner {
   background: #00b4d8 !important;
   background-image: none !important;
-  color: #082f49 !important;
+  color: #ffffff !important;
 }
 
 /* Also fix the small white text inside */
 .task-runway-banner p,
-.task-runway-banner span {
-  color: #082f49 !important;
+.task-runway-banner span,
+.task-runway-banner h3,
+.task-runway-banner div {
+  color: #ffffff !important;
 }
-/* FIX RUNWAY STATS LABELS - MAKE THEM DARK */
-[style*="font-size: 0.62rem"][style*="text-transform: uppercase"] {
-  color: #082f49 !important; /* dark navy for contrast on #00b4d8 */
+/* FIX RUNWAY STATS LABELS */
+.task-runway-banner [style*="font-size: 0.62rem"][style*="text-transform: uppercase"] {
+  color: #ffffff !important;
   font-weight: 700 !important;
   opacity: 1 !important;
 }

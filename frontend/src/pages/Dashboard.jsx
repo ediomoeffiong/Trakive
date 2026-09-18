@@ -416,9 +416,28 @@ const Dashboard = () => {
               const isUp = stat.trendUp;
               const isProgress = key === 'internshipProgress';
               
+              const kpiRoutes = {
+                internshipProgress: ROUTES.ONBOARDING,
+                tasksCompleted: ROUTES.TASKS,
+                pendingTasks: ROUTES.TASKS,
+                upcomingDeadlines: ROUTES.TASKS,
+              };
+
               return (
                 <motion.div key={key} variants={cardHover} whileHover="hover">
-                  <Card interactive style={{ height: '100%' }}>
+                  <Card
+                    interactive
+                    style={{ height: '100%' }}
+                    onClick={() => navigate(kpiRoutes[key] || ROUTES.TASKS)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(kpiRoutes[key] || ROUTES.TASKS);
+                      }
+                    }}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
                         <p style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--color-neutral-500)', marginBottom: '0.5rem' }}>

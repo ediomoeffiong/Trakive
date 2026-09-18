@@ -16,7 +16,18 @@ const statusVariant = {
   pending_review: 'warning',
 };
 
-const label = (value) => (value || 'pending').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+const isWeekdayDate = (value) => {
+  if (!value) return false;
+  const date = new Date(`${String(value).slice(0, 10)}T12:00:00`);
+  const day = date.getDay();
+  return day >= 1 && day <= 5;
+};
+
+const label = (value, date) => {
+  if (value === 'remote') return 'Online';
+  if (value === 'non_workday' && isWeekdayDate(date)) return 'Online';
+  return (value || 'pending').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+};
 
 const Stat = ({ icon: Icon, label: title, value, sub }) => (
   <Card>
@@ -72,7 +83,7 @@ const AttendancePage = () => {
       ) : (
         <div className="dashboard-kpi-grid">
           <Stat icon={RiPercentLine} label="Attendance Percentage" value={`${stats.attendance_percentage ?? 100}%`} sub={`${stats.credited_days ?? 0}/${stats.required_days ?? 0} credited days`} />
-          <Stat icon={RiCalendar2Line} label="Required Days" value={stats.required_days ?? 0} sub="Excludes holidays and non-workdays" />
+          <Stat icon={RiCalendar2Line} label="Required Days" value={stats.required_days ?? 0} sub="Excludes holidays and weekends" />
           <Stat icon={RiShieldCheckLine} label="Verified / Remote / Excused" value={(stats.present || 0) + (stats.late || 0) + (stats.remote || 0) + (stats.excused || 0)} sub={`${stats.late || 0} late days`} />
         </div>
       )}
@@ -88,7 +99,7 @@ const AttendancePage = () => {
               {calendar.map((record) => (
                 <div key={record.id} style={{ border: '1px solid var(--color-neutral-200)', borderRadius: 8, padding: '0.65rem', minHeight: 78 }}>
                   <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>{new Date(record.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}</p>
-                  <Badge variant={statusVariant[record.status] || 'neutral'}>{label(record.status)}</Badge>
+                  <Badge variant={statusVariant[record.status] || 'neutral'}>{label(record.status, record.date)}</Badge>
                   {record.check_in && <p style={{ margin: '0.35rem 0 0', fontSize: '0.72rem', color: 'var(--color-neutral-500)' }}>{new Date(record.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>}
                 </div>
               ))}
@@ -109,7 +120,7 @@ const AttendancePage = () => {
                   {(data?.records || []).map((record) => (
                     <tr key={record.id} style={{ borderTop: '1px solid var(--color-neutral-100)' }}>
                       <td style={{ padding: '0.75rem' }}>{new Date(record.date).toLocaleDateString()}</td>
-                      <td style={{ padding: '0.75rem' }}><Badge variant={statusVariant[record.status] || 'neutral'}>{label(record.status)}</Badge></td>
+                      <td style={{ padding: '0.75rem' }}><Badge variant={statusVariant[record.status] || 'neutral'}>{label(record.status, record.date)}</Badge></td>
                       <td style={{ padding: '0.75rem' }}>{record.check_in ? new Date(record.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
                       <td style={{ padding: '0.75rem' }}>{record.office_name || '-'}</td>
                       <td style={{ padding: '0.75rem' }}>{label(record.verification_status)}</td>

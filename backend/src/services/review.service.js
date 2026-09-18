@@ -1,13 +1,20 @@
 const { query } = require('../config/db');
 const ApiError = require('../utils/apiError');
 
+const WEEKLY_STATUS_MAP = {
+  reviewed: 'published',
+  submitted: 'scheduled',
+  requires_changes: 'pending-self-assessment',
+  open: 'scheduled',
+};
+
 const toReview = (row) => {
   const metrics = row.metrics || {};
   return {
     id: row.id,
     period: row.period_label || `${row.period_start} - ${row.period_end}`,
     title: row.title || 'Performance Review',
-    status: row.status === 'published' ? 'published' : row.status,
+    status: row.status === 'published' || row.status === 'draft' ? (row.status === 'draft' ? 'scheduled' : 'published') : row.status,
     overallScore: row.overall_score === null || row.overall_score === undefined ? null : Number(row.overall_score),
     reviewerName: row.evaluator_first_name
       ? `${row.evaluator_first_name} ${row.evaluator_last_name || ''}`.trim()
@@ -24,6 +31,49 @@ const toReview = (row) => {
   };
 };
 
+const toWeeklyReview = (row) => {
+  const weekLabel = `${row.week_start} - ${row.week_end}`;
+  return {
+    id: row.id,
+    period: weekLabel,
+    title: `Weekly Review · ${weekLabel}`,
+    status: WEEKLY_STATUS_MAP[row.status] || 'scheduled',
+    overallScore: null,
+    reviewerName: row.evaluator_first_name
+      ? `${row.evaluator_first_name} ${row.evaluator_last_name || ''}`.trim()
+      : 'Supervisor',
+    reviewerRole: row.evaluator_role || 'Supervisor',
+    reviewDate: row.reviewed_at || row.submitted_at || row.updated_at,
+    summary: row.reviewer_feedback || '',
+    strengths: [],
+    areasForImprovement: [],
+    recommendation: '',
+    scheduledAt: row.week_end,
+    nextReviewDate: row.status === 'submitted' ? row.week_end : null,
+    metrics: { source: 'weekly_plan' },
+  };
+};
+
+const toTaskReview = (row) => ({
+  id: row.id,
+  period: row.due_date ? String(row.due_date).slice(0, 10) : 'Task Review',
+  title: row.title || 'Task Review',
+  status: 'published',
+  overallScore: row.rating == null ? null : Number(row.rating) * 20,
+  reviewerName: row.evaluator_first_name
+    ? `${row.evaluator_first_name} ${row.evaluator_last_name || ''}`.trim()
+    : 'Supervisor',
+  reviewerRole: row.evaluator_role || 'Supervisor',
+  reviewDate: row.reviewed_at || row.created_at,
+  summary: row.feedback || '',
+  strengths: [],
+  areasForImprovement: [],
+  recommendation: row.status || '',
+  scheduledAt: row.reviewed_at,
+  nextReviewDate: null,
+  metrics: { source: 'task_review', rating: row.rating },
+});
+
 const emptyTrends = {
   trends: [],
   radarData: [],
@@ -37,28 +87,67 @@ const emptyTrends = {
   },
 };
 
+const sortByDateDesc = (items) =>
+  items.sort((a, b) => new Date(b.reviewDate || b.scheduledAt || 0) - new Date(a.reviewDate || a.scheduledAt || 0));
+
 const ReviewService = {
   async listInternReviews(requestingUser) {
-    const res = await query(
-      `SELECT
-         r.*,
-         evaluator.first_name AS evaluator_first_name,
-         evaluator.last_name AS evaluator_last_name,
-         roles.name AS evaluator_role
-       FROM reports r
-       LEFT JOIN users evaluator ON evaluator.id = r.evaluator_id
-       LEFT JOIN roles ON roles.id = evaluator.role_id
-       WHERE r.intern_id = $1
-         AND r.status IN ('published', 'draft')
-       ORDER BY r.period_end DESC, r.created_at DESC`,
-      [requestingUser.id]
-    );
+    const [reports, weekly, taskReviews] = await Promise.all([
+      query(
+        `SELECT
+           r.*,
+           evaluator.first_name AS evaluator_first_name,
+           evaluator.last_name AS evaluator_last_name,
+           roles.name AS evaluator_role
+         FROM reports r
+         LEFT JOIN users evaluator ON evaluator.id = r.evaluator_id
+         LEFT JOIN roles ON roles.id = evaluator.role_id
+         WHERE r.intern_id = $1
+           AND r.status IN ('published', 'draft')
+         ORDER BY r.period_end DESC, r.created_at DESC`,
+        [requestingUser.id]
+      ),
+      query(
+        `SELECT
+           wp.*,
+           evaluator.first_name AS evaluator_first_name,
+           evaluator.last_name AS evaluator_last_name,
+           roles.name AS evaluator_role
+         FROM weekly_plans wp
+         LEFT JOIN users evaluator ON evaluator.id = wp.reviewer_id
+         LEFT JOIN roles ON roles.id = evaluator.role_id
+         WHERE wp.intern_id = $1
+           AND wp.status IN ('submitted', 'reviewed', 'requires_changes')
+         ORDER BY wp.week_start DESC`,
+        [requestingUser.id]
+      ),
+      query(
+        `SELECT
+           tr.*,
+           t.title,
+           t.due_date,
+           reviewer.first_name AS evaluator_first_name,
+           reviewer.last_name AS evaluator_last_name,
+           roles.name AS evaluator_role
+         FROM task_reviews tr
+         JOIN tasks t ON t.id = tr.task_id
+         LEFT JOIN users reviewer ON reviewer.id = tr.reviewer_id
+         LEFT JOIN roles ON roles.id = reviewer.role_id
+         WHERE t.assignee_id = $1
+         ORDER BY tr.reviewed_at DESC`,
+        [requestingUser.id]
+      ),
+    ]);
 
-    return res.rows.map(toReview);
+    return sortByDateDesc([
+      ...reports.rows.map(toReview),
+      ...weekly.rows.map(toWeeklyReview),
+      ...taskReviews.rows.map(toTaskReview),
+    ]);
   },
 
   async getInternReviewById(reviewId, requestingUser) {
-    const res = await query(
+    const reportRes = await query(
       `SELECT
          r.*,
          evaluator.first_name AS evaluator_first_name,
@@ -72,41 +161,98 @@ const ReviewService = {
        LIMIT 1`,
       [reviewId, requestingUser.id]
     );
+    if (reportRes.rows[0]) return toReview(reportRes.rows[0]);
 
-    if (!res.rows[0]) {
-      throw ApiError.notFound('Review not found');
-    }
+    const weeklyRes = await query(
+      `SELECT
+         wp.*,
+         evaluator.first_name AS evaluator_first_name,
+         evaluator.last_name AS evaluator_last_name,
+         roles.name AS evaluator_role
+       FROM weekly_plans wp
+       LEFT JOIN users evaluator ON evaluator.id = wp.reviewer_id
+       LEFT JOIN roles ON roles.id = evaluator.role_id
+       WHERE wp.id = $1
+         AND wp.intern_id = $2
+       LIMIT 1`,
+      [reviewId, requestingUser.id]
+    );
+    if (weeklyRes.rows[0]) return toWeeklyReview(weeklyRes.rows[0]);
 
-    return toReview(res.rows[0]);
+    const taskRes = await query(
+      `SELECT
+         tr.*,
+         t.title,
+         t.due_date,
+         reviewer.first_name AS evaluator_first_name,
+         reviewer.last_name AS evaluator_last_name,
+         roles.name AS evaluator_role
+       FROM task_reviews tr
+       JOIN tasks t ON t.id = tr.task_id
+       LEFT JOIN users reviewer ON reviewer.id = tr.reviewer_id
+       LEFT JOIN roles ON roles.id = reviewer.role_id
+       WHERE tr.id = $1
+         AND t.assignee_id = $2
+       LIMIT 1`,
+      [reviewId, requestingUser.id]
+    );
+    if (taskRes.rows[0]) return toTaskReview(taskRes.rows[0]);
+
+    throw ApiError.notFound('Review not found');
   },
 
   async getPerformanceTrends(requestingUser) {
-    const res = await query(
-      `SELECT period_start, period_end, overall_score, metrics
-       FROM reports
-       WHERE intern_id = $1
-         AND status = 'published'
-         AND overall_score IS NOT NULL
-       ORDER BY period_end ASC, created_at ASC`,
-      [requestingUser.id]
-    );
+    const [reports, taskReviews] = await Promise.all([
+      query(
+        `SELECT period_start, period_end, overall_score, metrics, created_at
+         FROM reports
+         WHERE intern_id = $1
+           AND status = 'published'
+           AND overall_score IS NOT NULL
+         ORDER BY period_end ASC, created_at ASC`,
+        [requestingUser.id]
+      ),
+      query(
+        `SELECT tr.rating, tr.reviewed_at, t.title
+         FROM task_reviews tr
+         JOIN tasks t ON t.id = tr.task_id
+         WHERE t.assignee_id = $1
+           AND tr.rating IS NOT NULL
+         ORDER BY tr.reviewed_at ASC`,
+        [requestingUser.id]
+      ),
+    ]);
 
-    if (res.rows.length === 0) {
+    const trends = [
+      ...reports.rows.map((row, index) => {
+        const metrics = row.metrics || {};
+        return {
+          period: metrics.periodLabel || `Review ${index + 1}`,
+          overall: Number(row.overall_score || 0),
+          productivity: Number(metrics.productivity ?? row.overall_score ?? 0),
+          quality: Number(metrics.quality ?? row.overall_score ?? 0),
+          communication: Number(metrics.communication ?? row.overall_score ?? 0),
+          initiative: Number(metrics.initiative ?? row.overall_score ?? 0),
+          teamwork: Number(metrics.teamwork ?? row.overall_score ?? 0),
+        };
+      }),
+      ...taskReviews.rows.map((row) => {
+        const overall = Number(row.rating) * 20;
+        return {
+          period: row.title || 'Task Review',
+          overall,
+          productivity: overall,
+          quality: overall,
+          communication: overall,
+          initiative: overall,
+          teamwork: overall,
+        };
+      }),
+    ];
+
+    if (trends.length === 0) {
       return emptyTrends;
     }
-
-    const trends = res.rows.map((row, index) => {
-      const metrics = row.metrics || {};
-      return {
-        period: metrics.periodLabel || `Review ${index + 1}`,
-        overall: Number(row.overall_score || 0),
-        productivity: Number(metrics.productivity ?? row.overall_score ?? 0),
-        quality: Number(metrics.quality ?? row.overall_score ?? 0),
-        communication: Number(metrics.communication ?? row.overall_score ?? 0),
-        initiative: Number(metrics.initiative ?? row.overall_score ?? 0),
-        teamwork: Number(metrics.teamwork ?? row.overall_score ?? 0),
-      };
-    });
 
     const latest = trends[trends.length - 1];
     const previous = trends[trends.length - 2];

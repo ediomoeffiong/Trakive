@@ -293,8 +293,11 @@ async function resolveDayContext(internId, date = null) {
     reason = override.reason;
   }
   if (!required && !derivedStatus) {
-    derivedStatus = 'non_workday';
-    reason = 'No attendance scheduled';
+    const isWeekday = weekday >= 1 && weekday <= 5;
+    derivedStatus = isWeekday ? 'remote' : 'non_workday';
+    reason = isWeekday
+      ? 'Online day — physical presence is not required'
+      : 'No attendance scheduled';
   }
 
   const arrival = parseTimeToMinutes(policy.arrival_time);

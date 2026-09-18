@@ -199,9 +199,9 @@ export default function ReviewsList() {
                 fontWeight: 500,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
-                background: statusFilter === tab.key ? 'var(--color-primary-600)' : 'var(--color-surface)',
+                background: statusFilter === tab.key ? '#00b4d8' : 'var(--color-surface)',
                 color: statusFilter === tab.key ? '#fff' : 'var(--color-neutral-600)',
-                borderColor: statusFilter === tab.key ? 'var(--color-primary-600)' : 'var(--color-border)',
+                borderColor: statusFilter === tab.key ? '#00b4d8' : 'var(--color-border)',
               }}
             >
               {tab.icon}

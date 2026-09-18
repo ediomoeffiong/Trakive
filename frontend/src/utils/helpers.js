@@ -77,6 +77,26 @@ export function omit(obj, keys) {
   );
 }
 
+export const ALLOWED_ORG_EMAIL_DOMAINS = ['cwg-plc.com', 'fifthlab.com', 'thefifthlab.com'];
+
+export const ORG_EMAIL_REQUIRED_MESSAGE =
+  'Please enter your organization email (@cwg-plc.com or @fifthlab.com). Other emails are not supported.';
+
+export function isOrganizationEmail(email) {
+  const domain = String(email || '').split('@')[1]?.toLowerCase().trim();
+  if (!domain) return false;
+  return ALLOWED_ORG_EMAIL_DOMAINS.includes(domain);
+}
+
+export const orgEmailRegisterOptions = {
+  required: 'Email address is required',
+  pattern: {
+    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+    message: 'Invalid email address format',
+  },
+  validate: (value) => isOrganizationEmail(value) || ORG_EMAIL_REQUIRED_MESSAGE,
+};
+
 /**
  * Get default home route for a given user role.
  * @param {string} role

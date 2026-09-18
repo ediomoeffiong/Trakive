@@ -6,6 +6,7 @@
 import api from './api';
 import { mockUsers, DEFAULT_MOCK_PASSWORD } from '../data/mockUsers';
 import { normalizeDepartmentForPerson, normalizePersonRecord } from '../utils/people';
+import { isOrganizationEmail, ORG_EMAIL_REQUIRED_MESSAGE } from '../utils/helpers';
 
 const MOCK_AUTH_ENABLED = !import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
 
@@ -82,6 +83,9 @@ export const authService = {
    * Login validating email and password via backend API with fallback.
    */
   login: async ({ email, password }) => {
+    if (!isOrganizationEmail(email)) {
+      throw new Error(ORG_EMAIL_REQUIRED_MESSAGE);
+    }
     try {
       const res = await api.post('/auth/login', { email, password });
       const payload = res.data?.data || res.data || {};
@@ -122,6 +126,9 @@ export const authService = {
    * Mock register.
    */
   register: async (data) => {
+    if (!isOrganizationEmail(data.email)) {
+      throw new Error(ORG_EMAIL_REQUIRED_MESSAGE);
+    }
     await delay(1500);
     const users = getRegisteredUsers();
     
@@ -185,6 +192,9 @@ export const authService = {
    * Mock Forgot Password.
    */
   forgotPassword: async ({ email }) => {
+    if (!isOrganizationEmail(email)) {
+      throw new Error(ORG_EMAIL_REQUIRED_MESSAGE);
+    }
     await delay(1000);
     const users = getRegisteredUsers();
     const exists = users.some((u) => u.email.toLowerCase() === email.toLowerCase());

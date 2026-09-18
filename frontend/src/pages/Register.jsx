@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { useAppStore } from '../store/useAppStore';
 import { STANDARD_DEPARTMENTS } from '../utils/departments';
 import { ROUTES } from '../constants';
+import { orgEmailRegisterOptions } from '../utils';
 import {
   AuthCard,
   AuthHeader,
@@ -177,16 +178,10 @@ const Register = () => {
               id="reg-email"
               label="Work Email"
               type="email"
-              placeholder="user@thefifthlab.com"
+              placeholder="name@cwg-plc.com or name@fifthlab.com"
               leftAddon={<FiMail className="text-neutral-400" />}
               error={errors.email?.message}
-              {...register('email', {
-                required: 'Email address is required',
-                pattern: {
-                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: 'Invalid email address format',
-                },
-              })}
+              {...register('email', orgEmailRegisterOptions)}
             />
 
             <Input

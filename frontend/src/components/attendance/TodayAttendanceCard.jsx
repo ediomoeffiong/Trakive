@@ -21,7 +21,14 @@ const statusVariant = {
   pending_review: 'warning',
 };
 
-const statusLabel = (value) => (value ? value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Pending');
+const statusLabel = (value, date) => {
+  if (value === 'remote') return 'Online';
+  if (value === 'non_workday') {
+    const day = date ? new Date(`${String(date).slice(0, 10)}T12:00:00`).getDay() : new Date().getDay();
+    if (day >= 1 && day <= 5) return 'Online';
+  }
+  return value ? value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Pending';
+};
 
 const LOCATION_ERROR = {
   DENIED: 'LOCATION_DENIED',
@@ -224,7 +231,7 @@ const TodayAttendanceCard = ({ compact = false }) => {
               <p style={{ margin: '0.15rem 0 0', fontSize: '0.78rem', color: 'var(--color-neutral-500)' }}>{state?.date}</p>
             </div>
           </div>
-          <Badge variant={statusVariant[status] || 'warning'}>{statusLabel(status)}</Badge>
+          <Badge variant={statusVariant[status] || 'warning'}>{statusLabel(status, state?.date)}</Badge>
         </div>
       }
     >
@@ -232,7 +239,7 @@ const TodayAttendanceCard = ({ compact = false }) => {
         <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem' }}>
           <div>
             <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>Required</p>
-            <p style={{ margin: '0.2rem 0 0', fontWeight: 700 }}>{required ? 'Yes' : 'No'}</p>
+            <p style={{ margin: '0.2rem 0 0', fontWeight: 700 }}>{required ? 'In office' : (statusLabel(status, state?.date) === 'Online' ? 'Online' : 'No')}</p>
           </div>
           <div>
             <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>Schedule</p>

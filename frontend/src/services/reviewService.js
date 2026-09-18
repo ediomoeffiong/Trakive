@@ -65,23 +65,11 @@ export const reviewService = {
    * Fetch all reviews for the current intern.
    */
   getReviews: async () => {
-    const currentUser = getCurrentUser();
-    try {
-      const response = await api.get('/reviews');
-      const data = response?.data?.data || response?.data;
-      if (Array.isArray(data)) return data;
-      if (Array.isArray(data?.items)) return data.items;
-    } catch (e) {
-      console.warn('Backend API call for intern reviews failed', e);
-    }
-    return getStoredScheduledReviews()
-      .filter((review) =>
-        sameUser(review.internId, currentUser?.id) ||
-        sameUser(review.internEmail, currentUser?.email) ||
-        sameUser(review.internName, currentUser?.name)
-      )
-      .map(toInternReview)
-      .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
+    const response = await api.get('/reviews');
+    const data = response?.data?.data ?? response?.data;
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.items)) return data.items;
+    return [];
   },
 
   /**

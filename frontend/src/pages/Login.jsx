@@ -14,7 +14,7 @@ import {
   ErrorMessage,
 } from '../components/ui';
 
-import { getRoleDefaultRoute } from '../utils';
+import { getRoleDefaultRoute, orgEmailRegisterOptions } from '../utils';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -65,17 +65,11 @@ const Login = () => {
           id="login-email"
           label="Work Email"
           type="email"
-          placeholder="user@thefifthlab.com"
+          placeholder="name@cwg-plc.com or name@fifthlab.com"
           leftAddon={<RiMailLine className="text-neutral-400" />}
           error={errors.email?.message}
           disabled={authLoading}
-          {...register('email', {
-            required: 'Email address is required',
-            pattern: {
-              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-              message: 'Invalid email address format',
-            },
-          })}
+          {...register('email', orgEmailRegisterOptions)}
         />
 
         <div className="relative">

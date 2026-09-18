@@ -22,19 +22,19 @@ export const supervisorService = {
 
       return {
         kpis: [
-          { id: 'total-interns', label: 'Total Assigned Interns', value: String(internsData.length), trend: `${internsData.length} active`, trendUp: true },
-          { id: 'active-projects', label: 'Active Projects', value: String(activeProjects), trend: `${projectsData.length} total`, trendUp: true },
-          { id: 'pending-reviews', label: 'Pending Task Reviews', value: String(pendingReviews), trend: 'Requires action', trendUp: pendingReviews === 0 },
-          { id: 'reviews-due', label: 'Reviews Due This Week', value: String(reviewsDue), trend: 'Weekly reports', trendUp: true },
+          { id: 'total-interns', label: 'Total Assigned Interns', value: String(internsData.length), trend: `${internsData.length} active`, trendType: 'positive', iconName: 'RiTeamLine', color: 'blue', description: 'Interns assigned to you', to: '/supervisor/interns' },
+          { id: 'active-projects', label: 'Active Projects', value: String(activeProjects), trend: `${projectsData.length} total`, trendType: 'positive', iconName: 'RiTaskLine', color: 'green', description: 'Projects currently in progress', to: '/supervisor/projects' },
+          { id: 'pending-reviews', label: 'Pending Task Reviews', value: String(pendingReviews), trend: 'Requires action', trendType: pendingReviews === 0 ? 'positive' : 'urgent', iconName: 'RiCheckboxMultipleLine', color: 'amber', description: 'Onboarding and weekly reviews waiting', to: '/supervisor/reviews' },
+          { id: 'reviews-due', label: 'Reviews Due This Week', value: String(reviewsDue), trend: 'Weekly reports', trendType: reviewsDue > 0 ? 'urgent' : 'positive', iconName: 'RiStarLine', color: 'purple', description: 'Submitted weekly reports to review', to: '/supervisor/weekly-review' },
         ],
       };
     } catch {
       return {
         kpis: [
-          { id: 'total-interns', label: 'Total Assigned Interns', value: '0', trend: '0%', trendUp: true },
-          { id: 'active-projects', label: 'Active Projects', value: '0', trend: '0%', trendUp: true },
-          { id: 'pending-reviews', label: 'Pending Task Reviews', value: '0', trend: '0%', trendUp: true },
-          { id: 'reviews-due', label: 'Reviews Due This Week', value: '0', trend: '0%', trendUp: true },
+          { id: 'total-interns', label: 'Total Assigned Interns', value: '0', trend: '0%', trendType: 'positive', iconName: 'RiTeamLine', color: 'blue', description: 'Interns assigned to you', to: '/supervisor/interns' },
+          { id: 'active-projects', label: 'Active Projects', value: '0', trend: '0%', trendType: 'positive', iconName: 'RiTaskLine', color: 'green', description: 'Projects currently in progress', to: '/supervisor/projects' },
+          { id: 'pending-reviews', label: 'Pending Task Reviews', value: '0', trend: 'Requires action', trendType: 'positive', iconName: 'RiCheckboxMultipleLine', color: 'amber', description: 'Onboarding and weekly reviews waiting', to: '/supervisor/reviews' },
+          { id: 'reviews-due', label: 'Reviews Due This Week', value: '0', trend: 'Weekly reports', trendType: 'positive', iconName: 'RiStarLine', color: 'purple', description: 'Submitted weekly reports to review', to: '/supervisor/weekly-review' },
         ],
       };
     }

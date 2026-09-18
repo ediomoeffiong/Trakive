@@ -3,6 +3,7 @@
  * @description Modern KPI Metric Card component for the Supervisor Dashboard.
  */
 
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   RiTeamLine,
@@ -65,9 +66,16 @@ const COLOR_THEMES = {
   },
 };
 
-const KPICard = ({ card, index = 0 }) => {
+const KPICard = ({ card, index = 0, onClick }) => {
+  const navigate = useNavigate();
   const Icon = ICON_MAP[card.iconName] || RiTeamLine;
   const theme = COLOR_THEMES[card.color] || COLOR_THEMES.blue;
+  const clickable = Boolean(onClick || card.to);
+
+  const handleActivate = () => {
+    if (onClick) onClick(card);
+    else if (card.to) navigate(card.to);
+  };
 
   return (
     <motion.div
@@ -75,6 +83,15 @@ const KPICard = ({ card, index = 0 }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
       whileHover={{ y: -4, transition: { duration: 0.15 } }}
+      onClick={clickable ? handleActivate : undefined}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleActivate();
+        }
+      } : undefined}
       style={{
         background: '#ffffff',
         borderRadius: '1rem',
@@ -86,6 +103,7 @@ const KPICard = ({ card, index = 0 }) => {
         justifyContent: 'space-between',
         position: 'relative',
         overflow: 'hidden',
+        cursor: clickable ? 'pointer' : 'default',
       }}
     >
       {/* Background accent highlight */}

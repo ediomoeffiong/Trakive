@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 
 import { useAppStore } from '../store/useAppStore';
 import { ROUTES } from '../constants';
+import { orgEmailRegisterOptions } from '../utils';
 import {
   AuthCard,
   AuthHeader,
@@ -85,17 +86,11 @@ const ForgotPassword = () => {
           id="forgot-email"
           label="Work Email"
           type="email"
-          placeholder="e.g. alex@company.com"
+          placeholder="name@cwg-plc.com or name@fifthlab.com"
           leftAddon={<FiMail className="text-neutral-400" />}
           error={errors.email?.message}
           disabled={authLoading}
-          {...register('email', {
-            required: 'Email address is required',
-            pattern: {
-              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-              message: 'Invalid email address format',
-            },
-          })}
+          {...register('email', orgEmailRegisterOptions)}
         />
 
         <Button

@@ -1009,7 +1009,7 @@ export default function TaskList() {
                 <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff', margin: '0 0 0.3rem', lineHeight: 1.15 }}>
                   {pct}% Complete
                 </h3>
-                <p style={{ fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.55, margin: '0 0 0.75rem', maxWidth: '36ch' }}>
+                <p style={{ fontSize: '0.85rem', color: '#ffffff', lineHeight: 1.55, margin: '0 0 0.75rem', maxWidth: '36ch' }}>
                   {getEncouragement(pct)}
                 </p>
                 {remaining > 0 && (
@@ -1037,7 +1037,7 @@ export default function TaskList() {
                     border: '1px solid rgba(255,255,255,0.09)', minWidth: '80px',
                   }}>
                     <div style={{ fontSize: '1.375rem', fontWeight: 800, color: c, lineHeight: 1 }}>{v}</div>
-                    <div style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: '0.2rem' }}>{l}</div>
+                    <div style={{ fontSize: '0.62rem', color: '#ffffff', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: '0.2rem' }}>{l}</div>
                   </div>
                 ))}
               </div>
