@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { FiLock, FiArrowLeft, FiCheck } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -22,6 +22,7 @@ import {
 } from '../components/ui';
 
 const ResetPassword = () => {
+  const [searchParams] = useSearchParams();
   const resetFn = useAppStore((state) => state.resetPassword);
   const authError = useAppStore((state) => state.error);
   const authLoading = useAppStore((state) => state.isLoading);
@@ -39,10 +40,11 @@ const ResetPassword = () => {
   });
 
   const passwordVal = watch('password');
+  const resetEmail = searchParams.get('email') || '';
 
   const onSubmit = async (data) => {
     try {
-      await resetFn({ password: data.password });
+      await resetFn({ password: data.password, email: resetEmail });
       setIsSuccess(true);
       toast.success('Password updated successfully!');
     } catch (err) {

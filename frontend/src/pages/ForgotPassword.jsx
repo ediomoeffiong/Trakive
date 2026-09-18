@@ -56,7 +56,7 @@ const ForgotPassword = () => {
           title="Reset link sent"
           message={`We have sent secure password reset instructions and a verification link to ${submittedEmail}. Please check your inbox.`}
         >
-          <Link to={ROUTES.RESET_PASSWORD} className="w-full no-underline">
+          <Link to={`${ROUTES.RESET_PASSWORD}?email=${encodeURIComponent(submittedEmail)}`} className="w-full no-underline">
             <Button size="lg" style={{ width: '100%' }}>
               Proceed to Reset Password (Mock)
             </Button>

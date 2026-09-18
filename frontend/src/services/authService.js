@@ -9,20 +9,58 @@ import { normalizeDepartmentForPerson, normalizePersonRecord } from '../utils/pe
 import { isOrganizationEmail, ORG_EMAIL_REQUIRED_MESSAGE } from '../utils/helpers';
 
 const MOCK_AUTH_ENABLED = !import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
+const CUSTOM_USERS_KEY = 'trakive_custom_users';
+const PASSWORD_OVERRIDES_KEY = 'trakive_mock_password_overrides';
+const PENDING_RESET_EMAIL_KEY = 'trakive_pending_reset_email';
+
+const safeParseJson = (value, fallback) => {
+  try {
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+};
 
 // Helper to get all users (mock users + registered users from localStorage)
 const getRegisteredUsers = () => {
-  const customUsersJson = localStorage.getItem('trakive_custom_users');
-  const customUsers = customUsersJson ? JSON.parse(customUsersJson) : [];
+  const customUsers = safeParseJson(localStorage.getItem(CUSTOM_USERS_KEY), []);
   return [...mockUsers, ...customUsers];
 };
 
 // Helper to save a custom registered user
 const saveCustomUser = (user) => {
-  const customUsersJson = localStorage.getItem('trakive_custom_users');
-  const customUsers = customUsersJson ? JSON.parse(customUsersJson) : [];
+  const customUsers = safeParseJson(localStorage.getItem(CUSTOM_USERS_KEY), []);
   customUsers.push(user);
-  localStorage.setItem('trakive_custom_users', JSON.stringify(customUsers));
+  localStorage.setItem(CUSTOM_USERS_KEY, JSON.stringify(customUsers));
+};
+
+const getMockPasswordOverrides = () =>
+  safeParseJson(localStorage.getItem(PASSWORD_OVERRIDES_KEY), {});
+
+const saveMockPasswordOverrides = (overrides) => {
+  localStorage.setItem(PASSWORD_OVERRIDES_KEY, JSON.stringify(overrides));
+};
+
+const getExpectedMockPassword = (user) => {
+  const email = String(user?.email || '').toLowerCase();
+  const overrides = getMockPasswordOverrides();
+  return overrides[email] || user?.mockPassword || DEFAULT_MOCK_PASSWORD;
+};
+
+const updateStoredMockPassword = (email, password) => {
+  const normalizedEmail = String(email || '').toLowerCase();
+  const customUsers = safeParseJson(localStorage.getItem(CUSTOM_USERS_KEY), []);
+  const updatedUsers = customUsers.map((user) =>
+    String(user.email || '').toLowerCase() === normalizedEmail
+      ? { ...user, mockPassword: password }
+      : user
+  );
+
+  localStorage.setItem(CUSTOM_USERS_KEY, JSON.stringify(updatedUsers));
+
+  const overrides = getMockPasswordOverrides();
+  overrides[normalizedEmail] = password;
+  saveMockPasswordOverrides(overrides);
 };
 
 const delay = (ms = 1000) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -38,10 +76,12 @@ const normalizeRole = (role = '') => {
 
 const normalizeUser = (user, email, token, tokens = {}) => {
   if (!user || typeof user !== 'object') return null;
+  const safeSourceUser = { ...user };
+  delete safeSourceUser.mockPassword;
   const name = user.name || `${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}`.trim() || email.split('@')[0];
   const department = normalizeDepartmentForPerson({ ...user, name, email: user.email || email }, user.department_name || user.department || '');
   return normalizePersonRecord({
-    ...user,
+    ...safeSourceUser,
     id: user.id || user.user_id,
     name,
     firstName: user.firstName || user.first_name || name.split(/\s+/)[0] || '',
@@ -67,7 +107,7 @@ const getMockLogin = async (email, password) => {
   const users = getRegisteredUsers();
   const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
 
-  if (!user || password !== DEFAULT_MOCK_PASSWORD) {
+  if (!user || password !== getExpectedMockPassword(user)) {
     throw new Error('Invalid email or password. Please try again.');
   }
 
@@ -110,8 +150,8 @@ export const authService = {
       // If backend responded with explicit auth failure message
       const backendMsg = err.response?.data?.message || err.response?.data?.error;
       if (backendMsg) {
-        const isDemoAccount = mockUsers.some((u) => u.email.toLowerCase() === email.toLowerCase());
-        if (isDemoAccount && password === DEFAULT_MOCK_PASSWORD) {
+        const demoUser = getRegisteredUsers().find((u) => u.email.toLowerCase() === email.toLowerCase());
+        if (demoUser && password === getExpectedMockPassword(demoUser)) {
           return getMockLogin(email, password);
         }
         throw new Error(backendMsg);
@@ -165,6 +205,7 @@ export const authService = {
       hasCompletedOnboarding: isSupervisor ? true : false,
       profileCompleted: false,
       isNewUser: true,
+      mockPassword: data.password,
       createdAt: new Date().toISOString(),
     };
 
@@ -203,20 +244,37 @@ export const authService = {
       throw new Error('No account found with this email address.');
     }
 
+    localStorage.setItem(PENDING_RESET_EMAIL_KEY, email.toLowerCase());
+
     return {
       success: true,
       message: 'Password reset link sent to your email address.',
+      resetEmail: email,
     };
   },
 
   /**
    * Mock Reset Password.
    */
-  resetPassword: async ({ password }) => {
+  resetPassword: async ({ password, email }) => {
     await delay(1200);
     if (password.length < 8) {
       throw new Error('Password must be at least 8 characters long.');
     }
+    const resetEmail = email || localStorage.getItem(PENDING_RESET_EMAIL_KEY);
+    if (!resetEmail) {
+      throw new Error('Please request a password reset before setting a new password.');
+    }
+
+    const users = getRegisteredUsers();
+    const exists = users.some((u) => u.email.toLowerCase() === resetEmail.toLowerCase());
+    if (!exists) {
+      throw new Error('No account found for this password reset.');
+    }
+
+    updateStoredMockPassword(resetEmail, password);
+    localStorage.removeItem(PENDING_RESET_EMAIL_KEY);
+
     return {
       success: true,
       message: 'Password has been reset successfully.',
@@ -226,7 +284,7 @@ export const authService = {
   /**
    * Mock Resend Email Verification.
    */
-  resendVerificationEmail: async (email) => {
+  resendVerificationEmail: async (_email) => {
     await delay(1000);
     return {
       success: true,
