@@ -3,7 +3,7 @@ const ApiError = require('../utils/apiError');
 /**
  * Validates registration / internship period dates:
  * - startDate: cannot be future-dated and cannot be more than 1 year before today.
- * - endDate: cannot be future-dated and cannot be before startDate.
+ * - endDate: must be at least 14 days after startDate (future end dates are allowed).
  */
 function validateInternshipDates(startDateInput, endDateInput) {
   if (!startDateInput || !endDateInput) {

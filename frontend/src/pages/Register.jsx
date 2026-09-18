@@ -19,15 +19,28 @@ import {
   PasswordStrength,
 } from '../components/ui';
 
+const toDateInputValue = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const addDaysToDateInput = (dateStr, days) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-').map(Number);
+  if (!year || !month || !day) return '';
+  const next = new Date(year, month - 1, day);
+  next.setDate(next.getDate() + days);
+  return toDateInputValue(next);
+};
+
 const getMaxDateOfBirth = () => {
   const cutoff = new Date();
   cutoff.setHours(0, 0, 0, 0);
   cutoff.setFullYear(cutoff.getFullYear() - 10);
   cutoff.setDate(cutoff.getDate() - 1);
-  const year = cutoff.getFullYear();
-  const month = String(cutoff.getMonth() + 1).padStart(2, '0');
-  const day = String(cutoff.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return toDateInputValue(cutoff);
 };
 
 const Register = () => {
@@ -293,11 +306,12 @@ const Register = () => {
             </div>
 
             {role === 'Intern' && (() => {
-              const todayStr = new Date().toISOString().split('T')[0];
+              const todayStr = toDateInputValue(new Date());
               const oneYearAgo = new Date();
               oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-              const oneYearAgoStr = oneYearAgo.toISOString().split('T')[0];
+              const oneYearAgoStr = toDateInputValue(oneYearAgo);
               const startDateVal = watch('startDate');
+              const minEndDate = addDaysToDateInput(startDateVal, 14);
 
               return (
                 <>
@@ -313,12 +327,8 @@ const Register = () => {
                       required: role === 'Intern' ? 'Start date is required' : false,
                       validate: (val) => {
                         if (role !== 'Intern' || !val) return true;
-                        const d = new Date(val);
-                        const today = new Date();
-                        today.setHours(23, 59, 59, 999);
-                        if (d > today) return 'Start date cannot be in the future';
-                        const minDate = new Date(oneYearAgoStr);
-                        if (d < minDate) return 'Start date cannot be more than 1 year before today';
+                        if (val > todayStr) return 'Start date cannot be in the future';
+                        if (val < oneYearAgoStr) return 'Start date cannot be more than 1 year before today';
                         return true;
                       },
                     })}
@@ -328,20 +338,20 @@ const Register = () => {
                     id="reg-end"
                     label="Internship End Date"
                     type="date"
-                    max={todayStr}
-                    min={startDateVal || oneYearAgoStr}
+                    min={minEndDate || undefined}
                     leftAddon={<FiCalendar className="text-neutral-400" />}
                     error={errors.endDate?.message}
                     {...register('endDate', {
                       required: role === 'Intern' ? 'End date is required' : false,
                       validate: (val, formValues) => {
                         if (role !== 'Intern' || !val) return true;
-                        const d = new Date(val);
-                        const today = new Date();
-                        today.setHours(23, 59, 59, 999);
-                        if (d > today) return 'End date cannot be in the future';
-                        if (formValues.startDate && new Date(val) < new Date(formValues.startDate)) {
+                        if (!formValues.startDate) return true;
+                        const earliestEnd = addDaysToDateInput(formValues.startDate, 14);
+                        if (val < formValues.startDate) {
                           return 'End date cannot be before start date';
+                        }
+                        if (val < earliestEnd) {
+                          return 'End date must be at least 2 weeks (14 days) after the start date';
                         }
                         return true;
                       },

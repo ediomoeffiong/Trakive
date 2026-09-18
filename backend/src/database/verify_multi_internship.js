@@ -66,11 +66,22 @@ function runVerification() {
     'Start date > 1 year ago'
   );
 
-  // 4. Future endDate
+  // 4. Future endDate is allowed when it is at least 14 days after start
+  try {
+    validateInternshipDates(oneMonthAgo, futureDate);
+    assert(true, 'Future end date (at least 2 weeks after start) passed validation');
+  } catch (err) {
+    assert(false, `Future end date failed with error: ${err.message}`);
+  }
+
+  // 4b. End date less than 14 days after start
+  const thirteenDaysAfterStartDate = new Date(oneMonthAgoDate);
+  thirteenDaysAfterStartDate.setDate(thirteenDaysAfterStartDate.getDate() + 13);
+  const thirteenDaysAfterStart = thirteenDaysAfterStartDate.toISOString().split('T')[0];
   assertThrows(
-    () => validateInternshipDates(oneMonthAgo, futureDate),
-    'End date cannot be in the future',
-    'Future end date'
+    () => validateInternshipDates(oneMonthAgo, thirteenDaysAfterStart),
+    'End date must be at least 2 weeks',
+    'End date less than 2 weeks after start'
   );
 
   // 5. endDate before startDate
