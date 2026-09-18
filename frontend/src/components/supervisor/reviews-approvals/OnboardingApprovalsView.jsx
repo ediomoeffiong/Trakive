@@ -104,24 +104,22 @@ const DocumentReviewPanel = ({ intern, docItem, actionLoading, onReviewComplete,
     }
 
     const previewWindow = window.open('about:blank', '_blank');
-    if (previewWindow) {
-      previewWindow.opener = null;
-      previewWindow.document.title = 'Opening document...';
-      previewWindow.document.body.innerHTML = '<p style="font-family: system-ui, sans-serif; padding: 16px;">Opening document...</p>';
+    if (!previewWindow) {
+      toast.error('Your browser blocked the new tab. Please allow pop-ups for Trakive and try again.');
+      return;
     }
+    previewWindow.opener = null;
+    previewWindow.document.title = 'Opening document...';
+    previewWindow.document.body.innerHTML = '<p style="font-family: system-ui, sans-serif; padding: 16px;">Opening document...</p>';
 
     setDownloading(true);
     try {
       const response = await api.get(`/documents/${documentId}/download`);
       const payload = response?.data?.data || response?.data || {};
       if (!payload.url) throw new Error('No download URL returned.');
-      if (previewWindow) {
-        previewWindow.location.href = payload.url;
-      } else {
-        window.location.assign(payload.url);
-      }
+      previewWindow.location.href = payload.url;
     } catch (err) {
-      if (previewWindow) previewWindow.close();
+      previewWindow.close();
       toast.error(err.response?.data?.message || err.message || 'Unable to open document.');
     } finally {
       setDownloading(false);
