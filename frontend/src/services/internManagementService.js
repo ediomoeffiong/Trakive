@@ -9,6 +9,7 @@ import api from './api';
 import { weeklyPlanService } from './weeklyPlanService';
 import { reviewService } from './reviewService';
 import { mockInternProfiles } from '../data/internProfiles';
+import { mockUsers } from '../data/mockUsers';
 import { mockInternProgress } from '../data/internProgress';
 import { mockInternDocuments } from '../data/internDocuments';
 import { mockSupervisorNotes } from '../data/supervisorNotes';
@@ -382,6 +383,16 @@ export const internManagementService = {
     } catch (err) {
       console.warn('Failed to fetch real interns from backend API:', err);
       rawResult = [];
+    }
+
+    if (rawResult.length === 0) {
+      const customUsers = safeParse(typeof localStorage !== 'undefined' ? localStorage.getItem('trakive_custom_users') : null, []);
+      const allUsers = [...mockUsers, ...customUsers];
+      const internUsers = allUsers.filter((u) => {
+        const role = String(u.role || u.role_name || '').toLowerCase();
+        return role === 'intern';
+      });
+      rawResult = internUsers.map((u) => buildProfile(u, u.id));
     }
 
     let result = rawResult;

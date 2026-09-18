@@ -358,11 +358,14 @@ async function getToday(user) {
      WHERE a.internship_record_id = $1 AND a.date = $2`,
     [context.internship.id, context.date]
   );
+  const isOnlineDay = !context.required && context.derivedStatus === 'remote';
+  const alreadyCredited = Boolean(existing.rows[0]);
   return {
     date: context.date,
     required: context.required,
     derived_status: context.derivedStatus,
     reason: context.reason,
+    is_online_day: isOnlineDay,
     schedule: {
       arrival_time: context.policy.arrival_time,
       grace_minutes: Number(context.policy.grace_minutes),
@@ -371,9 +374,51 @@ async function getToday(user) {
     },
     already_checked_in: Boolean(existing.rows[0]?.check_in),
     can_check_in: context.required && !existing.rows[0]?.check_in,
+    attendance_hint: isOnlineDay
+      ? (alreadyCredited
+        ? 'Attendance was marked because you completed a task today.'
+        : 'Complete a task to mark attendance')
+      : null,
     past_grace_window: context.pastGraceWindow,
     record: existing.rows[0] || null,
   };
+}
+
+async function creditRemoteAttendanceFromTask(user, { taskId = null, taskTitle = null } = {}) {
+  try {
+    const context = await resolveDayContext(user.id);
+    if (context.required) return null;
+    if (context.derivedStatus !== 'remote') return null;
+
+    const existing = await query(
+      `SELECT * FROM attendance WHERE internship_record_id = $1 AND date = $2`,
+      [context.internship.id, context.date]
+    );
+    if (existing.rows[0]) return existing.rows[0];
+
+    const inserted = await query(
+      `INSERT INTO attendance (
+         organization_id, intern_id, internship_record_id, date, check_in, status, notes,
+         verification_status, verification_method, verification_metadata, suspicious_flags, source, recorded_at
+       )
+       VALUES ($1, $2, $3, $4, NOW(), 'remote', $5, 'verified', 'system', $6::jsonb, '[]'::jsonb, 'system', NOW())
+       ON CONFLICT (internship_record_id, date) WHERE internship_record_id IS NOT NULL DO NOTHING
+       RETURNING *`,
+      [
+        context.internship.organization_id,
+        user.id,
+        context.internship.id,
+        context.date,
+        taskTitle
+          ? `Marked by completing task: ${taskTitle}`
+          : 'Marked by completing a task on an online work day',
+        JSON.stringify({ task_id: taskId, credit_source: 'task_completion' }),
+      ]
+    );
+    return inserted.rows[0] || null;
+  } catch {
+    return null;
+  }
 }
 
 async function checkIn(user, payload = {}) {
@@ -608,7 +653,7 @@ async function listSupervisorDashboard(user, filters = {}) {
        ir.id AS internship_record_id, ir.user_id AS intern_id, ir.department_id,
        u.first_name, u.last_name, u.email, d.name AS department_name,
        a.id AS attendance_id, a.status, a.check_in, a.verification_status,
-       a.distance_meters, a.accuracy_meters, a.suspicious_flags,
+       a.distance_meters, a.accuracy_meters, a.suspicious_flags, a.notes,
        o.name AS office_name
      FROM internship_records ir
      JOIN users u ON u.id = ir.user_id
@@ -619,6 +664,30 @@ async function listSupervisorDashboard(user, filters = {}) {
      ORDER BY u.first_name, u.last_name`,
     params
   );
+
+  const policy = await getOrganizationPolicy(
+    user.organization_id,
+    supervisorProfile?.department_id || filters.department_id || null
+  );
+  const holiday = await getHoliday(user.organization_id, date);
+  const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
+  const isWeekday = weekday >= 1 && weekday <= 5;
+  const physicalRequired = !holiday && (policy.required_weekdays || DEFAULT_REQUIRED_WEEKDAYS).includes(weekday);
+  const dayType = holiday ? 'public_holiday' : (physicalRequired ? 'physical' : (isWeekday ? 'online' : 'non_workday'));
+
+  const roster = expected.rows.map((row) => {
+    const required = physicalRequired;
+    let status = row.status;
+    if (!status) {
+      status = required ? 'pending' : (dayType === 'online' ? 'not_required' : dayType);
+    }
+    return {
+      ...row,
+      required,
+      day_type: dayType,
+      status,
+    };
+  });
 
   const correctionParams = [user.organization_id];
   let correctionWhere = `acr.organization_id = $1 AND acr.status = 'pending'`;
@@ -637,7 +706,7 @@ async function listSupervisorDashboard(user, filters = {}) {
     correctionParams
   );
 
-  const counts = expected.rows.reduce((acc, row) => {
+  const counts = roster.reduce((acc, row) => {
     const status = row.status || 'pending';
     acc[status] = (acc[status] || 0) + 1;
     return acc;
@@ -645,16 +714,26 @@ async function listSupervisorDashboard(user, filters = {}) {
 
   return {
     date,
+    day_type: dayType,
+    required: physicalRequired,
+    reason: holiday
+      ? holiday.name
+      : (physicalRequired
+        ? 'Physical office attendance is required'
+        : (dayType === 'online'
+          ? 'Online day — physical attendance is not required. Completing a task marks attendance.'
+          : 'No attendance scheduled')),
     counts: {
-      expected: expected.rows.length,
+      expected: roster.filter((row) => row.required).length,
       present: counts.present || 0,
       late: counts.late || 0,
       absent: counts.absent || 0,
       remote: counts.remote || 0,
       excused: counts.excused || 0,
-      pending: counts.pending || 0,
+      pending: roster.filter((row) => row.required && !row.attendance_id).length,
+      not_required: counts.not_required || 0,
     },
-    expected: expected.rows,
+    expected: roster,
     correction_queue: corrections.rows,
   };
 }
@@ -960,6 +1039,7 @@ module.exports = {
   checkIn,
   requestCorrection,
   listInternHistory,
+  creditRemoteAttendanceFromTask,
   listSupervisorDashboard,
   listConfiguration,
   upsertOffice,

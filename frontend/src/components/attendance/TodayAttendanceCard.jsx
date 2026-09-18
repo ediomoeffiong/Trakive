@@ -267,6 +267,17 @@ const TodayAttendanceCard = ({ compact = false }) => {
           <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-600)' }}>{state.reason}</p>
         )}
 
+        {(state?.is_online_day || !required) && (
+          <div style={{ padding: '0.875rem 1rem', borderRadius: 10, background: 'linear-gradient(135deg, #e0f7fc 0%, #ccfbf1 100%)', border: '1.5px solid #90e0ef' }}>
+            <p style={{ margin: 0, fontSize: '0.925rem', fontWeight: 800, color: '#007791', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              💡 Complete a Task to mark Attendance
+            </p>
+            <p style={{ margin: '0.35rem 0 0', fontSize: '0.8125rem', color: '#0e7490', lineHeight: 1.5 }}>
+              Today is an Online Work Day — physical office check-in is not required. Completing any assigned task today will automatically credit your attendance.
+            </p>
+          </div>
+        )}
+
         {error && (
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', color: 'var(--color-danger-600)', fontSize: '0.85rem' }}>
             <RiErrorWarningLine style={{ marginTop: 2, flexShrink: 0 }} />

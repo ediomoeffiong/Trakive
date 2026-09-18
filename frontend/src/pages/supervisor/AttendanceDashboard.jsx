@@ -5,7 +5,11 @@ import { RiDownload2Line, RiFilePdf2Line, RiMapPinLine, RiRefreshLine } from 're
 import { Card, Button, Badge, Skeleton, EmptyState } from '../../components/ui';
 import { attendanceService } from '../../services/attendanceService';
 
-const label = (value) => (value || 'pending').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+const label = (value) => {
+  if (value === 'remote') return 'Online';
+  if (value === 'not_required') return 'Not expected';
+  return (value || 'pending').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+};
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
 const statusVariant = {
@@ -15,6 +19,7 @@ const statusVariant = {
   remote: 'primary',
   excused: 'neutral',
   pending: 'warning',
+  not_required: 'neutral',
 };
 
 function Field({ label: title, children }) {
@@ -172,7 +177,9 @@ const AttendanceDashboard = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '1.75rem', color: 'var(--color-neutral-900)' }}>Attendance Dashboard</h1>
-          <p style={{ margin: '0.35rem 0 0', color: 'var(--color-neutral-500)' }}>Track expected interns, check-ins, corrections, schedules, offices, and report exports.</p>
+          <p style={{ margin: '0.35rem 0 0', color: 'var(--color-neutral-500)' }}>
+            Track intern attendance on physical work days. Online days are not expected unless an intern completes a task.
+          </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <input type="date" value={date} onChange={(event) => setDate(event.target.value)} style={inputStyle} />
@@ -187,20 +194,23 @@ const AttendanceDashboard = () => {
       ) : (
         <div className="dashboard-kpi-grid">
           {[
-            ['Expected', dashboard?.counts?.expected],
-            ['Present', dashboard?.counts?.present],
-            ['Late', dashboard?.counts?.late],
-            ['Pending', dashboard?.counts?.pending],
+            [dashboard?.required ? 'Expected Physical' : 'Expected (Online Day)', dashboard?.required ? (dashboard?.counts?.expected || 0) : '0 (Not required)'],
+            ['Present (Office)', dashboard?.counts?.present || 0],
+            ['Late', dashboard?.counts?.late || 0],
+            [dashboard?.day_type === 'online' ? 'Task Credited (Online)' : 'Pending Check-in', dashboard?.day_type === 'online' ? (dashboard?.counts?.remote || 0) : (dashboard?.counts?.pending || 0)],
           ].map(([title, value]) => (
             <Card key={title}>
               <p style={{ margin: 0, color: 'var(--color-neutral-500)', fontSize: '0.8rem' }}>{title}</p>
-              <h3 style={{ margin: '0.35rem 0 0', fontSize: '1.8rem' }}>{value || 0}</h3>
+              <h3 style={{ margin: '0.35rem 0 0', fontSize: '1.6rem' }}>{value}</h3>
             </Card>
           ))}
         </div>
       )}
 
-      <Card header={<h3 style={{ margin: 0 }}>Today's Expected Interns</h3>}>
+      <Card header={<h3 style={{ margin: 0 }}>{dashboard?.required ? "Today's Expected Interns (Physical Day)" : "Today's Interns (Online Work Day — Physical Attendance Not Expected)"}</h3>}>
+        {dashboard?.reason && (
+          <p style={{ margin: '0 0 1rem', color: 'var(--color-neutral-600)', fontSize: '0.875rem' }}>{dashboard.reason}</p>
+        )}
         {loading ? (
           <Skeleton height="260px" />
         ) : (dashboard?.expected || []).length === 0 ? (

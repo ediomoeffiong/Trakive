@@ -99,6 +99,18 @@ const safeJson = (value, fallback) => {
   }
 };
 
+const toDateInputValue = (value) => {
+  if (!value) return '';
+  const match = String(value).match(/^(\d{4}-\d{2}-\d{2})/);
+  if (match) return match[1];
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function OnboardingDashboard() {
   const user = useAppStore((state) => state.user);
   const updateUserMeta = useAppStore((state) => state.updateUserMeta);
@@ -125,7 +137,7 @@ export default function OnboardingDashboard() {
       institution: savedInfo.institution || user?.institution || '',
       field_of_study: savedInfo.field_of_study || user?.field_of_study || '',
       phone: savedInfo.phone || user?.phone || '',
-      date_of_birth: savedInfo.date_of_birth || user?.dateOfBirth || user?.date_of_birth || '',
+      date_of_birth: toDateInputValue((savedInfo.date_of_birth && String(savedInfo.date_of_birth).trim()) || user?.dateOfBirth || user?.date_of_birth || ''),
       is_saved: Boolean(savedInfo.is_saved),
       duration_verified_by_supervisor: Boolean(savedInfo.duration_verified_by_supervisor),
     };
@@ -187,6 +199,30 @@ export default function OnboardingDashboard() {
     return () => { mounted = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, user?.department_id, isFifthLabDomain]);
+
+  useEffect(() => {
+    const registeredDob = toDateInputValue(user?.dateOfBirth || user?.date_of_birth);
+    if (registeredDob) {
+      setInfo((prev) => ({ ...prev, date_of_birth: prev.date_of_birth || registeredDob }));
+      return undefined;
+    }
+
+    let mounted = true;
+    const loadRegisteredDob = async () => {
+      try {
+        const res = await api.get('/auth/me');
+        const profile = res?.data?.data?.user || res?.data?.data || res?.data?.user || res?.data || {};
+        const dob = toDateInputValue(profile.date_of_birth || profile.dateOfBirth);
+        if (mounted && dob) {
+          setInfo((prev) => ({ ...prev, date_of_birth: prev.date_of_birth || dob }));
+        }
+      } catch {
+        // Keep local onboarding draft if the profile endpoint is unavailable.
+      }
+    };
+    loadRegisteredDob();
+    return () => { mounted = false; };
+  }, [user?.id, user?.dateOfBirth, user?.date_of_birth]);
 
   // Sync submitted documents + review status from backend
   useEffect(() => {
@@ -251,17 +287,28 @@ export default function OnboardingDashboard() {
       try {
         const res = await api.get(`/departments/${departmentId}/staff`);
         if (res.data && res.data.data && Array.isArray(res.data.data.staff) && res.data.data.staff.length > 0 && isMounted) {
-          const formatted = res.data.data.staff.map((u, idx) => ({
-            id: u.id,
-            name: `${u.first_name} ${u.last_name}`,
-            role: u.title || (u.role_name === 'supervisor' ? 'Lead Supervisor' : 'Team Member'),
-            department: info.department_name || 'FifthLab',
-            email: u.email,
-            location: u.office_location || 'FifthLab Office, Lagos',
-            isSupervisor: u.role_name === 'supervisor' || u.role_name === 'department_head',
-            bio: u.bio || `${u.first_name} is an active member of the ${info.department_name} team at FifthLab.`,
-            avatarColor: [BRAND_BLUE, BRAND_BLUE_DARK, '#48cae4', '#f59e0b', '#10b981'][idx % 5],
-          }));
+          const formatted = res.data.data.staff
+            .filter((u) => {
+              const roleName = String(u.role_name || '').toLowerCase();
+              return roleName === 'intern' || roleName === 'supervisor';
+            })
+            .map((u, idx) => {
+              const roleName = String(u.role_name || '').toLowerCase();
+              const isSupervisor = roleName === 'supervisor';
+              const isIntern = roleName === 'intern';
+              return {
+                id: u.id,
+                name: `${u.first_name} ${u.last_name}`,
+                role: isSupervisor ? (u.title || 'Supervisor') : 'Intern',
+                department: info.department_name || 'FifthLab',
+                email: u.email,
+                location: u.office_location || 'FifthLab Office, Lagos',
+                isSupervisor,
+                isIntern,
+                bio: u.bio || `${u.first_name} is an active member of the ${info.department_name} team at FifthLab.`,
+                avatarColor: [BRAND_BLUE, BRAND_BLUE_DARK, '#48cae4', '#f59e0b', '#10b981'][idx % 5],
+              };
+            });
           setTeamMembers(formatted);
           setLoadingTeam(false);
           return;
@@ -286,11 +333,12 @@ export default function OnboardingDashboard() {
           {
             id: 'mem-user',
             name: user ? `${user.first_name} ${user.last_name}` : 'Current Intern',
-            role: 'Software Intern',
+            role: 'Intern',
             department: info.department_name,
             email: user?.email || 'intern@thefifthlab.com',
             location: 'FifthLab Office, Lagos',
             isSupervisor: false,
+            isIntern: true,
             bio: `Software Intern in the ${info.department_name} department at FifthLab.`,
             avatarColor: '#10b981',
           }
@@ -1237,8 +1285,19 @@ export default function OnboardingDashboard() {
                     required
                     value={info.date_of_birth}
                     onChange={(e) => setInfo({ ...info, date_of_birth: e.target.value })}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '13px',
+                    }}
                   />
+                  {info.date_of_birth && (
+                    <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#059669', fontWeight: 600 }}>
+                      ✓ Pre-filled from your registration details. You do not need to re-enter it unless updating.
+                    </p>
+                  )}
                 </div>
 
                 <div style={{ gridColumn: '1 / -1', marginTop: '12px', display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
@@ -1838,6 +1897,11 @@ export default function OnboardingDashboard() {
                               SUPERVISOR
                             </span>
                           )}
+                          {(mem.isIntern || (!mem.isSupervisor && /^intern/i.test(mem.role || ''))) && (
+                            <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: '9px', fontWeight: 800, padding: '2px 6px', borderRadius: '4px' }}>
+                              INTERN
+                            </span>
+                          )}
                         </div>
                         <span style={{ fontSize: '12px', color: mem.isSupervisor ? '#ffffff' : '#64748b', display: 'block' }}>{mem.role}</span>
                         <span style={{ fontSize: '11px', color: mem.isSupervisor ? '#ffffff' : BRAND_BLUE, fontWeight: 600 }}>Click to view Bio →</span>
@@ -1921,9 +1985,21 @@ export default function OnboardingDashboard() {
                           <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#0f172a', margin: 0 }}>
                             {selectedMember.name}
                           </h3>
-                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#00b4d8' }}>
-                            {selectedMember.role}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: '#00b4d8' }}>
+                              {selectedMember.role}
+                            </span>
+                            {selectedMember.isSupervisor && (
+                              <span style={{ background: '#e0f7fc', color: '#007791', fontSize: '9px', fontWeight: 800, padding: '2px 6px', borderRadius: '4px' }}>
+                                SUPERVISOR
+                              </span>
+                            )}
+                            {(selectedMember.isIntern || (!selectedMember.isSupervisor && /^intern/i.test(selectedMember.role || ''))) && (
+                              <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: '9px', fontWeight: 800, padding: '2px 6px', borderRadius: '4px' }}>
+                                INTERN
+                              </span>
+                            )}
+                          </div>
                           <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>
                             {selectedMember.department}
                           </span>

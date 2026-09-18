@@ -5,33 +5,23 @@
  * Shows a live summary before confirming.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   RiCloseLine,
   RiUserAddLine,
-  RiGroupLine,
-  RiBuilding2Line,
   RiCheckboxFill,
   RiCheckboxBlankLine,
-  RiCheckLine,
   RiSearchLine,
   RiLoader3Line,
 } from 'react-icons/ri';
-import { mockInternProfiles } from '../../../data/internProfiles';
-import { STANDARD_DEPARTMENTS } from '../../../utils/departments';
+import { internManagementService } from '../../../services/internManagementService';
 
 const ASSIGN_MODES = [
   { id: 'individual', label: 'Individual', icon: RiUserAddLine, desc: 'Select specific interns' },
-  { id: 'department', label: 'By Department', icon: RiBuilding2Line, desc: 'Assign to a full department' },
-  { id: 'batch', label: 'By Batch', icon: RiGroupLine, desc: 'Assign to an internship batch' },
 ];
-
-const DEPARTMENTS = STANDARD_DEPARTMENTS.map((department) => department.name);
-
-const BATCHES = ['Batch 2026-A', 'Batch 2026-B', 'Batch 2025-C'];
 
 const COLORS = ['#4f46e5', '#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626'];
 
@@ -83,8 +73,8 @@ const InternCard = ({ intern, isSelected, onToggle }) => (
   </motion.div>
 );
 
-const AssignmentSummary = ({ task, selectedInterns, mode, department, batch }) => {
-  const count = mode === 'individual' ? selectedInterns.length : mode === 'department' ? mockInternProfiles?.filter((i) => i.department === department).length || 0 : 5;
+const AssignmentSummary = ({ task, selectedInterns, mode }) => {
+  const count = selectedInterns.length;
 
   return (
     <div
@@ -109,18 +99,6 @@ const AssignmentSummary = ({ task, selectedInterns, mode, department, batch }) =
           <span style={{ color: '#0077b6', fontWeight: 500 }}>Mode:</span>
           <span style={{ color: '#075985', fontWeight: 700, textTransform: 'capitalize' }}>{mode}</span>
         </div>
-        {mode === 'department' && department && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-            <span style={{ color: '#0077b6', fontWeight: 500 }}>Department:</span>
-            <span style={{ color: '#075985', fontWeight: 700 }}>{department}</span>
-          </div>
-        )}
-        {mode === 'batch' && batch && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-            <span style={{ color: '#0077b6', fontWeight: 500 }}>Batch:</span>
-            <span style={{ color: '#075985', fontWeight: 700 }}>{batch}</span>
-          </div>
-        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
           <span style={{ color: '#0077b6', fontWeight: 500 }}>Interns to assign:</span>
           <span
@@ -144,12 +122,36 @@ const AssignmentSummary = ({ task, selectedInterns, mode, department, batch }) =
 const TaskAssignmentModal = ({ isOpen, task, onClose, onAssign, isLoading }) => {
   const [mode, setMode] = useState('individual');
   const [selectedInterns, setSelectedInterns] = useState([]);
-  const [selectedDept, setSelectedDept] = useState('');
-  const [selectedBatch, setSelectedBatch] = useState('');
   const [search, setSearch] = useState('');
   const [message, setMessage] = useState('');
+  const [allInterns, setAllInterns] = useState([]);
+  const [loadingInterns, setLoadingInterns] = useState(false);
 
-  const allInterns = mockInternProfiles || [];
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    let mounted = true;
+    const loadInterns = async () => {
+      setLoadingInterns(true);
+      try {
+        const { interns } = await internManagementService.fetchInternList({ limit: 100 });
+        if (!mounted) return;
+        setAllInterns(
+          (interns || []).map((intern) => ({
+            id: intern.id || intern.internId,
+            name: intern.name,
+            department: intern.department || intern.role || 'Intern',
+            initials: intern.name?.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'IN',
+          }))
+        );
+      } catch {
+        if (mounted) setAllInterns([]);
+      } finally {
+        if (mounted) setLoadingInterns(false);
+      }
+    };
+    loadInterns();
+    return () => { mounted = false; };
+  }, [isOpen]);
 
   const filteredInterns = useMemo(() => {
     if (!search) return allInterns;
@@ -175,12 +177,7 @@ const TaskAssignmentModal = ({ isOpen, task, onClose, onAssign, isLoading }) => 
     }
   };
 
-  const canConfirm = () => {
-    if (mode === 'individual') return selectedInterns.length > 0;
-    if (mode === 'department') return !!selectedDept;
-    if (mode === 'batch') return !!selectedBatch;
-    return false;
-  };
+  const canConfirm = () => selectedInterns.length > 0;
 
   const handleConfirm = async () => {
     if (!canConfirm()) {
@@ -188,19 +185,12 @@ const TaskAssignmentModal = ({ isOpen, task, onClose, onAssign, isLoading }) => 
       return;
     }
 
-    const internIds =
-      mode === 'individual'
-        ? selectedInterns.map((i) => i.id)
-        : mode === 'department'
-        ? allInterns.filter((i) => i.department === selectedDept).map((i) => i.id)
-        : allInterns.slice(0, 5).map((i) => i.id);
+    const internIds = selectedInterns.map((i) => i.id);
 
     try {
       await onAssign?.({ taskId: task?.id, internIds, mode, message });
       toast.success(`Task assigned to ${internIds.length} intern(s) successfully!`);
       setSelectedInterns([]);
-      setSelectedDept('');
-      setSelectedBatch('');
       setMessage('');
       onClose();
     } catch {
@@ -270,7 +260,7 @@ const TaskAssignmentModal = ({ isOpen, task, onClose, onAssign, isLoading }) => 
               {/* Mode selector */}
               <div>
                 <p style={{ margin: '0 0 0.625rem', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-600)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Assignment Mode</p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.625rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.625rem' }}>
                   {ASSIGN_MODES.map(({ id, label, icon: Icon, desc }) => (
                     <motion.button
                       key={id}
@@ -322,80 +312,15 @@ const TaskAssignmentModal = ({ isOpen, task, onClose, onAssign, isLoading }) => 
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '260px', overflowY: 'auto' }}>
-                    {filteredInterns.length === 0 ? (
-                      <p style={{ textAlign: 'center', color: 'var(--color-neutral-400)', fontSize: '0.875rem', padding: '1.5rem' }}>No interns found.</p>
+                    {loadingInterns ? (
+                      <p style={{ textAlign: 'center', color: 'var(--color-neutral-400)', fontSize: '0.875rem', padding: '1.5rem' }}>Loading interns...</p>
+                    ) : filteredInterns.length === 0 ? (
+                      <p style={{ textAlign: 'center', color: 'var(--color-neutral-400)', fontSize: '0.875rem', padding: '1.5rem' }}>No interns found in your department yet.</p>
                     ) : (
                       filteredInterns.map((intern) => (
                         <InternCard key={intern.id} intern={intern} isSelected={selectedInterns.some((i) => i.id === intern.id)} onToggle={toggleIntern} />
                       ))
                     )}
-                  </div>
-                </div>
-              )}
-
-              {/* Department mode */}
-              {mode === 'department' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                  <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-600)' }}>Select Department</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                    {DEPARTMENTS.map((dept) => (
-                      <motion.button
-                        key={dept}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() => setSelectedDept(dept)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          padding: '0.625rem 0.875rem',
-                          borderRadius: '0.75rem',
-                          border: selectedDept === dept ? '1.5px solid #00b4d8' : '1px solid var(--color-neutral-200)',
-                          background: selectedDept === dept ? '#e6faff' : '#fff',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          fontSize: '0.8125rem',
-                          fontWeight: selectedDept === dept ? 700 : 400,
-                          color: selectedDept === dept ? '#0077b6' : 'var(--color-neutral-700)',
-                        }}
-                      >
-                        {selectedDept === dept && <RiCheckLine style={{ color: '#00b4d8', flexShrink: 0 }} />}
-                        {dept}
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Batch mode */}
-              {mode === 'batch' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                  <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-600)' }}>Select Internship Batch</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {BATCHES.map((batch) => (
-                      <motion.button
-                        key={batch}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() => setSelectedBatch(batch)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.75rem',
-                          padding: '0.875rem 1rem',
-                          borderRadius: '0.875rem',
-                          border: selectedBatch === batch ? '1.5px solid #00b4d8' : '1px solid var(--color-neutral-200)',
-                          background: selectedBatch === batch ? '#e6faff' : '#fff',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                        }}
-                      >
-                        <RiGroupLine style={{ fontSize: '1.25rem', color: selectedBatch === batch ? '#00b4d8' : '#94a3b8' }} />
-                        <div>
-                          <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: selectedBatch === batch ? '#0077b6' : 'var(--color-neutral-800)' }}>{batch}</p>
-                          <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>~15 interns in this batch</p>
-                        </div>
-                        {selectedBatch === batch && <RiCheckLine style={{ color: '#00b4d8', marginLeft: 'auto' }} />}
-                      </motion.button>
-                    ))}
                   </div>
                 </div>
               )}
@@ -415,7 +340,7 @@ const TaskAssignmentModal = ({ isOpen, task, onClose, onAssign, isLoading }) => 
               </div>
 
               {/* Live summary */}
-              <AssignmentSummary task={task} selectedInterns={selectedInterns} mode={mode} department={selectedDept} batch={selectedBatch} />
+              <AssignmentSummary task={task} selectedInterns={selectedInterns} mode={mode} />
             </div>
 
             {/* Footer */}

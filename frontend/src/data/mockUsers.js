@@ -12,6 +12,8 @@ export const mockUsers = [
     department: 'FifthLab',
     avatarUrl: 'https://media.licdn.com/dms/image/v2/D4E03AQHi3ZYYUFg3BA/profile-displayphoto-scale_200_200/B4EZn2pX4JIQAY-/0/1760779700254?e=2147483647&v=beta&t=m2VcejF7Sc7-T5m2cldFz4lrewoSSMY6HyHc63NBtkM',
     bio: 'Software Engineering Intern focused on frontend performance.',
+    dateOfBirth: '2001-05-15',
+    date_of_birth: '2001-05-15',
   },
   {
     id: 'u-2',

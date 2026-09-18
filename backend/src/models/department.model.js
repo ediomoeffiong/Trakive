@@ -196,8 +196,14 @@ const DepartmentModel = {
       LEFT JOIN supervisor_profiles sp ON sp.user_id = u.id
       LEFT JOIN head_profiles hp ON hp.user_id = u.id
       LEFT JOIN intern_profiles ip ON ip.user_id = u.id
-      WHERE (u.department_id = $1 OR u.department_id IS NULL) AND u.deleted_at IS NULL
-      ORDER BY (r.name = 'supervisor' OR r.name = 'department_head') DESC, u.first_name;
+      WHERE u.deleted_at IS NULL
+        AND r.name IN ('intern', 'supervisor')
+        AND (
+          u.department_id = $1
+          OR ip.department_id = $1
+          OR sp.department_id = $1
+        )
+      ORDER BY (r.name = 'supervisor') DESC, u.first_name;
     `;
     const res = await query(sql, [departmentId]);
     return res.rows;

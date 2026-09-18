@@ -4,6 +4,7 @@ const TaskModel = require('../models/task.model');
 const NotificationModel = require('../models/notification.model');
 const ProfileModel = require('../models/profile.model');
 const ProjectModel = require('../models/project.model');
+const AttendanceService = require('./attendance.service');
 const { getPaginationParams, formatPaginatedResponse } = require('../utils/pagination');
 
 /**
@@ -154,6 +155,13 @@ const WeeklyPlanService = {
     }
 
     const updated = await TaskModel.updateWeeklyStatus(taskId, { end_of_week_status, weekly_note });
+
+    if (String(end_of_week_status || '').toLowerCase() === 'completed') {
+      await AttendanceService.creditRemoteAttendanceFromTask(requestingUser, {
+        taskId,
+        taskTitle: task.title,
+      });
+    }
 
     // Recalculate project progress if linked
     if (task.project_id) {

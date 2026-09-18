@@ -208,7 +208,11 @@ const InternService = {
 
     if (reqRole === 'supervisor') {
       const supProfile = await ProfileModel.findSupervisorProfileByUserId(requestingUser.id);
-      if (supProfile) {
+      const supervisedDepartmentId = query.department_id || supProfile?.department_id || requestingUser.department_id || null;
+      if (supervisedDepartmentId) {
+        departmentFilter = supervisedDepartmentId;
+        supervisorFilter = null;
+      } else if (supProfile) {
         supervisorFilter = supProfile.id;
       }
     } else if (reqRole === 'head' || reqRole === 'department_head') {

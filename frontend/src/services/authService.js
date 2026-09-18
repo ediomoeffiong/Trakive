@@ -79,6 +79,18 @@ const splitName = (name = '') => {
   };
 };
 
+const toDateInputValue = (value) => {
+  if (!value) return '';
+  const match = String(value).match(/^(\d{4}-\d{2}-\d{2})/);
+  if (match) return match[1];
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const assertJsonApiResponse = (res, fallback) => {
   if (!res.data || typeof res.data !== 'object') {
     throw new Error(fallback);
@@ -119,6 +131,7 @@ const normalizeUser = (user, email, token, tokens = {}) => {
   delete safeSourceUser.mockPassword;
   const name = user.name || `${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}`.trim() || email.split('@')[0];
   const department = normalizeDepartmentForPerson({ ...user, name, email: user.email || email }, user.department_name || user.department || '');
+  const dateOfBirth = toDateInputValue(user.dateOfBirth || user.date_of_birth);
   return normalizePersonRecord({
     ...safeSourceUser,
     id: user.id || user.user_id,
@@ -127,6 +140,8 @@ const normalizeUser = (user, email, token, tokens = {}) => {
     lastName: user.lastName || user.last_name || name.split(/\s+/).slice(1).join(' ') || '',
     email: user.email || email,
     avatarUrl: user.avatarUrl || user.avatar_url || user.avatar || null,
+    dateOfBirth,
+    date_of_birth: dateOfBirth,
     department,
     department_name: user.department_name || department,
     organization: user.organization_name || user.organization || '',

@@ -209,13 +209,32 @@ const UserModel = {
     }
 
     if (department_id) {
-      whereClauses.push(`u.department_id = $${idx}`);
+      whereClauses.push(`(
+        u.department_id = $${idx}
+        OR ip.department_id = $${idx}
+        OR EXISTS (
+          SELECT 1 FROM internship_records ir
+          WHERE ir.user_id = u.id
+            AND ir.department_id = $${idx}
+            AND ir.status IN ('active', 'onboarding')
+        )
+      )`);
       values.push(department_id);
       idx++;
     }
 
     if (supervisor_id) {
-      whereClauses.push(`(ip.supervisor_id = $${idx} OR (ip.supervisor_id IS NULL AND u.department_id = (SELECT department_id FROM supervisor_profiles WHERE id = $${idx})))`);
+      whereClauses.push(`(
+        ip.supervisor_id = $${idx}
+        OR EXISTS (
+          SELECT 1 FROM internship_records ir
+          WHERE ir.user_id = u.id
+            AND ir.supervisor_id = $${idx}
+            AND ir.status IN ('active', 'onboarding')
+        )
+        OR u.department_id = (SELECT department_id FROM supervisor_profiles WHERE id = $${idx})
+        OR ip.department_id = (SELECT department_id FROM supervisor_profiles WHERE id = $${idx})
+      )`);
       values.push(supervisor_id);
       idx++;
     }
@@ -273,13 +292,32 @@ const UserModel = {
     }
 
     if (department_id) {
-      whereClauses.push(`u.department_id = $${idx}`);
+      whereClauses.push(`(
+        u.department_id = $${idx}
+        OR ip.department_id = $${idx}
+        OR EXISTS (
+          SELECT 1 FROM internship_records ir
+          WHERE ir.user_id = u.id
+            AND ir.department_id = $${idx}
+            AND ir.status IN ('active', 'onboarding')
+        )
+      )`);
       values.push(department_id);
       idx++;
     }
 
     if (supervisor_id) {
-      whereClauses.push(`(ip.supervisor_id = $${idx} OR (ip.supervisor_id IS NULL AND u.department_id = (SELECT department_id FROM supervisor_profiles WHERE id = $${idx})))`);
+      whereClauses.push(`(
+        ip.supervisor_id = $${idx}
+        OR EXISTS (
+          SELECT 1 FROM internship_records ir
+          WHERE ir.user_id = u.id
+            AND ir.supervisor_id = $${idx}
+            AND ir.status IN ('active', 'onboarding')
+        )
+        OR u.department_id = (SELECT department_id FROM supervisor_profiles WHERE id = $${idx})
+        OR ip.department_id = (SELECT department_id FROM supervisor_profiles WHERE id = $${idx})
+      )`);
       values.push(supervisor_id);
       idx++;
     }

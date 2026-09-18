@@ -18,13 +18,11 @@ import {
   RiInformationLine,
   RiCheckLine,
 } from 'react-icons/ri';
-import { TASK_CATEGORIES } from '../../../data/taskCategories';
 import { TASK_TAGS } from '../../../data/taskTags';
-import { mockInternProfiles } from '../../../data/internProfiles';
-import { STANDARD_DEPARTMENTS } from '../../../utils/departments';
+import { internManagementService } from '../../../services/internManagementService';
+import { useAppStore } from '../../../store/useAppStore';
 
 const PRIORITIES = ['urgent', 'high', 'medium', 'low'];
-const DEPARTMENTS = [...STANDARD_DEPARTMENTS.map((department) => department.name), 'All Departments'];
 
 const FormField = ({ label, required, error, children, hint }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -125,7 +123,7 @@ const TagSelector = ({ value = [], onChange }) => {
   );
 };
 
-const InternSelector = ({ value = [], onChange, interns = [] }) => {
+const InternSelector = ({ value = [], onChange, interns = [], loading = false }) => {
   const toggleIntern = (intern) => {
     const exists = value.some((i) => i.id === intern.id);
     onChange(exists ? value.filter((i) => i.id !== intern.id) : [...value, { id: intern.id, name: intern.name, initials: intern.initials || intern.name.split(' ').map((n) => n[0]).join('').toUpperCase() }]);
@@ -142,6 +140,16 @@ const InternSelector = ({ value = [], onChange, interns = [] }) => {
           background: '#fff',
         }}
       >
+        {loading && (
+          <p style={{ margin: 0, padding: '0.875rem', fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
+            Loading interns...
+          </p>
+        )}
+        {!loading && interns.length === 0 && (
+          <p style={{ margin: 0, padding: '0.875rem', fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
+            No interns found in your department yet.
+          </p>
+        )}
         {interns.map((intern, i) => {
           const isSelected = value.some((v) => v.id === intern.id);
           return (
@@ -184,9 +192,10 @@ const InternSelector = ({ value = [], onChange, interns = [] }) => {
 
 const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) => {
   const [activeSection, setActiveSection] = useState('basic');
+  const [interns, setInterns] = useState([]);
+  const [loadingInterns, setLoadingInterns] = useState(false);
   const isEditingExistingTask = Boolean(editingTask?.id);
-
-  const interns = mockInternProfiles || [];
+  const supervisorDepartment = useAppStore((state) => state.user?.department_name || state.user?.department || '');
 
   const {
     register,
@@ -200,9 +209,9 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
       title: '',
       description: '',
       instructions: '',
-      category: 'Engineering',
+      category: '',
       priority: 'medium',
-      department: 'FifthLab',
+      department: supervisorDepartment || 'FifthLab',
       assignedInterns: [],
       estimatedHours: 8,
       dueDate: '',
@@ -218,6 +227,32 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
   const { fields: rubricFields, append: addRubric, remove: removeRubric } = useFieldArray({ control, name: 'rubric' });
 
   useEffect(() => {
+    if (!isOpen) return undefined;
+    let mounted = true;
+    const loadInterns = async () => {
+      setLoadingInterns(true);
+      try {
+        const { interns: list } = await internManagementService.fetchInternList({ limit: 100 });
+        if (!mounted) return;
+        setInterns(
+          (list || []).map((intern) => ({
+            id: intern.id || intern.internId,
+            name: intern.name,
+            department: intern.department || intern.role || 'Intern',
+            initials: intern.name?.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'IN',
+          }))
+        );
+      } catch {
+        if (mounted) setInterns([]);
+      } finally {
+        if (mounted) setLoadingInterns(false);
+      }
+    };
+    loadInterns();
+    return () => { mounted = false; };
+  }, [isOpen]);
+
+  useEffect(() => {
     if (editingTask) {
       reset({
         ...editingTask,
@@ -226,16 +261,21 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
       });
     } else {
       reset({
-        title: '', description: '', instructions: '', category: 'Engineering', priority: 'medium',
-        department: 'FifthLab', assignedInterns: [], estimatedHours: 8, dueDate: '',
+        title: '', description: '', instructions: '', category: '', priority: 'medium',
+        department: supervisorDepartment || 'FifthLab', assignedInterns: [], estimatedHours: 8, dueDate: '',
         tags: [], learningObjectives: [''], submissionRequirements: '', rubric: [{ criterion: '', maxScore: 10, description: '' }], status: 'assigned',
       });
     }
-  }, [editingTask, reset, isOpen]);
+  }, [editingTask, reset, isOpen, supervisorDepartment]);
 
   const onFormSubmit = async (data) => {
     try {
-      await onSubmit({ ...data, learningObjectives: data.learningObjectives.filter(Boolean) });
+      await onSubmit({
+        ...data,
+        category: data.category || undefined,
+        department: supervisorDepartment || data.department,
+        learningObjectives: data.learningObjectives.filter(Boolean),
+      });
       toast.success(isEditingExistingTask ? 'Task updated successfully!' : 'Task created successfully!');
       onClose();
     } catch {
@@ -246,7 +286,12 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
   const handleSaveDraft = async () => {
     const data = watch();
     try {
-      await onSubmit({ ...data, status: 'draft', learningObjectives: data.learningObjectives?.filter(Boolean) || [] });
+      await onSubmit({
+        ...data,
+        status: 'draft',
+        department: supervisorDepartment || data.department,
+        learningObjectives: data.learningObjectives?.filter(Boolean) || [],
+      });
       toast.success('Task saved as draft.');
       onClose();
     } catch {
@@ -412,23 +457,9 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
                     </FormField>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                      <FormField label="Category" required>
-                        <select {...register('category', { required: true })} style={{ ...inputStyle }}>
-                          {TASK_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                        </select>
-                      </FormField>
-
                       <FormField label="Priority" required>
                         <select {...register('priority', { required: true })} style={{ ...inputStyle }}>
                           {PRIORITIES.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
-                        </select>
-                      </FormField>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                      <FormField label="Department" required>
-                        <select {...register('department', { required: true })} style={{ ...inputStyle }}>
-                          {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
                         </select>
                       </FormField>
 
@@ -521,7 +552,7 @@ const CreateTaskModal = ({ isOpen, onClose, editingTask, onSubmit, isLoading }) 
                         name="assignedInterns"
                         control={control}
                         render={({ field }) => (
-                          <InternSelector value={field.value} onChange={field.onChange} interns={interns} />
+                          <InternSelector value={field.value} onChange={field.onChange} interns={interns} loading={loadingInterns} />
                         )}
                       />
                     </FormField>
