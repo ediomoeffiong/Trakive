@@ -5,23 +5,19 @@
  */
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   RiCheckboxCircleLine,
   RiCloseCircleLine,
   RiTimeLine,
-  RiFileTextLine,
   RiFilePdfLine,
-  RiFileImageLine,
   RiDownloadLine,
   RiArrowRightSLine,
   RiArrowLeftLine,
-  RiHistoryLine,
   RiShieldCheckLine,
   RiAlertLine,
   RiLoader4Line,
-  RiRefreshLine,
 } from 'react-icons/ri';
 import { OnboardingCardSkeleton } from './ReviewSkeletonLoaders';
 import api from '../../../services/api';
@@ -75,13 +71,17 @@ const getInitialsBg = (initials = 'IN') => {
   return colors[(initials.charCodeAt(0) || 0) % colors.length];
 };
 
+const getDocumentRecord = (item) => item?.document || (item?.id ? item : null);
+const getDocumentId = (item) => getDocumentRecord(item)?.id || null;
+const hasSubmittedDocument = (item) => Boolean(getDocumentId(item) && item?.submitted !== false);
+
 // ── Document Review Panel ─────────────────────────────────────────────────────
 const DocumentReviewPanel = ({ intern, docItem, actionLoading, onReviewComplete, onBack }) => {
   const [decision, setDecision] = useState(null); // 'approved' | 'rejected' | 'resubmission_required'
   const [notes, setNotes] = useState('');
   const [downloading, setDownloading] = useState(false);
 
-  const doc = docItem.document || docItem;
+  const doc = getDocumentRecord(docItem);
   const status = docItem.review_status || doc?.review_status || docItem.status || 'pending';
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
   const docTitle = REQUIRED_DOC_TITLES[docItem.category] || docItem.title || 'Onboarding Document';
@@ -93,14 +93,21 @@ const DocumentReviewPanel = ({ intern, docItem, actionLoading, onReviewComplete,
       return;
     }
 
-    onReviewComplete?.(intern.internId || intern.intern_id, doc?.id || docItem.document?.id, decision, notes);
+    onReviewComplete?.(intern.internId || intern.intern_id, getDocumentId(docItem), decision, notes);
   };
 
   const handleDownload = async () => {
-    const documentId = doc?.id || docItem.document?.id;
+    const documentId = getDocumentId(docItem);
     if (!documentId) {
       toast.error('Document is missing its download ID.');
       return;
+    }
+
+    const previewWindow = window.open('about:blank', '_blank');
+    if (previewWindow) {
+      previewWindow.opener = null;
+      previewWindow.document.title = 'Opening document...';
+      previewWindow.document.body.innerHTML = '<p style="font-family: system-ui, sans-serif; padding: 16px;">Opening document...</p>';
     }
 
     setDownloading(true);
@@ -108,8 +115,13 @@ const DocumentReviewPanel = ({ intern, docItem, actionLoading, onReviewComplete,
       const response = await api.get(`/documents/${documentId}/download`);
       const payload = response?.data?.data || response?.data || {};
       if (!payload.url) throw new Error('No download URL returned.');
-      window.open(payload.url, '_blank', 'noopener,noreferrer');
+      if (previewWindow) {
+        previewWindow.location.href = payload.url;
+      } else {
+        window.location.assign(payload.url);
+      }
     } catch (err) {
+      if (previewWindow) previewWindow.close();
       toast.error(err.response?.data?.message || err.message || 'Unable to open document.');
     } finally {
       setDownloading(false);
@@ -366,7 +378,6 @@ const DetailReviewPanel = ({ intern, detailItem, actionLoading, onReviewComplete
 const InternOnboardingCard = ({ intern, onSelectIntern }) => {
   const steps = intern.steps || intern.documents || [];
   const approvedCount = steps.filter((s) => s.status === 'approved' || s.review_status === 'approved').length;
-  const totalCount = 3;
   const submittedDetails = getSubmittedDetails(intern);
 
   return (
@@ -563,13 +574,13 @@ export default function OnboardingApprovalsView({ queue = [], isLoading = false,
               ? (doc.submitted === false ? 'not_submitted' : (doc.review_status || doc.status || 'pending'))
               : 'not_submitted';
             const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.not_submitted;
-            const fileName = doc?.document?.file_name || doc?.file_name;
+            const fileName = getDocumentRecord(doc)?.file_name;
 
             return (
               <div
                 key={item.category}
                 onClick={() => {
-                  if (!doc || doc.submitted === false || !doc.document) {
+                  if (!hasSubmittedDocument(doc)) {
                     toast.error('Intern has not submitted this document yet.');
                     return;
                   }
