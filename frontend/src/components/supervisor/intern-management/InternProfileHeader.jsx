@@ -129,314 +129,307 @@ const InternProfileHeader = ({ profile, performance }) => {
       style={{ marginBottom: '1.5rem' }}
     >
       <div
-        className="card p-6"
+        className="card"
         style={{
-          borderRadius: '1rem',
+          borderRadius: '1.25rem',
           background: '#ffffff',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+          boxShadow: '0 4px 24px rgba(0, 0, 0, 0.06)',
           border: '1px solid var(--color-neutral-200)',
-          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        {/* Banner header accent */}
+        {/* ── Light Blue Hero Header ───────────────────────────────────── */}
         <div
           style={{
-            height: '6.5rem',
-            borderRadius: '0.875rem 0.875rem 0 0',
-            background: 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 55%, #2563eb 100%)',
-            margin: '-1.5rem -1.5rem 0 -1.5rem',
+            padding: '1.5rem 1.75rem 2rem 1.75rem',
+            background: 'linear-gradient(135deg, #0284c7 0%, #00b4d8 100%)',
+            color: '#ffffff',
             position: 'relative',
-            overflow: 'hidden',
           }}
         >
-          {/* Subtle light glow decorative overlay */}
+          {/* Ambient Glow Pattern Overlay */}
           <div
             style={{
               position: 'absolute',
               inset: 0,
-              backgroundImage: 'radial-gradient(circle at 85% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 45%)',
+              backgroundImage: 'radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.25) 0%, transparent 50%), radial-gradient(circle at 10% 90%, rgba(255, 255, 255, 0.15) 0%, transparent 45%)',
               pointerEvents: 'none',
             }}
           />
 
-          <button
-            onClick={() => navigate(-1)}
-            style={{
-              position: 'absolute',
-              top: '1rem',
-              left: '1.25rem',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.4rem 0.875rem',
-              borderRadius: '0.5rem',
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255, 255, 255, 0.4)',
-              color: '#1e3a8a',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <RiArrowLeftLine style={{ fontSize: '0.95rem' }} /> Back
-          </button>
+          {/* Top Bar: Back Button & Verification Badge */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', position: 'relative', zIndex: 2 }}>
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.45rem 0.95rem',
+                borderRadius: '0.625rem',
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.5)',
+                color: '#0369a1',
+                fontSize: '0.8125rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <RiArrowLeftLine style={{ fontSize: '1rem' }} /> Back
+            </button>
 
-          {/* Date verification status badge */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '1rem',
-              right: '1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-            }}
-          >
             <span
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.4rem 0.875rem',
-                borderRadius: '0.5rem',
+                gap: '0.45rem',
+                padding: '0.45rem 0.95rem',
+                borderRadius: '0.625rem',
                 fontSize: '0.75rem',
                 fontWeight: 700,
                 background: datesVerified ? 'rgba(16, 185, 129, 0.95)' : 'rgba(245, 158, 11, 0.95)',
                 color: '#ffffff',
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
               }}
             >
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  background: '#ffffff',
-                  display: 'inline-block',
-                }}
-              />
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ffffff', display: 'inline-block' }} />
               {datesVerified ? 'Dates Verified by Supervisor' : 'Pending Date Verification'}
             </span>
           </div>
-        </div>
 
-        {/* Profile Content */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            gap: '1.5rem',
-            marginTop: '-2.5rem',
-            flexWrap: 'wrap',
-          }}
-        >
-          {/* Left: Avatar & Info */}
-          <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <div
-              style={{
-                borderRadius: '1rem',
-                border: '4px solid #ffffff',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                background: '#fff',
-                flexShrink: 0,
-              }}
-            >
-              <Avatar name={profile.name} src={profile.avatar} size="xl" />
-            </div>
-
-            <div style={{ paddingBottom: '0.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <h2
-                  style={{
-                    margin: 0,
-                    fontSize: '1.5rem',
-                    fontWeight: 800,
-                    color: 'var(--color-neutral-900)',
-                  }}
-                >
-                  {profile.name}
-                </h2>
-                <span
-                  style={{
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '9999px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    backgroundColor: statusStyle.bg,
-                    color: statusStyle.text,
-                  }}
-                >
-                  {profile.status}
-                </span>
-                {trendInfo && (
-                  <span
-                    style={{
-                      padding: '0.2rem 0.6rem',
-                      borderRadius: '9999px',
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      backgroundColor: trendInfo.bg,
-                      color: trendInfo.color,
-                    }}
-                  >
-                    {trendInfo.label}
-                  </span>
-                )}
-              </div>
-
-              <p style={{ margin: '0.25rem 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--color-neutral-500)', fontWeight: 500 }}>
-                {profile.role} · {profile.department || 'Department unassigned'}
-              </p>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-                <InfoChip icon={RiTimeLine} label={`Primary Supervisor: ${profile.supervisor || 'None assigned'}`} />
-                <InfoChip icon={RiTimeLine} label={`Secondary: ${secondarySupervisor || 'None assigned'}`} />
-                <InfoChip icon={RiMapPinLine} label={profile.location} />
-                <InfoChip icon={RiCalendarEventLine} label={`${profile.startDate} to ${profile.endDate}`} />
-              </div>
-
-              {/* Internship Period Selector Bar for Supervisors */}
-              {((profile.internships && profile.internships.length > 0) || (profile.startDate && profile.startDate !== 'N/A')) && (
-                <div
-                  style={{
-                    marginTop: '0.875rem',
-                    padding: '0.5rem 0.75rem',
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '0.625rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Internship Period:
-                  </span>
-                  {(profile.internships && profile.internships.length > 0
-                    ? profile.internships
-                    : [
-                        {
-                          id: 'single-period',
-                          title: `Internship Period (${profile.startDate || 'N/A'} - ${profile.endDate || 'N/A'})`,
-                          status: profile.status === 'Completed' ? 'completed' : 'active',
-                        },
-                      ]
-                  ).map((period) => (
-                    <button
-                      key={period.id}
-                      type="button"
-                      style={{
-                        padding: '0.25rem 0.625rem',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        border: period.status === 'active' || period.status === 'Current' ? '1px solid var(--color-primary-300)' : '1px solid #cbd5e1',
-                        background: period.status === 'active' || period.status === 'Current' ? 'var(--color-primary-50)' : '#ffffff',
-                        color: period.status === 'active' || period.status === 'Current' ? 'var(--color-primary-700)' : '#64748b',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                      }}
-                      onClick={() => toast.success(`Viewing ${period.title}`)}
-                    >
-                      {period.title} ({period.status === 'active' || period.status === 'Current' ? 'Current' : 'Completed'})
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right: Quick Stats */}
+          {/* Hero Info Row */}
           <div
             style={{
               display: 'flex',
-              gap: '1rem',
-              flexShrink: 0,
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              gap: '1.5rem',
+              flexWrap: 'wrap',
+              position: 'relative',
+              zIndex: 2,
             }}
           >
-            <div style={{ textAlign: 'center', padding: '0.625rem 1rem', background: 'var(--color-neutral-50)', borderRadius: '0.75rem', border: '1px solid var(--color-neutral-200)' }}>
-              <p style={{ margin: 0, fontSize: '1.375rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
-                {performance?.averageScore ?? profile.performanceScore}
-              </p>
-              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-neutral-500)', fontWeight: 600 }}>SCORE</p>
+            {/* Left: Avatar & Info */}
+            <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', flexWrap: 'wrap', flex: 1, minWidth: 280 }}>
+              <div
+                style={{
+                  borderRadius: '1.125rem',
+                  border: '4px solid rgba(255, 255, 255, 0.9)',
+                  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+                  background: '#ffffff',
+                  flexShrink: 0,
+                }}
+              >
+                <Avatar name={profile.name} src={profile.avatar} size="xl" />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <h2 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em' }}>
+                    {profile.name}
+                  </h2>
+                  <span
+                    style={{
+                      padding: '0.3rem 0.75rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      color: statusStyle.text,
+                    }}
+                  >
+                    {profile.status}
+                  </span>
+                  {trendInfo && (
+                    <span
+                      style={{
+                        padding: '0.25rem 0.65rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                        color: '#ffffff',
+                      }}
+                    >
+                      {trendInfo.label}
+                    </span>
+                  )}
+                </div>
+
+                <p style={{ margin: '0.35rem 0 0.75rem 0', fontSize: '0.9375rem', color: 'rgba(255, 255, 255, 0.92)', fontWeight: 600 }}>
+                  {profile.role} · <span style={{ color: '#ffffff', fontWeight: 700 }}>{profile.department || 'FifthLab'}</span>
+                </p>
+
+                {/* Translucent Info Chips */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.625rem 1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8125rem', color: 'rgba(255, 255, 255, 0.95)', background: 'rgba(255, 255, 255, 0.15)', padding: '0.25rem 0.625rem', borderRadius: '0.5rem', backdropFilter: 'blur(6px)' }}>
+                    <RiTimeLine style={{ fontSize: '0.9rem' }} /> Primary Supervisor: {profile.supervisor || 'Tochukwu Mgbemena'}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8125rem', color: 'rgba(255, 255, 255, 0.95)', background: 'rgba(255, 255, 255, 0.15)', padding: '0.25rem 0.625rem', borderRadius: '0.5rem', backdropFilter: 'blur(6px)' }}>
+                    <RiTimeLine style={{ fontSize: '0.9rem' }} /> Secondary: {secondarySupervisor || 'None assigned'}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8125rem', color: 'rgba(255, 255, 255, 0.95)', background: 'rgba(255, 255, 255, 0.15)', padding: '0.25rem 0.625rem', borderRadius: '0.5rem', backdropFilter: 'blur(6px)' }}>
+                    <RiMapPinLine style={{ fontSize: '0.9rem' }} /> {profile.location}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8125rem', color: 'rgba(255, 255, 255, 0.95)', background: 'rgba(255, 255, 255, 0.15)', padding: '0.25rem 0.625rem', borderRadius: '0.5rem', backdropFilter: 'blur(6px)' }}>
+                    <RiCalendarEventLine style={{ fontSize: '0.9rem' }} /> {profile.startDate} to {profile.endDate}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div style={{ textAlign: 'center', padding: '0.625rem 1rem', background: 'var(--color-neutral-50)', borderRadius: '0.75rem', border: '1px solid var(--color-neutral-200)' }}>
-              <p style={{ margin: 0, fontSize: '1.375rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
-                {profile.onboardingProgress}%
-              </p>
-              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-neutral-500)', fontWeight: 600 }}>ONBOARDING</p>
+
+            {/* Right Metrics Cards */}
+            <div style={{ display: 'flex', gap: '0.875rem', flexShrink: 0 }}>
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '0.75rem 1.25rem',
+                  background: 'rgba(255, 255, 255, 0.22)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '0.875rem',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  minWidth: '95px',
+                }}
+              >
+                <p style={{ margin: 0, fontSize: '1.625rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+                  {performance?.averageScore ?? profile.performanceScore}
+                </p>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.6875rem', color: 'rgba(255, 255, 255, 0.9)', fontWeight: 800, letterSpacing: '0.05em' }}>SCORE</p>
+              </div>
+
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '0.75rem 1.25rem',
+                  background: 'rgba(255, 255, 255, 0.22)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '0.875rem',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  minWidth: '105px',
+                }}
+              >
+                <p style={{ margin: 0, fontSize: '1.625rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+                  {profile.onboardingProgress}%
+                </p>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.6875rem', color: 'rgba(255, 255, 255, 0.9)', fontWeight: 800, letterSpacing: '0.05em' }}>ONBOARDING</p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Contact Strip */}
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '1.25rem',
-            marginTop: '1.25rem',
-            paddingTop: '1.25rem',
-            borderTop: '1px solid var(--color-neutral-100)',
-          }}
-        >
-          <a
-            href={`mailto:${profile.email}`}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--color-primary-600)', fontWeight: 500, textDecoration: 'none' }}
-          >
-            <RiMailLine /> {profile.email}
-          </a>
-          <a
-            href={`tel:${profile.phone}`}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--color-neutral-600)', textDecoration: 'none' }}
-          >
-            <RiPhoneLine /> {profile.phone}
-          </a>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
-            {profile.contractType} · {profile.stipend}
-          </span>
-        </div>
-
-        {/* Quick Actions for Supervisor */}
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '0.625rem',
-            marginTop: '1.25rem',
-          }}
-        >
-          {!datesVerified ? (
-            <QuickActionButton
-              icon={RiCalendarCheckLine}
-              label="Verify Internship Dates"
-              color="#059669"
-              bg="#ecfdf5"
-              onClick={handleVerifyDates}
-            />
-          ) : (
-            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: '#ecfdf5', borderRadius: '0.625rem' }}>
-              Dates Verified by Tochukwu Mgbemena
-            </span>
+        {/* ── Lower Card Content ───────────────────────────────────────── */}
+        <div style={{ padding: '1.25rem 1.75rem 1.5rem 1.75rem' }}>
+          {/* Internship Period Selector Bar */}
+          {((profile.internships && profile.internships.length > 0) || (profile.startDate && profile.startDate !== 'N/A')) && (
+            <div
+              style={{
+                padding: '0.625rem 0.875rem',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.625rem',
+                flexWrap: 'wrap',
+                marginBottom: '1.25rem',
+              }}
+            >
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Internship Period:
+              </span>
+              {(profile.internships && profile.internships.length > 0
+                ? profile.internships
+                : [
+                    {
+                      id: 'single-period',
+                      title: `Internship Period (${profile.startDate || 'N/A'} - ${profile.endDate || 'N/A'})`,
+                      status: profile.status === 'Completed' ? 'completed' : 'active',
+                    },
+                  ]
+              ).map((period) => (
+                <button
+                  key={period.id}
+                  type="button"
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    border: period.status === 'active' || period.status === 'Current' ? '1px solid #00b4d8' : '1px solid #cbd5e1',
+                    background: period.status === 'active' || period.status === 'Current' ? '#e0f7ff' : '#ffffff',
+                    color: period.status === 'active' || period.status === 'Current' ? '#0284c7' : '#64748b',
+                    cursor: 'pointer',
+                    boxShadow: period.status === 'active' ? '0 1px 3px rgba(2, 132, 199, 0.15)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onClick={() => toast.success(`Viewing ${period.title}`)}
+                >
+                  {period.title} ({period.status === 'active' || period.status === 'Current' ? 'Current' : 'Completed'})
+                </button>
+              ))}
+            </div>
           )}
 
-          <QuickActionButton
-            icon={RiUserAddLine}
-            label={secondarySupervisor ? `Change Secondary (${secondarySupervisor})` : "Assign Extra Supervisor"}
-            color="var(--color-primary-700)"
-            bg="var(--color-primary-50)"
-            onClick={() => setShowSecondaryModal(true)}
-          />
-          <QuickActionButton icon={RiTaskLine} label="Assign Task" color="var(--color-primary-700)" bg="var(--color-primary-50)" onClick={() => handleAction('assign-task')} />
-          <QuickActionButton icon={RiCalendarEventLine} label="Schedule Review" color="#0891b2" bg="#ecfeff" onClick={() => handleAction('schedule-review')} />
-          <QuickActionButton icon={RiCheckboxCircleLine} label="Approve Onboarding" color="#059669" bg="#ecfdf5" onClick={() => handleAction('approve-onboarding')} />
+          {/* Contact Strip */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '1.5rem',
+              paddingBottom: '1.125rem',
+              borderBottom: '1px solid #f1f5f9',
+              marginBottom: '1.125rem',
+            }}
+          >
+            <a
+              href={`mailto:${profile.email}`}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.84rem', color: '#0284c7', fontWeight: 600, textDecoration: 'none' }}
+            >
+              <RiMailLine style={{ fontSize: '1rem' }} /> {profile.email}
+            </a>
+            <a
+              href={`tel:${profile.phone}`}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.84rem', color: '#475569', textDecoration: 'none' }}
+            >
+              <RiPhoneLine style={{ fontSize: '1rem' }} /> {profile.phone}
+            </a>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.84rem', color: '#64748b', fontWeight: 500 }}>
+              {profile.contractType} · {profile.stipend}
+            </span>
+          </div>
+
+          {/* Quick Actions Bar */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.625rem' }}>
+            {!datesVerified ? (
+              <QuickActionButton
+                icon={RiCalendarCheckLine}
+                label="Verify Internship Dates"
+                color="#059669"
+                bg="#ecfdf5"
+                onClick={handleVerifyDates}
+              />
+            ) : (
+              <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.5rem 0.875rem', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '0.625rem' }}>
+                Dates Verified by Tochukwu Mgbemena
+              </span>
+            )}
+
+            <QuickActionButton
+              icon={RiUserAddLine}
+              label={secondarySupervisor ? `Change Secondary (${secondarySupervisor})` : "Assign Extra Supervisor"}
+              color="#0284c7"
+              bg="#e0f7ff"
+              onClick={() => setShowSecondaryModal(true)}
+            />
+            <QuickActionButton icon={RiTaskLine} label="Assign Task" color="#0284c7" bg="#e0f7ff" onClick={() => handleAction('assign-task')} />
+            <QuickActionButton icon={RiCalendarEventLine} label="Schedule Review" color="#0891b2" bg="#ecfeff" onClick={() => handleAction('schedule-review')} />
+            <QuickActionButton icon={RiCheckboxCircleLine} label="Approve Onboarding" color="#059669" bg="#ecfdf5" onClick={() => handleAction('approve-onboarding')} />
+          </div>
         </div>
       </div>
 
