@@ -28,6 +28,7 @@ const ForgotPassword = () => {
   const clearError = useAppStore((state) => state.clearError);
 
   const [submittedEmail, setSubmittedEmail] = useState('');
+  const [resetToken, setResetToken] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
 
   const {
@@ -40,8 +41,9 @@ const ForgotPassword = () => {
 
   const onSubmit = async (data) => {
     try {
-      await forgotFn(data.email);
+      const response = await forgotFn(data.email);
       setSubmittedEmail(data.email);
+      setResetToken(response?.resetToken || '');
       setIsSuccess(true);
       toast.success('Instructions sent to your email!');
     } catch (err) {
@@ -56,9 +58,12 @@ const ForgotPassword = () => {
           title="Reset link sent"
           message={`We have sent secure password reset instructions and a verification link to ${submittedEmail}. Please check your inbox.`}
         >
-          <Link to={`${ROUTES.RESET_PASSWORD}?email=${encodeURIComponent(submittedEmail)}`} className="w-full no-underline">
+          <Link
+            to={`${ROUTES.RESET_PASSWORD}?email=${encodeURIComponent(submittedEmail)}${resetToken ? `&token=${encodeURIComponent(resetToken)}` : ''}`}
+            className="w-full no-underline"
+          >
             <Button size="lg" style={{ width: '100%' }}>
-              Proceed to Reset Password (Mock)
+              Proceed to Reset Password
             </Button>
           </Link>
           <Link

@@ -65,6 +65,45 @@ const updateStoredMockPassword = (email, password) => {
 
 const delay = (ms = 1000) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const getApiErrorMessage = (err, fallback) =>
+  err.response?.data?.message ||
+  err.response?.data?.error ||
+  err.message ||
+  fallback;
+
+const splitName = (name = '') => {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] || 'User',
+    lastName: parts.slice(1).join(' ') || 'User',
+  };
+};
+
+const assertJsonApiResponse = (res, fallback) => {
+  if (!res.data || typeof res.data !== 'object') {
+    throw new Error(fallback);
+  }
+};
+
+const normalizeBackendAuthPayload = (res, email) => {
+  assertJsonApiResponse(res, 'Invalid response from authentication server');
+  const payload = res.data?.data || res.data || {};
+  const user = payload.user || payload;
+  const tokens = payload.tokens || {};
+  const token = tokens.accessToken || payload.token || user.token;
+  const safeUser = normalizeUser(user, email || user.email, token, tokens);
+
+  return {
+    success: res.data?.success ?? true,
+    message: res.data?.message || payload.message,
+    user: safeUser,
+    token,
+    refreshToken: tokens.refreshToken,
+    resetToken: payload.resetToken,
+    emailVerificationToken: payload.emailVerificationToken,
+  };
+};
+
 const normalizeRole = (role = '') => {
   const value = String(role || '').toLowerCase();
   if (value === 'supervisor') return 'Supervisor';
@@ -163,12 +202,37 @@ export const authService = {
   },
 
   /**
-   * Mock register.
+   * Register with the backend in production, with mock fallback for local/demo use.
    */
   register: async (data) => {
     if (!isOrganizationEmail(data.email)) {
       throw new Error(ORG_EMAIL_REQUIRED_MESSAGE);
     }
+    const { firstName, lastName } = splitName(data.name);
+    const backendPayload = {
+      email: data.email,
+      password: data.password,
+      first_name: data.first_name || data.firstName || firstName,
+      last_name: data.last_name || data.lastName || lastName,
+      role: normalizeRole(data.role).toLowerCase().replace(/\s+/g, '_').replace('hr_administrator', 'hr'),
+      phone: data.phone || null,
+      date_of_birth: data.date_of_birth || data.dateOfBirth || null,
+      department_id: data.department_id || null,
+    };
+
+    try {
+      const res = await api.post('/auth/register', backendPayload);
+      const result = normalizeBackendAuthPayload(res, data.email);
+      if (!result.user?.id) {
+        throw new Error('Invalid registration response from authentication server');
+      }
+      return result;
+    } catch (err) {
+      if (!MOCK_AUTH_ENABLED) {
+        throw new Error(getApiErrorMessage(err, 'Registration failed. Please try again.'));
+      }
+    }
+
     await delay(1500);
     const users = getRegisteredUsers();
     
@@ -230,12 +294,28 @@ export const authService = {
   },
 
   /**
-   * Mock Forgot Password.
+   * Request a real backend password reset token/link in production.
    */
   forgotPassword: async ({ email }) => {
     if (!isOrganizationEmail(email)) {
       throw new Error(ORG_EMAIL_REQUIRED_MESSAGE);
     }
+    try {
+      const res = await api.post('/auth/forgot-password', { email });
+      assertJsonApiResponse(res, 'Invalid response from authentication server');
+      const payload = res.data?.data || {};
+      return {
+        success: res.data?.success ?? true,
+        message: res.data?.message || 'Password reset link sent to your email address.',
+        resetToken: payload.resetToken,
+        resetEmail: email,
+      };
+    } catch (err) {
+      if (!MOCK_AUTH_ENABLED) {
+        throw new Error(getApiErrorMessage(err, 'Password reset request failed. Please try again.'));
+      }
+    }
+
     await delay(1000);
     const users = getRegisteredUsers();
     const exists = users.some((u) => u.email.toLowerCase() === email.toLowerCase());
@@ -254,9 +334,29 @@ export const authService = {
   },
 
   /**
-   * Mock Reset Password.
+   * Reset a real backend password in production.
    */
-  resetPassword: async ({ password, email }) => {
+  resetPassword: async ({ password, email, token }) => {
+    if (token) {
+      try {
+        const res = await api.post('/auth/reset-password', {
+          token,
+          newPassword: password,
+        });
+        assertJsonApiResponse(res, 'Invalid response from authentication server');
+        return {
+          success: res.data?.success ?? true,
+          message: res.data?.message || 'Password has been reset successfully.',
+        };
+      } catch (err) {
+        if (!MOCK_AUTH_ENABLED) {
+          throw new Error(getApiErrorMessage(err, 'Password reset failed. Please try again.'));
+        }
+      }
+    } else if (!MOCK_AUTH_ENABLED) {
+      throw new Error('Invalid or missing password reset token. Please request a new reset link.');
+    }
+
     await delay(1200);
     if (password.length < 8) {
       throw new Error('Password must be at least 8 characters long.');

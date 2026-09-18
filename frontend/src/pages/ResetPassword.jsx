@@ -41,10 +41,11 @@ const ResetPassword = () => {
 
   const passwordVal = watch('password');
   const resetEmail = searchParams.get('email') || '';
+  const resetToken = searchParams.get('token') || '';
 
   const onSubmit = async (data) => {
     try {
-      await resetFn({ password: data.password, email: resetEmail });
+      await resetFn({ password: data.password, email: resetEmail, token: resetToken });
       setIsSuccess(true);
       toast.success('Password updated successfully!');
     } catch (err) {
