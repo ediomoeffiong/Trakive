@@ -27,7 +27,6 @@ import InternManagementFilters from './InternManagementFilters';
 import BulkActionToolbar from './BulkActionToolbar';
 import { InternTableLoader } from './InternSkeletonLoaders';
 import InternEmptyState from './InternEmptyStates';
-import { ROUTES } from '../../../constants';
 
 const STATUS_STYLES = {
   Active: { bg: '#dcfce7', text: '#15803d' },
@@ -52,6 +51,13 @@ const ALL_COLUMNS = [
 const SortIcon = ({ field, currentField, currentOrder }) => {
   if (field !== currentField) return <RiArrowUpDownLine style={{ opacity: 0.4 }} />;
   return currentOrder === 'asc' ? <RiArrowUpLine style={{ color: '#4f46e5' }} /> : <RiArrowDownLine style={{ color: '#4f46e5' }} />;
+};
+
+const normalizeSortValue = (value) => {
+  if (value == null) return '';
+  const numeric = Number(value);
+  if (value !== '' && Number.isFinite(numeric)) return numeric;
+  return String(value).toLowerCase();
 };
 
 const InternDirectory = ({
@@ -81,9 +87,8 @@ const InternDirectory = ({
 
   const sortedInterns = useMemo(() => {
     return [...interns].sort((a, b) => {
-      let va = a[sortField];
-      let vb = b[sortField];
-      if (typeof va === 'string') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+      const va = normalizeSortValue(a[sortField]);
+      const vb = normalizeSortValue(b[sortField]);
       if (va < vb) return sortOrder === 'asc' ? -1 : 1;
       if (va > vb) return sortOrder === 'asc' ? 1 : -1;
       return 0;
@@ -421,7 +426,7 @@ const InternDirectory = ({
                                     height: '100%',
                                     background: intern.onboardingProgress === 100
                                       ? 'linear-gradient(90deg, #10b981, #059669)'
-                                      : 'linear-gradient(90deg, #4f46e5, #818cf8)',
+                                      : 'linear-gradient(90deg, #0284c7, #38bdf8)',
                                     borderRadius: '99px',
                                   }}
                                 />
@@ -564,7 +569,9 @@ const InternDirectory = ({
                             style={{
                               height: '100%',
                               width: `${intern.onboardingProgress}%`,
-                              background: 'linear-gradient(90deg, #4f46e5, #818cf8)',
+                              background: intern.onboardingProgress === 100
+                                ? 'linear-gradient(90deg, #10b981, #059669)'
+                                : 'linear-gradient(90deg, #0284c7, #38bdf8)',
                               borderRadius: '99px',
                             }}
                           />
