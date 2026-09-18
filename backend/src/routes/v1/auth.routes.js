@@ -16,7 +16,7 @@ const AuthController = require('../../controllers/auth.controller');
 const router = express.Router();
 
 // Public Authentication Routes
-router.post('/register', validate(registerSchema), AuthController.register);
+router.post('/register', authLimiter, validate(registerSchema), AuthController.register);
 router.post('/login', authLimiter, validate(loginSchema), AuthController.login);
 router.post('/refresh', validate(refreshSchema), AuthController.refresh);
 router.post('/logout', AuthController.logout);

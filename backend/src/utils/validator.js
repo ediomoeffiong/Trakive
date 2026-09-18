@@ -1,4 +1,5 @@
 const ApiError = require('./apiError');
+const { sanitizeValidatedData } = require('./sanitizer');
 
 /**
  * Validate object against Joi schema
@@ -28,7 +29,7 @@ const validateData = (schema, data) => {
     throw ApiError.unprocessableEntity('Validation Error', formattedErrors);
   }
 
-  return value;
+  return sanitizeValidatedData(value);
 };
 
 module.exports = {

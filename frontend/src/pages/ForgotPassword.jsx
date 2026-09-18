@@ -91,7 +91,7 @@ const ForgotPassword = () => {
           id="forgot-email"
           label="Work Email"
           type="email"
-          placeholder="name@cwg-plc.com or name@fifthlab.com"
+          placeholder="name@cwg-plc.com or name@thefifthlab.com"
           leftAddon={<FiMail className="text-neutral-400" />}
           error={errors.email?.message}
           disabled={authLoading}

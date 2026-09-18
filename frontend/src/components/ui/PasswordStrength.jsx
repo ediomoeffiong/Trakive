@@ -13,7 +13,8 @@ const PasswordStrength = ({ password = '' }) => {
       { id: 'uppercase', text: 'At least one uppercase letter (A-Z)', met: /[A-Z]/.test(password) },
       { id: 'lowercase', text: 'At least one lowercase letter (a-z)', met: /[a-z]/.test(password) },
       { id: 'number', text: 'At least one number (0-9)', met: /[0-9]/.test(password) },
-      { id: 'special', text: 'At least one special character (!@#$%^&*)', met: /[^A-Za-z0-9]/.test(password) },
+      { id: 'special', text: 'At least one symbol', met: /[^\sA-Za-z0-9]/.test(password) },
+      { id: 'spaces', text: 'No spaces', met: !/\s/.test(password) },
     ];
   }, [password]);
 

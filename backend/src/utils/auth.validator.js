@@ -1,8 +1,5 @@
 const Joi = require('joi');
-
-const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,100}$/;
-const passwordMessage =
-  'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)';
+const { passwordPattern, passwordMessage } = require('./passwordPolicy');
 
 const registerSchema = {
   body: Joi.object({
@@ -10,8 +7,9 @@ const registerSchema = {
     password: Joi.string().pattern(passwordPattern).required().messages({
       'string.pattern.base': passwordMessage,
     }),
-    first_name: Joi.string().min(2).max(50).required().trim(),
-    last_name: Joi.string().min(2).max(50).required().trim(),
+    name: Joi.string().min(3).max(120).optional().trim(),
+    first_name: Joi.string().min(2).max(50).optional().trim(),
+    last_name: Joi.string().min(2).max(50).optional().trim(),
     role: Joi.string()
       .invalid('super_admin', 'superadmin', 'org_admin', 'admin')
       .valid('intern', 'supervisor', 'hr', 'head', 'department_head')
@@ -21,7 +19,7 @@ const registerSchema = {
     date_of_birth: Joi.date().iso().optional().allow('', null),
     organization_id: Joi.string().uuid().optional().allow(null),
     department_id: Joi.string().uuid().optional().allow(null),
-  }),
+  }).or('name', 'first_name').with('first_name', 'last_name'),
 };
 
 const loginSchema = {

@@ -61,13 +61,13 @@ const AuthService = {
     }
 
     const emailDomain = (data.email || '').split('@')[1]?.toLowerCase().trim();
-    const allowedDomains = ['thefifthlab.com', 'fifthlab.com', 'cwg-plc.com'];
+    const allowedDomains = ['thefifthlab.com', 'cwg-plc.com'];
     if (!allowedDomains.includes(emailDomain)) {
-      throw ApiError.badRequest('Please enter your organization email (@cwg-plc.com or @fifthlab.com). Other emails are not supported.');
+      throw ApiError.badRequest('Please enter your organization email (@cwg-plc.com or @thefifthlab.com). Other emails are not supported.');
     }
 
     let matchedOrg = null;
-    if (emailDomain === 'thefifthlab.com' || emailDomain === 'fifthlab.com') {
+    if (emailDomain === 'thefifthlab.com') {
       const orgRes = await query(`SELECT * FROM organizations WHERE slug = 'fifthlab' OR domain = 'thefifthlab.com' LIMIT 1`);
       matchedOrg = orgRes.rows[0];
       if (!matchedOrg) {
@@ -208,8 +208,8 @@ const AuthService = {
    */
   async login(email, password, ipAddress = null, userAgent = null) {
     const emailDomain = (email || '').split('@')[1]?.toLowerCase().trim();
-    if (!['thefifthlab.com', 'fifthlab.com', 'cwg-plc.com'].includes(emailDomain)) {
-      throw ApiError.badRequest('Please enter your organization email (@cwg-plc.com or @fifthlab.com). Other emails are not supported.');
+    if (!['thefifthlab.com', 'cwg-plc.com'].includes(emailDomain)) {
+      throw ApiError.badRequest('Please enter your organization email (@cwg-plc.com or @thefifthlab.com). Other emails are not supported.');
     }
 
     const user = await UserModel.findByEmailWithPassword(email);

@@ -71,10 +71,24 @@ async function runVerification() {
   });
   assert(invalidReg.status === 400, 'Registration with @gmail.com must be rejected');
   assert(
-    invalidReg.body.message.includes('Only @thefifthlab.com and @cwg-plc.com'),
+    invalidReg.body.message.includes('@cwg-plc.com or @thefifthlab.com'),
     'Error message must state allowed domains'
   );
-  console.log('  ✅ Invalid domain registration correctly rejected.\n');
+  console.log('  ✅ Invalid domain (@gmail.com) registration correctly rejected.');
+
+  const fifthlabOldReg = await request('POST', '/auth/register', {
+    email: 'unauthorized@fifthlab.com',
+    password: 'Password123!',
+    first_name: 'Invalid',
+    last_name: 'Fifthlab',
+    role: 'intern',
+  });
+  assert(fifthlabOldReg.status === 400, 'Registration with @fifthlab.com must be rejected');
+  assert(
+    fifthlabOldReg.body.message.includes('@cwg-plc.com or @thefifthlab.com'),
+    'Error message must state allowed domains'
+  );
+  console.log('  ✅ Invalid domain (@fifthlab.com) registration correctly rejected.\n');
 
   // Step 2: Register FifthLab Intern
   console.log('Step 2: Registering FifthLab Intern (@thefifthlab.com)...');

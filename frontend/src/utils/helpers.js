@@ -77,10 +77,10 @@ export function omit(obj, keys) {
   );
 }
 
-export const ALLOWED_ORG_EMAIL_DOMAINS = ['cwg-plc.com', 'fifthlab.com', 'thefifthlab.com'];
+export const ALLOWED_ORG_EMAIL_DOMAINS = ['cwg-plc.com', 'thefifthlab.com'];
 
 export const ORG_EMAIL_REQUIRED_MESSAGE =
-  'Please enter your organization email (@cwg-plc.com or @fifthlab.com). Other emails are not supported.';
+  'Please enter your organization email (@cwg-plc.com or @thefifthlab.com). Other emails are not supported.';
 
 export function isOrganizationEmail(email) {
   const domain = String(email || '').split('@')[1]?.toLowerCase().trim();

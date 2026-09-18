@@ -2,13 +2,8 @@ const ApiError = require('../utils/apiError');
 const DocumentModel = require('../models/document.model');
 const ProfileModel = require('../models/profile.model');
 const StorageService = require('./storage.service');
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const ALLOWED_MIME_TYPES = new Set([
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-]);
+const { DOCUMENT_UPLOAD_TYPES, assertSafeUpload } = require('../utils/uploadSecurity');
+const { sanitizeTextInput } = require('../utils/sanitizer');
 
 const TYPE_TO_CATEGORY = {
   'CV/Resume': 'resume',
@@ -75,11 +70,7 @@ const DocumentService = {
   mapDocument,
 
   async uploadDocument(file, body, requestingUser) {
-    if (!file) throw ApiError.badRequest('A file is required');
-    if (file.size > MAX_FILE_SIZE) throw ApiError.badRequest('File size must not exceed 10 MB');
-    if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
-      throw ApiError.badRequest('Only PDF, JPG, and PNG files are allowed');
-    }
+    assertSafeUpload(file, DOCUMENT_UPLOAD_TYPES);
     if (!requestingUser.organization_id) {
       throw ApiError.badRequest('User must belong to an organization before uploading documents');
     }
@@ -92,9 +83,9 @@ const DocumentService = {
       }
     }
 
-    const docType = body.type || body.title || 'Other';
-    const category = body.category || TYPE_TO_CATEGORY[docType] || 'general';
-    const title = body.title || docType || file.originalname;
+    const docType = sanitizeTextInput(body.type || body.title || 'Other');
+    const category = sanitizeTextInput(body.category || TYPE_TO_CATEGORY[docType] || 'general');
+    const title = sanitizeTextInput(body.title || docType || file.originalname);
     const objectPath = StorageService.buildObjectPath({
       organizationId: requestingUser.organization_id,
       ownerId,

@@ -48,8 +48,8 @@ async function runAuthVerification() {
   };
 
   try {
-    const testEmailIntern = `intern_${Date.now()}@example.com`;
-    const testEmailHR = `hr_${Date.now()}@example.com`;
+    const testEmailIntern = `intern_${Date.now()}@thefifthlab.com`;
+    const testEmailHR = `hr_${Date.now()}@cwg-plc.com`;
     const testPassword = 'Password123!';
     const newPassword = 'NewPassword123!';
 

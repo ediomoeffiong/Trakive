@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 
 import { useAppStore } from '../store/useAppStore';
 import { ROUTES } from '../constants';
+import { passwordRegisterOptions } from '../utils/passwordPolicy';
 import {
   AuthCard,
   AuthHeader,
@@ -89,16 +90,7 @@ const ResetPassword = () => {
           leftAddon={<FiLock className="text-neutral-400" />}
           error={errors.password?.message}
           disabled={authLoading}
-          {...register('password', {
-            required: 'Password is required',
-            minLength: { value: 8, message: 'Password must be at least 8 characters' },
-            validate: {
-              upper: (v) => /[A-Z]/.test(v) || 'Must contain at least 1 uppercase letter',
-              lower: (v) => /[a-z]/.test(v) || 'Must contain at least 1 lowercase letter',
-              number: (v) => /[0-9]/.test(v) || 'Must contain at least 1 number',
-              special: (v) => /[^A-Za-z0-9]/.test(v) || 'Must contain at least 1 special character',
-            },
-          })}
+          {...register('password', passwordRegisterOptions)}
         />
 
         {/* Confirm Password */}

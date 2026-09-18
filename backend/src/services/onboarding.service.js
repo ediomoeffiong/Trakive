@@ -13,6 +13,8 @@ const StorageService = require('./storage.service');
 const { hashPassword } = require('../utils/password.utils');
 const { getPaginationParams, formatPaginatedResponse } = require('../utils/pagination');
 const { resolveFifthLabDefaults } = require('../utils/fifthlabDefaults');
+const { PDF_UPLOAD_TYPES, assertSafeUpload } = require('../utils/uploadSecurity');
+const { sanitizeTextInput } = require('../utils/sanitizer');
 
 const ONBOARDING_SECTION_LABELS = {
   internship_info: 'Internship Info',
@@ -36,12 +38,6 @@ const VALID_TRANSITIONS = {
   completed: [],
   terminated: [],
 };
-
-const ALLOWED_DOCUMENT_MIME_TYPES = new Set([
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-]);
 
 const OnboardingService = {
   async findCurrentApplicationForUser(userId) {
@@ -653,7 +649,7 @@ const OnboardingService = {
     // Link intern to a supervisor before persisting so the supervisor queue can see them
     await this.ensureInternSupervisorLink(requestingUser);
 
-    const category = data.category || 'general';
+    const category = sanitizeTextInput(data.category || 'general');
     let fileName = data.file_name;
     let filePath = data.file_path;
     let fileSize = data.file_size;
@@ -665,13 +661,11 @@ const OnboardingService = {
     }
 
     if (data.file) {
-      if (!ALLOWED_DOCUMENT_MIME_TYPES.has(data.file.mimetype)) {
-        throw ApiError.badRequest('Only PDF, JPG, and PNG files are allowed');
-      }
+      assertSafeUpload(data.file, PDF_UPLOAD_TYPES);
       fileName = data.file.originalname;
       fileSize = data.file.size;
       mimeType = data.file.mimetype;
-      title = title || data.file.originalname;
+      title = sanitizeTextInput(title || data.file.originalname);
       filePath = StorageService.buildObjectPath({
         organizationId: orgId,
         ownerId: requestingUser.id,

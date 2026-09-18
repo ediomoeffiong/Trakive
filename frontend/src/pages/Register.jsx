@@ -9,6 +9,7 @@ import { useAppStore } from '../store/useAppStore';
 import { STANDARD_DEPARTMENTS } from '../utils/departments';
 import { ROUTES } from '../constants';
 import { orgEmailRegisterOptions } from '../utils';
+import { passwordRegisterOptions } from '../utils/passwordPolicy';
 import {
   AuthCard,
   AuthHeader,
@@ -41,6 +42,14 @@ const getMaxDateOfBirth = () => {
   cutoff.setFullYear(cutoff.getFullYear() - 10);
   cutoff.setDate(cutoff.getDate() - 1);
   return toDateInputValue(cutoff);
+};
+
+const splitFullName = (name = '') => {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] || '',
+    lastName: parts.slice(1).join(' ') || '',
+  };
 };
 
 const Register = () => {
@@ -102,8 +111,11 @@ const Register = () => {
 
   const onSubmit = async (data) => {
     try {
+      const { firstName, lastName } = splitFullName(data.name);
       const response = await registerFn({
         name: data.name,
+        first_name: firstName,
+        last_name: lastName,
         email: data.email,
         department: data.department || 'FifthLab',
         phone: data.phone,
@@ -184,6 +196,12 @@ const Register = () => {
               {...register('name', {
                 required: 'Full name is required',
                 minLength: { value: 3, message: 'Name must be at least 3 characters' },
+                validate: (value) => {
+                  const { firstName, lastName } = splitFullName(value);
+                  if (!firstName || !lastName) return 'Please enter your first and last name';
+                  if (/[<>]/.test(value)) return 'Name cannot contain angle brackets';
+                  return true;
+                },
               })}
             />
 
@@ -191,7 +209,7 @@ const Register = () => {
               id="reg-email"
               label="Work Email"
               type="email"
-              placeholder="name@cwg-plc.com or name@fifthlab.com"
+              placeholder="name@cwg-plc.com or name@thefifthlab.com"
               leftAddon={<FiMail className="text-neutral-400" />}
               error={errors.email?.message}
               {...register('email', orgEmailRegisterOptions)}
@@ -372,16 +390,7 @@ const Register = () => {
               placeholder="••••••••"
               leftAddon={<FiLock className="text-neutral-400" />}
               error={errors.password?.message}
-              {...register('password', {
-                required: 'Password is required',
-                minLength: { value: 8, message: 'Password must be at least 8 characters' },
-                validate: {
-                  upper: (v) => /[A-Z]/.test(v) || 'Must contain at least 1 uppercase letter',
-                  lower: (v) => /[a-z]/.test(v) || 'Must contain at least 1 lowercase letter',
-                  number: (v) => /[0-9]/.test(v) || 'Must contain at least 1 number',
-                  special: (v) => /[^A-Za-z0-9]/.test(v) || 'Must contain at least 1 special character',
-                },
-              })}
+              {...register('password', passwordRegisterOptions)}
             />
 
             <Input

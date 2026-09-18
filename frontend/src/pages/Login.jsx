@@ -65,7 +65,7 @@ const Login = () => {
           id="login-email"
           label="Work Email"
           type="email"
-          placeholder="name@cwg-plc.com or name@fifthlab.com"
+          placeholder="name@cwg-plc.com or name@thefifthlab.com"
           leftAddon={<RiMailLine className="text-neutral-400" />}
           error={errors.email?.message}
           disabled={authLoading}

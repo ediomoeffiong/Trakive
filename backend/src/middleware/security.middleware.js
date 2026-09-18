@@ -3,7 +3,23 @@ const rateLimit = require('express-rate-limit');
 const config = require('../config/env');
 
 // Configure Helmet security headers
-const securityHeaders = helmet();
+const securityHeaders = helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'none'"],
+      baseUri: ["'none'"],
+      formAction: ["'none'"],
+      frameAncestors: ["'none'"],
+      objectSrc: ["'none'"],
+      scriptSrc: ["'none'"],
+      imgSrc: ["'none'"],
+      styleSrc: ["'none'"],
+      connectSrc: ["'self'"],
+    },
+  },
+  crossOriginResourcePolicy: { policy: 'same-site' },
+  referrerPolicy: { policy: 'no-referrer' },
+});
 
 // Configure General API Rate Limiter
 const apiLimiter = rateLimit({

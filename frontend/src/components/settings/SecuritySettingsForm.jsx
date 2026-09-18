@@ -21,6 +21,7 @@ import Button                 from '../ui/Button';
 import Switch                 from '../ui/Switch';
 import PasswordStrength        from '../ui/PasswordStrength';
 import { OAUTH_PROVIDERS, TWO_FACTOR_METHODS, mockSecurityEvents } from '../../data/security';
+import { passwordRegisterOptions } from '../../utils/passwordPolicy';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const formatRelative = (isoStr) => {
@@ -155,8 +156,8 @@ const ChangePasswordForm = () => {
           error={errors.newPassword?.message}
           rightAddon={eyeBtn('new')}
           {...register('newPassword', {
+            ...passwordRegisterOptions,
             required: 'New password is required',
-            minLength: { value: 8, message: 'Password must be at least 8 characters' },
           })}
         />
         <PasswordStrength password={newPassword} />
