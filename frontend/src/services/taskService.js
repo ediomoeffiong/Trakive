@@ -1,9 +1,9 @@
 /**
  * @file taskService.js
- * @description Mock service layer for task management.
- * Simulates network requests with Promises and artificial delay.
+ * @description Real API service layer with fallbacks for Intern task management.
  */
 
+import api from './api';
 import { mockTasks, mockTaskComments, mockSubmissions, mockAttachments } from '../data';
 import { useAppStore } from '../store/useAppStore';
 
@@ -19,78 +19,128 @@ const isDemoUser = () => {
   }
 };
 
-// Helper to simulate API delay
-const delay = (ms = 600) => new Promise((resolve) => setTimeout(resolve, ms));
+const normalizeTask = (raw = {}) => {
+  const rawDue = raw.dueDate || raw.due_date;
+  const dueDate = rawDue ? String(rawDue).slice(0, 10) : '';
+  const status = raw.status === 'todo' ? 'assigned' : (raw.status || 'assigned');
+
+  let remainingDays = 0;
+  if (dueDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(`${dueDate}T00:00:00`);
+    if (!Number.isNaN(due.getTime())) {
+      remainingDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+    }
+  }
+
+  return {
+    ...raw,
+    id: String(raw.id),
+    title: raw.title || 'Untitled task',
+    description: raw.description || '',
+    category: raw.category || raw.project_title || 'General',
+    priority: String(raw.priority || 'medium').toLowerCase(),
+    status,
+    dueDate,
+    remainingDays,
+    progress: raw.progress ?? (status === 'completed' ? 100 : status === 'in-progress' ? 50 : 0),
+  };
+};
 
 export const taskService = {
   /**
-   * Fetch all tasks.
+   * Fetch all tasks from backend API.
    */
   getTasks: async () => {
-    await delay(350);
-    if (!isDemoUser()) {
-      const user = useAppStore.getState()?.user;
-      const key = `trakive_user_tasks_${user?.id || 'new'}`;
-      const saved = localStorage.getItem(key);
-      return saved ? JSON.parse(saved) : [];
+    try {
+      const response = await api.get('/tasks', { params: { limit: 100 } });
+      const items = response.data?.data || response.data?.items || (Array.isArray(response.data) ? response.data : []);
+      if (Array.isArray(items)) {
+        return items.map(normalizeTask);
+      }
+    } catch (err) {
+      if (!isDemoUser()) {
+        const user = useAppStore.getState()?.user;
+        const key = `trakive_user_tasks_${user?.id || 'new'}`;
+        const saved = localStorage.getItem(key);
+        if (saved) {
+          try {
+            return JSON.parse(saved).map(normalizeTask);
+          } catch {
+            // ignore
+          }
+        }
+      }
     }
-    // Return a copy of the mock tasks array
-    return JSON.parse(JSON.stringify(mockTasks));
+
+    if (isDemoUser()) {
+      return JSON.parse(JSON.stringify(mockTasks)).map(normalizeTask);
+    }
+
+    return [];
   },
 
   /**
-   * Fetch task details by ID, including its attachments, comments, and submission history.
+   * Fetch task details by ID.
    */
   getTaskById: async (taskId) => {
-    await delay(600);
+    try {
+      const response = await api.get(`/tasks/${taskId}`);
+      const data = response.data?.data || response.data;
+      if (data) {
+        return normalizeTask(data);
+      }
+    } catch (err) {
+      // Fallback to local mock data if offline or demo
+    }
+
     const tasks = JSON.parse(JSON.stringify(mockTasks));
-    const task = tasks.find((t) => t.id === taskId);
+    const task = tasks.find((t) => String(t.id) === String(taskId));
     if (!task) {
       throw new Error(`Task with ID ${taskId} not found.`);
     }
 
-    // Attach comments, resources, and submissions
     task.attachments = JSON.parse(JSON.stringify(mockAttachments[taskId] || []));
     task.comments = JSON.parse(JSON.stringify(mockTaskComments[taskId] || []));
     task.submissions = JSON.parse(JSON.stringify(mockSubmissions[taskId] || []));
 
-    return task;
+    return normalizeTask(task);
   },
 
   /**
    * Update task status.
    */
   updateTaskStatus: async (taskId, status) => {
-    await delay(400);
-    // Find task in local data and update status
-    const taskIdx = mockTasks.findIndex((t) => t.id === taskId);
-    if (taskIdx === -1) {
-      throw new Error(`Task with ID ${taskId} not found.`);
+    try {
+      const response = await api.patch(`/tasks/${taskId}/status`, { status });
+      const updated = response.data?.data || response.data;
+      if (updated) return normalizeTask(updated);
+    } catch (err) {
+      // Fallback for offline/demo
     }
 
-    mockTasks[taskIdx].status = status;
-    
-    // Auto-calculate progress or completion details if finished
-    if (status === 'completed') {
-      mockTasks[taskIdx].progress = 100;
-      mockTasks[taskIdx].completedAt = new Date().toISOString().split('T')[0];
-    } else if (status === 'assigned') {
-      mockTasks[taskIdx].progress = 0;
-    } else if (status === 'in-progress') {
-      mockTasks[taskIdx].progress = Math.max(mockTasks[taskIdx].progress, 25);
+    const taskIdx = mockTasks.findIndex((t) => String(t.id) === String(taskId));
+    if (taskIdx !== -1) {
+      mockTasks[taskIdx].status = status;
+      if (status === 'completed') {
+        mockTasks[taskIdx].progress = 100;
+        mockTasks[taskIdx].completedAt = new Date().toISOString().split('T')[0];
+      }
+      return normalizeTask(mockTasks[taskIdx]);
     }
 
-    return mockTasks[taskIdx];
+    return { id: taskId, status };
   },
 
   /**
-   * Upload a deliverable submission (simulated file upload).
+   * Upload a deliverable submission.
    */
   submitTaskDeliverable: async (taskId, fileMetadata) => {
-    await delay(1200); // Higher delay for file upload emulation
-    
-    if (!mockSubmissions[taskId]) {
-      mockSubmissions[taskId] = [];
+    try {
+      await api.patch(`/tasks/${taskId}/status`, { status: 'submitted' });
+    } catch {
+      // ignore
     }
 
     const newSubmission = {
@@ -101,26 +151,21 @@ export const taskService = {
       status: 'under-review',
       feedback: null,
       feedbackAuthor: null,
-      feedbackDate: null
+      feedbackDate: null,
     };
 
-    // Push to local memory
-    mockSubmissions[taskId].unshift(newSubmission);
-
-    // Update task status to under-review
-    const taskIdx = mockTasks.findIndex((t) => t.id === taskId);
-    if (taskIdx !== -1) {
-      mockTasks[taskIdx].status = 'under-review';
+    if (!mockSubmissions[taskId]) {
+      mockSubmissions[taskId] = [];
     }
+    mockSubmissions[taskId].unshift(newSubmission);
 
     return newSubmission;
   },
 
   /**
-   * Fetch comments for a specific task.
+   * Fetch comments for a task.
    */
   getTaskComments: async (taskId) => {
-    await delay(300);
     return JSON.parse(JSON.stringify(mockTaskComments[taskId] || []));
   },
 
@@ -128,21 +173,22 @@ export const taskService = {
    * Add a new comment to a task.
    */
   addTaskComment: async (taskId, commentData) => {
-    await delay(400);
     if (!mockTaskComments[taskId]) {
       mockTaskComments[taskId] = [];
     }
 
     const newComment = {
       id: `c-${taskId}-${Date.now()}`,
-      authorName: commentData.authorName || "Covenant Effiong",
-      authorRole: commentData.authorRole || "Software Engineer Intern",
-      avatar: commentData.avatar || "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=150",
+      authorName: commentData.authorName || 'Intern User',
+      authorRole: commentData.authorRole || 'Intern',
+      avatar: commentData.avatar || null,
       timestamp: new Date().toISOString(),
-      message: commentData.message
+      message: commentData.message,
     };
 
     mockTaskComments[taskId].push(newComment);
     return newComment;
-  }
+  },
 };
+
+export default taskService;

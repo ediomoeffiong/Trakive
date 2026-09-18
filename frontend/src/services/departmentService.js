@@ -4,6 +4,7 @@
  * Simulates async API endpoints with delay and mock data responses.
  */
 
+import api from './api';
 import {
   departmentKPICards,
   departmentSummary,
@@ -340,7 +341,31 @@ export const togglePublishDepartmentAnnouncement = async (announcementId, curren
 
 export const fetchDepartmentTasks = async (params = {}) => {
   await delay(420);
-  let list = isDemoUser() ? [...deptTasks] : getStoredItems('trakive_tasks');
+  let list = [];
+  try {
+    const response = await api.get('/tasks', { params: { limit: 100 } });
+    const items = response.data?.data || response.data?.items || (Array.isArray(response.data) ? response.data : null);
+    if (Array.isArray(items)) {
+      list = items.map((t) => ({
+        id: String(t.id),
+        title: t.title,
+        description: t.description,
+        priority: String(t.priority || 'medium').toLowerCase(),
+        status: t.status === 'todo' ? 'in_progress' : t.status,
+        dueDate: t.due_date ? String(t.due_date).slice(0, 10) : '',
+        internName: [t.assignee_first_name, t.assignee_last_name].filter(Boolean).join(' ') || 'Intern',
+        supervisorName: [t.creator_first_name, t.creator_last_name].filter(Boolean).join(' ') || 'Supervisor',
+        track: t.department_name || 'General',
+        completionRate: t.status === 'completed' ? 100 : t.status === 'in_progress' ? 50 : 0,
+      }));
+    }
+  } catch {
+    list = isDemoUser() ? [...deptTasks] : getStoredItems('trakive_tasks');
+  }
+
+  if (list.length === 0 && isDemoUser()) {
+    list = [...deptTasks];
+  }
 
   if (params.search) {
     const q = params.search.toLowerCase();

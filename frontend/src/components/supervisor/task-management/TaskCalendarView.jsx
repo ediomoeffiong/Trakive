@@ -40,10 +40,13 @@ const STATUS_BG = {
 // Build a flat date → tasks map from the tasks list
 const buildTaskMap = (tasks) => {
   const map = {};
-  tasks.forEach((task) => {
-    if (!task.dueDate) return;
-    if (!map[task.dueDate]) map[task.dueDate] = [];
-    map[task.dueDate].push(task);
+  (tasks || []).forEach((task) => {
+    const rawDue = task.dueDate || task.due_date;
+    if (!rawDue) return;
+    const dateKey = String(rawDue).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return;
+    if (!map[dateKey]) map[dateKey] = [];
+    map[dateKey].push({ ...task, dueDate: dateKey });
   });
   return map;
 };

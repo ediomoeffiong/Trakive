@@ -260,16 +260,18 @@ const getStoredTasks = () => {
 const syncTaskStore = async () => {
   const avatarIndex = await buildInternAvatarIndex();
   let remoteTasks = [];
+  let apiSuccess = false;
 
   try {
     const response = await api.get('/tasks', { params: { page: 1, limit: 100, sort: 'due_date:asc' } });
     const { items } = unwrapApiList(response);
-    if (items.length > 0) remoteTasks = items;
+    remoteTasks = items;
+    apiSuccess = true;
   } catch {
     // Offline or unauthenticated demo mode falls through to local data.
   }
 
-  if (remoteTasks.length === 0) {
+  if (!apiSuccess && remoteTasks.length === 0) {
     remoteTasks = [...mockSupervisorTasks, ...getStoredTasks()];
   }
 
@@ -442,7 +444,25 @@ export const taskManagementService = {
    * @param {object} taskData
    */
   createTask: async (taskData) => {
-    await delay(400);
+    try {
+      const response = await api.post('/tasks', {
+        title: taskData.title,
+        description: taskData.description,
+        priority: taskData.priority,
+        status: taskData.status || 'todo',
+        due_date: taskData.dueDate || taskData.due_date,
+        assignee_id: taskData.assignee_id || (taskData.assignedInterns && taskData.assignedInterns[0]?.id),
+      });
+      const created = response.data?.data || response.data;
+      if (created) {
+        const norm = normalizeTask(created);
+        tasksStore = [norm, ...tasksStore];
+        return { task: norm };
+      }
+    } catch {
+      // Fallback to local mutation if API call fails
+    }
+
     const newTask = normalizeTask({
       id: `task-${String(++nextId).padStart(3, '0')}`,
       ...taskData,
@@ -462,8 +482,26 @@ export const taskManagementService = {
    * @param {object} updateData
    */
   updateTask: async (taskId, updateData) => {
-    await delay(350);
-    const index = tasksStore.findIndex((t) => t.id === taskId);
+    try {
+      const response = await api.patch(`/tasks/${taskId}`, {
+        title: updateData.title,
+        description: updateData.description,
+        priority: updateData.priority,
+        status: updateData.status,
+        due_date: updateData.dueDate || updateData.due_date,
+      });
+      const updated = response.data?.data || response.data;
+      if (updated) {
+        const norm = normalizeTask(updated);
+        const index = tasksStore.findIndex((t) => String(t.id) === String(taskId));
+        if (index !== -1) tasksStore[index] = norm;
+        return { task: norm };
+      }
+    } catch {
+      // Fallback
+    }
+
+    const index = tasksStore.findIndex((t) => String(t.id) === String(taskId));
     if (index === -1) throw new Error(`Task ${taskId} not found`);
     tasksStore[index] = normalizeTask({ ...tasksStore[index], ...updateData });
     upsertLocalTask(tasksStore[index]);
@@ -475,10 +513,14 @@ export const taskManagementService = {
    * @param {string} taskId
    */
   deleteTask: async (taskId) => {
-    await delay(300);
+    try {
+      await api.delete(`/tasks/${taskId}`);
+    } catch {
+      // Fallback
+    }
+
     const before = tasksStore.length;
-    tasksStore = tasksStore.filter((t) => t.id !== taskId);
-    if (tasksStore.length === before) throw new Error(`Task ${taskId} not found`);
+    tasksStore = tasksStore.filter((t) => String(t.id) !== String(taskId));
     markLocalDeleted(taskId);
     return { success: true, taskId };
   },

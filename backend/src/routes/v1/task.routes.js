@@ -1,11 +1,18 @@
 const express = require('express');
-const { authenticate } = require('../../middleware/auth.middleware');
+const { authenticate, requireRole } = require('../../middleware/auth.middleware');
 const validate = require('../../middleware/validate.middleware');
 const { searchQuerySchema } = require('../../utils/search.validator');
-const SearchController = require('../../controllers/search.controller');
+const TaskController = require('../../controllers/task.controller');
 
 const router = express.Router();
 
-router.get('/', authenticate, validate({ query: searchQuerySchema }), SearchController.searchTasks);
+router.use(authenticate);
+
+router.get('/', validate({ query: searchQuerySchema }), TaskController.getTasks);
+router.get('/:id', TaskController.getTaskById);
+router.post('/', TaskController.createTask);
+router.patch('/:id/status', TaskController.updateTaskStatus);
+router.patch('/:id', TaskController.updateTask);
+router.delete('/:id', TaskController.deleteTask);
 
 module.exports = router;
