@@ -141,34 +141,47 @@ const InternProfileHeader = ({ profile, performance }) => {
         {/* Banner header accent */}
         <div
           style={{
-            height: '6rem',
-            borderRadius: '0.75rem 0.75rem 0 0',
-            background: 'linear-gradient(135deg, #075985 0%, #0284c7 55%, #00b4d8 100%)',
+            height: '6.5rem',
+            borderRadius: '0.875rem 0.875rem 0 0',
+            background: 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 55%, #2563eb 100%)',
             margin: '-1.5rem -1.5rem 0 -1.5rem',
             position: 'relative',
+            overflow: 'hidden',
           }}
         >
+          {/* Subtle light glow decorative overlay */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: 'radial-gradient(circle at 85% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 45%)',
+              pointerEvents: 'none',
+            }}
+          />
+
           <button
             onClick={() => navigate(-1)}
             style={{
               position: 'absolute',
               top: '1rem',
-              left: '1rem',
-              display: 'flex',
+              left: '1.25rem',
+              display: 'inline-flex',
               alignItems: 'center',
               gap: '0.375rem',
-              padding: '0.375rem 0.75rem',
+              padding: '0.4rem 0.875rem',
               borderRadius: '0.5rem',
-              background: '#ffffff',
+              background: 'rgba(255, 255, 255, 0.95)',
               backdropFilter: 'blur(8px)',
-              border: 'none',
-              color: '#00b4d8',
+              border: '1px solid rgba(255, 255, 255, 0.4)',
+              color: '#1e3a8a',
               fontSize: '0.8125rem',
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              transition: 'all 0.15s ease',
             }}
           >
-            <RiArrowLeftLine /> Back
+            <RiArrowLeftLine style={{ fontSize: '0.95rem' }} /> Back
           </button>
 
           {/* Date verification status badge */}
@@ -176,7 +189,7 @@ const InternProfileHeader = ({ profile, performance }) => {
             style={{
               position: 'absolute',
               top: '1rem',
-              right: '1rem',
+              right: '1.25rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
@@ -184,15 +197,28 @@ const InternProfileHeader = ({ profile, performance }) => {
           >
             <span
               style={{
-                padding: '0.375rem 0.75rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.4rem 0.875rem',
                 borderRadius: '0.5rem',
                 fontSize: '0.75rem',
                 fontWeight: 700,
-                background: datesVerified ? 'rgba(16, 185, 129, 0.9)' : 'rgba(245, 158, 11, 0.9)',
+                background: datesVerified ? 'rgba(16, 185, 129, 0.95)' : 'rgba(245, 158, 11, 0.95)',
                 color: '#ffffff',
                 backdropFilter: 'blur(8px)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
               }}
             >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  display: 'inline-block',
+                }}
+              />
               {datesVerified ? 'Dates Verified by Supervisor' : 'Pending Date Verification'}
             </span>
           </div>
@@ -276,45 +302,54 @@ const InternProfileHeader = ({ profile, performance }) => {
               </div>
 
               {/* Internship Period Selector Bar for Supervisors */}
-              <div
-                style={{
-                  marginTop: '0.875rem',
-                  padding: '0.5rem 0.75rem',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '0.625rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Internship Period:
-                </span>
-                {(profile.internships && profile.internships.length > 0 ? profile.internships : [
-                  { id: 'p1', title: 'Internship #1 (Jun 2025 - Nov 2025)', status: 'completed' },
-                  { id: 'p2', title: 'Internship #2 (Mar 2026 - Sep 2026)', status: 'active' },
-                ]).map((period) => (
-                  <button
-                    key={period.id}
-                    type="button"
-                    style={{
-                      padding: '0.25rem 0.625rem',
-                      borderRadius: '0.375rem',
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      border: period.status === 'active' ? '1px solid #00b4d8' : '1px solid #cbd5e1',
-                      background: period.status === 'active' ? '#e0f7ff' : '#ffffff',
-                      color: period.status === 'active' ? '#0369a1' : '#64748b',
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => toast.success(`Switched supervisor view to ${period.title}`)}
-                  >
-                    {period.title} ({period.status === 'active' ? 'Current' : 'Completed'})
-                  </button>
-                ))}
-              </div>
+              {((profile.internships && profile.internships.length > 0) || (profile.startDate && profile.startDate !== 'N/A')) && (
+                <div
+                  style={{
+                    marginTop: '0.875rem',
+                    padding: '0.5rem 0.75rem',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '0.625rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Internship Period:
+                  </span>
+                  {(profile.internships && profile.internships.length > 0
+                    ? profile.internships
+                    : [
+                        {
+                          id: 'single-period',
+                          title: `Internship Period (${profile.startDate || 'N/A'} - ${profile.endDate || 'N/A'})`,
+                          status: profile.status === 'Completed' ? 'completed' : 'active',
+                        },
+                      ]
+                  ).map((period) => (
+                    <button
+                      key={period.id}
+                      type="button"
+                      style={{
+                        padding: '0.25rem 0.625rem',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        border: period.status === 'active' || period.status === 'Current' ? '1px solid var(--color-primary-300)' : '1px solid #cbd5e1',
+                        background: period.status === 'active' || period.status === 'Current' ? 'var(--color-primary-50)' : '#ffffff',
+                        color: period.status === 'active' || period.status === 'Current' ? 'var(--color-primary-700)' : '#64748b',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onClick={() => toast.success(`Viewing ${period.title}`)}
+                    >
+                      {period.title} ({period.status === 'active' || period.status === 'Current' ? 'Current' : 'Completed'})
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -354,7 +389,7 @@ const InternProfileHeader = ({ profile, performance }) => {
         >
           <a
             href={`mailto:${profile.email}`}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', color: '#0284c7', fontWeight: 500, textDecoration: 'none' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--color-primary-600)', fontWeight: 500, textDecoration: 'none' }}
           >
             <RiMailLine /> {profile.email}
           </a>
@@ -395,11 +430,11 @@ const InternProfileHeader = ({ profile, performance }) => {
           <QuickActionButton
             icon={RiUserAddLine}
             label={secondarySupervisor ? `Change Secondary (${secondarySupervisor})` : "Assign Extra Supervisor"}
-            color="#0284c7"
-            bg="#e0f2fe"
+            color="var(--color-primary-700)"
+            bg="var(--color-primary-50)"
             onClick={() => setShowSecondaryModal(true)}
           />
-          <QuickActionButton icon={RiTaskLine} label="Assign Task" color="#0284c7" bg="#e0f2fe" onClick={() => handleAction('assign-task')} />
+          <QuickActionButton icon={RiTaskLine} label="Assign Task" color="var(--color-primary-700)" bg="var(--color-primary-50)" onClick={() => handleAction('assign-task')} />
           <QuickActionButton icon={RiCalendarEventLine} label="Schedule Review" color="#0891b2" bg="#ecfeff" onClick={() => handleAction('schedule-review')} />
           <QuickActionButton icon={RiCheckboxCircleLine} label="Approve Onboarding" color="#059669" bg="#ecfdf5" onClick={() => handleAction('approve-onboarding')} />
         </div>

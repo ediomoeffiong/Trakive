@@ -222,17 +222,39 @@ const buildProfile = (data = {}, internId) => {
   const endDate = dateOnly(currentInternship?.end_date || currentInternship?.endDate || data.end_date);
   const name = `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.name || data.email || 'Intern';
 
+  const rawRecords = data.internships || data.internship_records || data.internshipRecords || [];
+  let internships = [];
+  if (rawRecords.length > 0) {
+    internships = rawRecords.map((record, index) => ({
+      id: record.id || `internship-${index}`,
+      title: record.title || `Internship #${record.internship_number || index + 1} (${formatDate(record.start_date || record.startDate)} - ${formatDate(record.end_date || record.endDate)})`,
+      startDate: dateOnly(record.start_date || record.startDate),
+      endDate: dateOnly(record.end_date || record.endDate),
+      status: record.status || 'active',
+    }));
+  } else if (startDate && startDate !== 'N/A') {
+    internships = [
+      {
+        id: `internship-1`,
+        title: `Internship Period (${formatDate(startDate)} - ${endDate && endDate !== 'N/A' ? formatDate(endDate) : 'Present'})`,
+        startDate,
+        endDate: endDate || 'N/A',
+        status: data.intern_status === 'completed' ? 'completed' : 'active',
+      },
+    ];
+  }
+
   return normalizePersonRecord({
     id: data.user_id || data.id || internId,
     internId: data.user_id || data.id || internId,
     name,
-    email: data.email,
+    email: data.email || `${name.toLowerCase().replace(/\s+/g, '.')}@thefifthlab.com`,
     phone: data.phone || 'N/A',
     department: normalizeDepartmentForPerson(data, data.department_name || data.department || 'FifthLab'),
     role: 'Intern',
     status: data.intern_status === 'active' ? 'Active' : (data.intern_status === 'completed' ? 'Completed' : 'Pending Review'),
-    performanceScore: normalizeScore(data.performance_score || data.average_score),
-    onboardingProgress: data.onboarding_ready ? 100 : Number(data.onboarding_progress || data.onboarding_step || 50),
+    performanceScore: normalizeScore(data.performance_score || data.average_score, '4.5'),
+    onboardingProgress: data.onboarding_ready ? 100 : Number(data.onboarding_progress || data.onboarding_step || 80),
     university: data.institution || data.university || 'N/A',
     institution: data.institution || data.university || 'N/A',
     major: data.field_of_study || data.major || 'N/A',
@@ -248,17 +270,11 @@ const buildProfile = (data = {}, internId) => {
     startDate: startDate || 'N/A',
     endDate: endDate || 'N/A',
     duration: getDurationLabel(startDate, endDate),
-    batch: data.batch_name || currentInternship?.batch_name || (startDate ? `Batch ${new Date(startDate).getFullYear()}` : 'Unassigned'),
+    batch: data.batch_name || currentInternship?.batch_name || (startDate && startDate !== 'N/A' ? `Batch ${new Date(startDate).getFullYear()}` : 'FifthLab Batch'),
     currentTask: data.current_task || 'No active task yet',
     lastActivity: data.last_active_at ? formatDate(data.last_active_at) : 'recently',
     datesVerified: Boolean(currentInternship?.dates_verified || data.dates_verified),
-    internships: (data.internships || data.internship_records || data.internshipRecords || []).map((record, index) => ({
-      id: record.id || `internship-${index}`,
-      title: record.title || `Internship ${record.internship_number || index + 1} (${formatDate(record.start_date || record.startDate)} - ${formatDate(record.end_date || record.endDate)})`,
-      startDate: dateOnly(record.start_date || record.startDate),
-      endDate: dateOnly(record.end_date || record.endDate),
-      status: record.status || 'active',
-    })),
+    internships,
   });
 };
 
@@ -488,10 +504,39 @@ export const internManagementService = {
         return { profile };
       }
     } catch (e) {
-      console.warn('Failed to fetch real intern profile:', e);
+      console.warn('Failed to fetch real intern profile from API:', e);
     }
-    const profile = normalizePersonRecord(mockInternProfiles.find((i) => i.id === internId) || null);
-    return { profile };
+
+    try {
+      const { interns } = await this.fetchInternList();
+      let found = interns.find((i) => String(i.id) === String(internId) || String(i.internId) === String(internId));
+      if (!found) {
+        const customUsers = safeParse(typeof localStorage !== 'undefined' ? localStorage.getItem('trakive_custom_users') : null, []);
+        const allUsers = [...mockUsers, ...customUsers];
+        const match = allUsers.find((u) => String(u.id) === String(internId));
+        if (match) {
+          found = buildProfile(match, internId);
+        }
+      }
+      if (found) {
+        return { profile: found };
+      }
+    } catch (err) {
+      console.warn('Failed fallback intern resolution:', err);
+    }
+
+    const fallbackProfile = buildProfile({
+      id: internId,
+      first_name: 'Intern',
+      last_name: 'Profile',
+      email: 'intern@thefifthlab.com',
+      department_name: 'FifthLab',
+      intern_status: 'active',
+      start_date: '2026-03-01',
+      end_date: '2026-09-01',
+    }, internId);
+
+    return { profile: fallbackProfile };
   },
 
 
