@@ -54,9 +54,13 @@ const SettingsController = {
   }),
 
   getSessions: asyncHandler(async (req, res) => {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
     const result = await SettingsService.getSessions(req.user.id, req.headers['x-refresh-token'], {
       ipAddress: req.ip || req.connection.remoteAddress,
       userAgent: req.get('User-Agent'),
+      page,
+      limit,
     });
     return sendSuccess(res, {
       message: 'Sessions retrieved successfully',

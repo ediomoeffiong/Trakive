@@ -165,6 +165,12 @@ const getMockLogin = async (email, password) => {
     throw new Error('Invalid email or password. Please try again.');
   }
 
+  const currentKey = `trakive_settings_${user.id}_current_sessions`;
+  const storedCurrent = safeParseJson(localStorage.getItem(currentKey), null);
+  if (storedCurrent && Array.isArray(storedCurrent) && storedCurrent.length >= 3) {
+    throw new Error('Maximum active device limit reached (3 devices). Please log out from one of your active devices before logging in.');
+  }
+
   const token = `mock-jwt-token-for-${user.id}`;
   return {
     user: normalizeUser(user, email, token),

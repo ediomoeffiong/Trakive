@@ -93,15 +93,52 @@ const SettingsModel = {
 
   async listActiveSessions(userId) {
     const result = await query(
-      `SELECT id, token_hash, ip_address, user_agent, expires_at, created_at, last_seen_at
+      `SELECT id, token_hash, ip_address, user_agent, expires_at, created_at, last_seen_at, is_revoked, revoked_at
        FROM refresh_tokens
        WHERE user_id = $1
          AND is_revoked = false
          AND expires_at > NOW()
-       ORDER BY last_seen_at DESC, created_at DESC`,
+       ORDER BY last_seen_at DESC, created_at DESC
+       LIMIT 3`,
       [userId],
     );
     return result.rows;
+  },
+
+  async countActiveSessions(userId) {
+    const result = await query(
+      `SELECT COUNT(*)::int AS count
+       FROM refresh_tokens
+       WHERE user_id = $1
+         AND is_revoked = false
+         AND expires_at > NOW()`,
+      [userId],
+    );
+    return parseInt(result.rows[0]?.count, 10) || 0;
+  },
+
+  async listOtherSessions(userId, { limit = 10, offset = 0 } = {}) {
+    const result = await query(
+      `SELECT id, token_hash, ip_address, user_agent, expires_at, created_at, last_seen_at, is_revoked, revoked_at
+       FROM refresh_tokens
+       WHERE user_id = $1
+         AND (is_revoked = true OR expires_at <= NOW())
+       ORDER BY COALESCE(revoked_at, last_seen_at, created_at) DESC
+       LIMIT $2 OFFSET $3`,
+      [userId, limit, offset],
+    );
+    return result.rows;
+  },
+
+  async countOtherSessions(userId) {
+    const result = await query(
+      `SELECT COUNT(*)::int AS count
+       FROM refresh_tokens
+       WHERE user_id = $1
+         AND (is_revoked = true OR expires_at <= NOW())`,
+      [userId],
+    );
+    return parseInt(result.rows[0]?.count, 10) || 0;
   },
 
   async touchSessionByHash(userId, refreshTokenHash, ipAddress = null, userAgent = null) {

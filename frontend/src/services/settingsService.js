@@ -5,7 +5,7 @@
 
 import api from './api';
 import { defaultSettings } from '../data/settings';
-import { mockSessions } from '../data/sessions';
+import { mockCurrentSessions, mockOtherSessions, mockSessions } from '../data/sessions';
 import { ROLE_PREFERENCES_MAP } from '../data/preferences';
 import { useAppStore } from '../store/useAppStore';
 import { getAccessToken, getRefreshToken } from '../utils/authSession';
@@ -26,6 +26,8 @@ const normalizeNotificationSettings = (notifications = {}) => ({
 });
 
 let _settings = clone(defaultSettings);
+let _currentSessions = [...mockCurrentSessions];
+let _otherSessions = [...mockOtherSessions];
 let _sessions = [...mockSessions];
 let _rolePrefs = {};
 
@@ -107,19 +109,45 @@ export const fetchSettings = async () => {
   return clone(_settings);
 };
 
-export const fetchSessions = async () => {
+export const fetchSessions = async ({ page = 1, limit = 10 } = {}) => {
   if (hasRealBackendToken()) {
     try {
-      const sessions = dataOf(await api.get('/settings/sessions', {
+      const result = dataOf(await api.get('/settings/sessions', {
+        params: { page, limit },
         headers: { 'X-Refresh-Token': getRefreshToken() || '' },
       }));
-      return Array.isArray(sessions) ? sessions : [];
+      if (result && typeof result === 'object' && Array.isArray(result.currentSessions)) {
+        return result;
+      }
+      if (Array.isArray(result)) {
+        return {
+          currentSessions: result.filter((s) => s.isCurrent),
+          otherSessions: result.filter((s) => !s.isCurrent),
+          pagination: { page: 1, limit: 10, total: result.filter((s) => !s.isCurrent).length, totalPages: 1 },
+        };
+      }
     } catch (error) {
       throw new Error(error.response?.data?.message || error.message || 'Unable to load active sessions');
     }
   }
   await delay();
-  return [..._sessions];
+  const storedCurrent = readLocal('current_sessions', _currentSessions);
+  const storedOther = readLocal('other_sessions', _otherSessions);
+  const total = storedOther.length;
+  const totalPages = Math.ceil(total / limit) || 1;
+  const start = (page - 1) * limit;
+  const paginatedOther = storedOther.slice(start, start + limit);
+
+  return {
+    currentSessions: clone(storedCurrent),
+    otherSessions: clone(paginatedOther),
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+    },
+  };
 };
 
 export const fetchRolePreferences = async (role) => {
@@ -216,7 +244,24 @@ export const revokeSession = async (sessionId) => {
   } else {
     await delay();
   }
-  _sessions = _sessions.filter((s) => s.id !== sessionId);
+  const current = readLocal('current_sessions', _currentSessions);
+  const other = readLocal('other_sessions', _otherSessions);
+  const targetIndex = current.findIndex((s) => s.id === sessionId);
+  if (targetIndex !== -1) {
+    const [revoked] = current.splice(targetIndex, 1);
+    const moved = {
+      ...revoked,
+      isCurrent: false,
+      status: 'revoked',
+      revokedAt: new Date().toISOString(),
+    };
+    other.unshift(moved);
+    _currentSessions = [...current];
+    _otherSessions = [...other];
+    writeLocal('current_sessions', _currentSessions);
+    writeLocal('other_sessions', _otherSessions);
+  }
+  _sessions = [..._currentSessions, ..._otherSessions];
   return { id: sessionId };
 };
 
@@ -226,9 +271,24 @@ export const revokeOtherSessions = async () => {
   } else {
     await delay();
   }
-  const prev = _sessions.length;
-  _sessions = _sessions.filter((s) => s.isCurrent);
-  return { revokedCount: prev - _sessions.length };
+  const current = readLocal('current_sessions', _currentSessions);
+  const other = readLocal('other_sessions', _otherSessions);
+  const activeCurrent = current.filter((s) => s.isCurrent);
+  const toRevoke = current.filter((s) => !s.isCurrent);
+
+  const revokedItems = toRevoke.map((s) => ({
+    ...s,
+    isCurrent: false,
+    status: 'revoked',
+    revokedAt: new Date().toISOString(),
+  }));
+
+  _currentSessions = activeCurrent.length > 0 ? activeCurrent : (current.slice(0, 1) || []);
+  _otherSessions = [...revokedItems, ...other];
+  writeLocal('current_sessions', _currentSessions);
+  writeLocal('other_sessions', _otherSessions);
+  _sessions = [..._currentSessions, ..._otherSessions];
+  return { revokedCount: toRevoke.length };
 };
 
 export const updateSettingsCategory = async (category, updates) => {

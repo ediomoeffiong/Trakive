@@ -30,8 +30,11 @@ export const useSettingsStore = create((set, get) => ({
   // ── Data State ──────────────────────────────────────────────────────────────
   settings:         clone(defaultSettings), // live draft (editable)
   pristineSettings: clone(defaultSettings), // snapshot of last saved state
-  sessions:         [],
-  rolePreferences:  {},
+  currentSessions:         [],
+  otherSessions:           [],
+  otherSessionsPagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
+  sessions:                [],
+  rolePreferences:         {},
 
   // ── Active section in settings nav ──────────────────────────────────────────
   activeSection: 'dashboard', // 'dashboard' | 'account' | 'security' | 'sessions' | 'notifications' | 'appearance' | 'privacy' | 'accessibility' | 'language' | 'role'
@@ -72,15 +75,42 @@ export const useSettingsStore = create((set, get) => ({
     }
   },
 
-  fetchSessions: async () => {
+  fetchSessions: async (page = 1) => {
     set({ loadingSessions: true, sessionsError: null });
     try {
-      const sessions = await settingsService.fetchSessions();
-      set({ sessions, loadingSessions: false, sessionsError: null });
+      const result = await settingsService.fetchSessions({ page, limit: 10 });
+      if (result && typeof result === 'object' && Array.isArray(result.currentSessions)) {
+        const currentSessions = result.currentSessions || [];
+        const otherSessions = result.otherSessions || [];
+        const pagination = result.pagination || { page, limit: 10, total: otherSessions.length, totalPages: 1 };
+        set({
+          currentSessions,
+          otherSessions,
+          otherSessionsPagination: pagination,
+          sessions: [...currentSessions, ...otherSessions],
+          loadingSessions: false,
+          sessionsError: null,
+        });
+      } else if (Array.isArray(result)) {
+        const currentSessions = result.filter((s) => s.isCurrent);
+        const otherSessions = result.filter((s) => !s.isCurrent);
+        set({
+          currentSessions,
+          otherSessions,
+          otherSessionsPagination: { page: 1, limit: 10, total: otherSessions.length, totalPages: 1 },
+          sessions: result,
+          loadingSessions: false,
+          sessionsError: null,
+        });
+      }
     } catch (err) {
       set({ sessionsError: err.message, loadingSessions: false });
       throw err;
     }
+  },
+
+  setOtherSessionsPage: async (page) => {
+    return get().fetchSessions(page);
   },
 
   fetchRolePreferences: async (role) => {
@@ -287,10 +317,8 @@ export const useSettingsStore = create((set, get) => ({
     set({ revokingSession: sessionId, sessionsError: null });
     try {
       await settingsService.revokeSession(sessionId);
-      set((state) => ({
-        sessions:        state.sessions.filter((s) => s.id !== sessionId),
-        revokingSession: null,
-      }));
+      await get().fetchSessions(get().otherSessionsPagination.page || 1);
+      set({ revokingSession: null });
     } catch (err) {
       set({ sessionsError: err.message, revokingSession: null });
       throw err;
@@ -301,10 +329,8 @@ export const useSettingsStore = create((set, get) => ({
     set({ revokingSession: 'all', sessionsError: null });
     try {
       await settingsService.revokeOtherSessions();
-      set((state) => ({
-        sessions:        state.sessions.filter((s) => s.isCurrent),
-        revokingSession: null,
-      }));
+      await get().fetchSessions(1);
+      set({ revokingSession: null });
     } catch (err) {
       set({ sessionsError: err.message, revokingSession: null });
       throw err;
@@ -330,3 +356,6 @@ export const useAccessSettings   = () => useSettingsStore((s) => s.settings.acce
 export const useLanguageSettings = () => useSettingsStore((s) => s.settings.language);
 export const useSecuritySettings = () => useSettingsStore((s) => s.settings.security);
 export const useSessions         = () => useSettingsStore((s) => s.sessions);
+export const useCurrentSessions  = () => useSettingsStore((s) => s.currentSessions);
+export const useOtherSessions    = () => useSettingsStore((s) => s.otherSessions);
+export const useOtherSessionsPagination = () => useSettingsStore((s) => s.otherSessionsPagination);

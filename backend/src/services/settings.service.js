@@ -117,6 +117,10 @@ const SettingsService = {
   },
 
   async getSessions(userId, currentRefreshToken, requestMeta = {}) {
+    const page = Math.max(1, parseInt(requestMeta.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(requestMeta.limit, 10) || 10));
+    const offset = (page - 1) * limit;
+
     const currentHash = currentRefreshToken
       ? crypto.createHash('sha256').update(currentRefreshToken).digest('hex')
       : null;
@@ -128,10 +132,19 @@ const SettingsService = {
         requestMeta.userAgent,
       );
     }
-    const sessions = await SettingsModel.listActiveSessions(userId);
-    return sessions.map((session, index) => {
+
+    const [activeRows, otherRows, totalOther] = await Promise.all([
+      SettingsModel.listActiveSessions(userId),
+      SettingsModel.listOtherSessions(userId, { limit, offset }),
+      SettingsModel.countOtherSessions(userId),
+    ]);
+
+    const formatSession = (session, isCurrent = false) => {
       const device = titleCaseDevice(session.user_agent);
-      const isCurrent = currentHash ? session.token_hash === currentHash : index === 0;
+      const isRevoked = Boolean(session.is_revoked);
+      const isExpired = new Date(session.expires_at) <= new Date();
+      const status = isRevoked ? 'revoked' : isExpired ? 'expired' : 'active';
+
       return {
         id: session.id,
         ...device,
@@ -140,9 +153,36 @@ const SettingsService = {
         lastActive: session.last_seen_at || session.created_at,
         createdAt: session.created_at,
         expiresAt: session.expires_at,
+        revokedAt: session.revoked_at || null,
+        status,
         isCurrent,
       };
+    };
+
+    let hasCurrent = false;
+    const currentSessions = activeRows.map((session, index) => {
+      const isMatch = currentHash ? session.token_hash === currentHash : index === 0;
+      if (isMatch) hasCurrent = true;
+      return formatSession(session, isMatch);
     });
+
+    if (!hasCurrent && currentSessions.length > 0) {
+      currentSessions[0].isCurrent = true;
+    }
+
+    const otherSessions = otherRows.map((session) => formatSession(session, false));
+    const totalPages = Math.ceil(totalOther / limit) || 1;
+
+    return {
+      currentSessions,
+      otherSessions,
+      pagination: {
+        page,
+        limit,
+        total: totalOther,
+        totalPages,
+      },
+    };
   },
 
   async revokeSession(userId, sessionId) {
