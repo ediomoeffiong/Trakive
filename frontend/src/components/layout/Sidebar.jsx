@@ -32,6 +32,17 @@ import { useMemo, useEffect } from 'react';
 import { ROUTES, APP_NAME } from '../../constants';
 import { useSidebarCollapsed, useToggleSidebar, useAppStore, useOnboardingStatus } from '../../store';
 
+const INTERN_BASE_BEFORE_ONBOARDING = [
+  { label: 'Dashboard',  icon: RiDashboardLine,     to: ROUTES.DASHBOARD },
+  { label: 'Attendance', icon: RiCalendarCheckLine, to: ROUTES.ATTENDANCE },
+  { label: 'Tasks',      icon: RiTaskLine,          to: ROUTES.TASKS },
+  { label: 'Projects',   icon: RiFolderLine,        to: ROUTES.PROJECTS },
+];
+
+const INTERN_BASE_AFTER_ONBOARDING = [
+  { label: 'Reviews',    icon: RiStarLine,          to: ROUTES.REVIEWS },
+];
+
 const BOTTOM_NAV = [
   { label: 'Settings', icon: RiSettings3Line, to: ROUTES.SETTINGS },
 ];
@@ -233,12 +244,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose }) => {
   }, [fetchStatus, user?.role]);
 
   const navItems = useMemo(() => {
-    const items = [
-      { label: 'Dashboard',  icon: RiDashboardLine,     to: ROUTES.DASHBOARD },
-      { label: 'Attendance', icon: RiCalendarCheckLine, to: ROUTES.ATTENDANCE },
-      { label: 'Tasks',      icon: RiTaskLine,          to: ROUTES.TASKS },
-      { label: 'Projects',   icon: RiFolderLine,        to: ROUTES.PROJECTS },
-    ];
+    const items = [...INTERN_BASE_BEFORE_ONBOARDING];
 
     if (shouldShowOnboarding) {
       items.push({
@@ -250,13 +256,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose }) => {
       });
     }
 
-    items.push({
-      label: 'Reviews',
-      icon: RiStarLine,
-      to: ROUTES.REVIEWS,
-    });
-
-    return items;
+    return [...items, ...INTERN_BASE_AFTER_ONBOARDING];
   }, [shouldShowOnboarding, badgeText, badgeVariant]);
 
   const handleLogout = async () => {
