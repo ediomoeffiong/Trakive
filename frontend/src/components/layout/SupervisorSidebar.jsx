@@ -18,7 +18,6 @@ import {
   RiArrowLeftSLine,
   RiArrowRightSLine,
   RiLogoutBoxRLine,
-  RiShieldUserLine,
   RiFolderLine,
   RiCalendarCheckLine,
 } from 'react-icons/ri';
@@ -59,16 +58,22 @@ function Logo({ collapsed }) {
           width: '32px',
           height: '32px',
           borderRadius: '8px',
-          background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+          background: 'var(--color-primary-600)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)',
         }}
         aria-hidden
       >
-        <RiShieldUserLine style={{ color: '#ffffff', fontSize: '1.125rem' }} />
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path
+            d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z"
+            fill="white"
+            opacity="0.9"
+          />
+          <path d="M8 2L14 5.5L8 9L2 5.5L8 2Z" fill="white" />
+        </svg>
       </span>
 
       <AnimatePresence>
@@ -100,7 +105,7 @@ function Logo({ collapsed }) {
               style={{
                 fontSize: '0.6875rem',
                 fontWeight: 700,
-                color: '#6366f1',
+                color: 'var(--color-primary-600)',
                 letterSpacing: '0.05em',
                 textTransform: 'uppercase',
               }}
