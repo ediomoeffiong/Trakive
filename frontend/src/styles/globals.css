@@ -9,16 +9,16 @@
 /* ── Custom Design Tokens ──────────────────────────────────────────────────── */
 :root {
   /* Colour palette from PRD */
-  --color-primary-50:  #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;   /* PRIMARY */
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
+  --color-primary-50:  #ecfeff;
+  --color-primary-100: #cffafe;
+  --color-primary-200: #a5f3fc;
+  --color-primary-300: #67e8f9;
+  --color-primary-400: #22d3ee;
+  --color-primary-500: #00b4d8;
+  --color-primary-600: #0096c7;   /* PRIMARY */
+  --color-primary-700: #0077b6;
+  --color-primary-800: #075985;
+  --color-primary-900: #164e63;
 
   --color-success-50:  #f0fdf4;
   --color-success-100: #dcfce7;
@@ -52,6 +52,8 @@
   /* Shared surfaces used by components and inline styles */
   --surface-page:    var(--color-neutral-50);
   --surface-primary: #ffffff;
+  --brand-blue: #00b4d8;
+  --brand-blue-dark: #0096c7;
 
   /* Sidebar dimensions */
   --sidebar-width:           240px;
@@ -216,6 +218,10 @@ p  { color: var(--color-neutral-600); }
 }
 
 /* Responsive visibility utilities */
+.show-on-mobile {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .hide-on-mobile {
     display: none !important;
@@ -469,6 +475,110 @@ h1.app-topbar-heading {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 1.25rem;
+}
+
+.intern-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.intern-kpi-grid > * {
+  min-width: 0;
+}
+
+.intern-directory-filter-surface {
+  margin-top: 0.125rem;
+  padding: 0.875rem 1rem;
+  background: var(--color-neutral-50);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 0.625rem;
+}
+
+.intern-directory-filter-controls {
+  gap: 0.5rem !important;
+}
+
+.intern-directory-table th,
+.intern-directory-table td {
+  vertical-align: middle;
+}
+
+.intern-directory-table tbody tr:last-child {
+  border-bottom: 0 !important;
+}
+
+@media (max-width: 768px) {
+  .intern-directory-header {
+    padding: 1rem !important;
+    gap: 0.875rem !important;
+  }
+
+  .intern-directory-header-top {
+    align-items: flex-start !important;
+    flex-direction: column;
+  }
+
+  .intern-directory-actions {
+    width: 100%;
+    justify-content: stretch !important;
+  }
+
+  .intern-directory-search {
+    flex: 1;
+    width: auto !important;
+  }
+
+  .intern-directory-filter-surface {
+    padding: 0.75rem;
+  }
+
+  .intern-directory-filter-controls {
+    align-items: stretch !important;
+  }
+
+  .intern-directory-filter-controls > select {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: 0 !important;
+  }
+
+  .intern-directory-filter-controls > div {
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .intern-directory-actions {
+    flex-wrap: nowrap !important;
+  }
+
+  .intern-directory-search {
+    min-width: 0;
+  }
+
+  .intern-directory-filter-controls > select {
+    flex-basis: 100%;
+  }
+}
+
+@media (max-width: 960px) {
+  .intern-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .intern-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .intern-kpi-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .dashboard-charts-row {
@@ -1204,9 +1314,15 @@ a {
 /* ── Settings module layout utilities ────────────────────────────────────────── */
 .settings-grid {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
   gap: 1.5rem;
   align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+.settings-grid > * {
+  min-width: 0;
 }
 
 @media (max-width: 900px) {
@@ -1224,6 +1340,68 @@ a {
 @media (max-width: 600px) {
   .settings-form-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .settings-mobile-tabs {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+  }
+
+  .settings-summary-grid .card,
+  .settings-grid .card {
+    border-radius: 0.75rem !important;
+  }
+}
+
+.intern-profile-hero-top,
+.intern-profile-identity,
+.intern-profile-metrics {
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .intern-profile-hero {
+    padding: 1.125rem !important;
+  }
+
+  .intern-profile-hero-top {
+    align-items: stretch !important;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .intern-profile-identity {
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  .intern-profile-identity h2 {
+    font-size: 1.35rem !important;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .intern-profile-metrics {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .intern-profile-metrics > div {
+    flex: 1 1 130px;
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .intern-profile-identity {
+    align-items: flex-start !important;
+    flex-direction: column;
+  }
+
+  .intern-profile-metrics {
+    flex-direction: column;
   }
 }
 

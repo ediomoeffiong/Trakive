@@ -1,7 +1,7 @@
 /**
  * @file InternManagementFilters.jsx
  * @description Advanced filter panel with active filter chips for the Intern Directory.
- * Supports: Department, Status, Performance Range, Onboarding Status, Batch.
+ * Supports: Period, Department, Status, Performance Range, and Onboarding Status.
  */
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +11,6 @@ import { STANDARD_DEPARTMENTS } from '../../../utils/departments';
 const DEPARTMENTS = ['All', ...STANDARD_DEPARTMENTS.map((department) => department.name)];
 const STATUSES = ['All', 'Active', 'Pending Review', 'Needs Help', 'On Leave'];
 const ONBOARDING_STATUSES = ['All', 'Complete', 'In Progress', 'Not Started'];
-const BATCHES = ['All', 'Spring 2026', 'Summer 2026'];
 const PERIODS = ['All', 'Current / Active', 'September 2026', 'August 2026', 'July 2026', 'June 2026', 'May 2026', 'Spring 2026', 'Previous Internships'];
 
 const selectStyle = {
@@ -29,9 +28,10 @@ const selectStyle = {
 
 const InternManagementFilters = ({ filters, onFilterChange, onClearFilter, onClearAll, activeFilterChips }) => {
   return (
-    <div>
+    <div className="intern-directory-filters">
       {/* Filter Controls Row */}
       <div
+        className="intern-directory-filter-controls"
         style={{
           display: 'flex',
           flexWrap: 'wrap',
@@ -88,18 +88,6 @@ const InternManagementFilters = ({ filters, onFilterChange, onClearFilter, onCle
           ))}
         </select>
 
-        <select
-          value={filters.batch}
-          onChange={(e) => onFilterChange('batch', e.target.value)}
-          style={selectStyle}
-          aria-label="Filter by batch"
-        >
-          {BATCHES.map((b) => (
-            <option key={b} value={b}>{b === 'All' ? 'All Batches' : b}</option>
-          ))}
-        </select>
-
-
         {/* Performance Range */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8125rem' }}>
           <span style={{ color: 'var(--color-neutral-500)', fontWeight: 500 }}>Score:</span>
@@ -133,6 +121,7 @@ const InternManagementFilters = ({ filters, onFilterChange, onClearFilter, onCle
             onClick={onClearAll}
             className="btn btn-ghost"
             style={{ fontSize: '0.75rem', color: 'var(--color-neutral-500)', padding: '0.25rem 0.5rem' }}
+            type="button"
           >
             Clear all
           </button>

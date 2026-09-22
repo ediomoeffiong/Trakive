@@ -4,7 +4,7 @@
  * pagination, column visibility toggle, and responsive mobile card layout.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -60,13 +60,27 @@ const normalizeSortValue = (value) => {
   return String(value).toLowerCase();
 };
 
+const getInternKey = (intern) => intern?.id || intern?.internId || intern?.email;
+
+const getUniqueInterns = (interns) => {
+  const seen = new Set();
+
+  return interns.filter((intern) => {
+    const key = getInternKey(intern);
+    if (!key) return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 const InternDirectory = ({
   interns = [],
   isLoading = false,
-  filters,
-  search,
-  activeFilterChips,
-  selectedInterns,
+  filters = {},
+  search = '',
+  activeFilterChips = [],
+  selectedInterns = [],
   onSearchChange,
   onFilterChange,
   onClearFilter,
@@ -85,21 +99,27 @@ const InternDirectory = ({
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const pageSize = 8;
 
+  const uniqueInterns = useMemo(() => getUniqueInterns(interns), [interns]);
+
   const sortedInterns = useMemo(() => {
-    return [...interns].sort((a, b) => {
+    return [...uniqueInterns].sort((a, b) => {
       const va = normalizeSortValue(a[sortField]);
       const vb = normalizeSortValue(b[sortField]);
       if (va < vb) return sortOrder === 'asc' ? -1 : 1;
       if (va > vb) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [interns, sortField, sortOrder]);
+  }, [uniqueInterns, sortField, sortOrder]);
 
   const totalPages = Math.max(1, Math.ceil(sortedInterns.length / pageSize));
   const paginated = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return sortedInterns.slice(start, start + pageSize);
   }, [sortedInterns, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -112,6 +132,7 @@ const InternDirectory = ({
 
   const isAllSelected = paginated.length > 0 && paginated.every((i) => selectedInterns.includes(i.id));
   const isPartialSelected = paginated.some((i) => selectedInterns.includes(i.id)) && !isAllSelected;
+  const selectedPageIds = paginated.map((i) => i.id);
 
   const toggleColumnVisibility = (key) => {
     setVisibleColumns((prev) =>
@@ -124,6 +145,8 @@ const InternDirectory = ({
     return col?.alwaysVisible || visibleColumns.includes(key);
   };
 
+  const visibleColumnCount = ALL_COLUMNS.filter((column) => isColVisible(column.key)).length + 1;
+
   if (isLoading) return <InternTableLoader />;
 
   const emptyType = search || activeFilterChips.length > 0 ? 'no-search-results' : 'no-interns';
@@ -131,16 +154,18 @@ const InternDirectory = ({
   return (
     <>
       <div
+        className="intern-directory-panel"
         style={{
           background: '#ffffff',
-          borderRadius: '1rem',
+          borderRadius: '0.875rem',
           border: '1px solid var(--color-neutral-200)',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
-          overflow: 'hidden',
+          overflow: 'visible',
         }}
       >
         {/* Table Header */}
         <div
+          className="intern-directory-header"
           style={{
             padding: '1.25rem',
             borderBottom: '1px solid var(--color-neutral-200)',
@@ -149,8 +174,8 @@ const InternDirectory = ({
             gap: '1rem',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-            <div>
+          <div className="intern-directory-header-top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ minWidth: 0 }}>
               <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
                 Intern Directory
               </h3>
@@ -160,9 +185,9 @@ const InternDirectory = ({
               </p>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div className="intern-directory-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               {/* Search */}
-              <div style={{ position: 'relative', width: '240px' }}>
+              <div className="intern-directory-search" style={{ position: 'relative', width: 'min(320px, 100%)' }}>
                 <RiSearchLine
                   style={{
                     position: 'absolute',
@@ -179,7 +204,7 @@ const InternDirectory = ({
                   value={search}
                   onChange={(e) => { onSearchChange(e.target.value); setCurrentPage(1); }}
                   className="input-field"
-                  style={{ paddingLeft: '2.25rem', height: '36px', fontSize: '0.8125rem' }}
+                  style={{ paddingLeft: '2.25rem', height: '38px', fontSize: '0.8125rem', width: '100%' }}
                 />
               </div>
 
@@ -188,8 +213,9 @@ const InternDirectory = ({
                 <button
                   className="btn btn-secondary"
                   onClick={() => setShowColumnMenu((p) => !p)}
-                  style={{ height: '36px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                  style={{ height: '38px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                   title="Toggle columns"
+                  type="button"
                 >
                   <RiSettings3Line />
                   Columns
@@ -249,18 +275,20 @@ const InternDirectory = ({
           </div>
 
           {/* Filter Row */}
-          <InternManagementFilters
-            filters={filters}
-            onFilterChange={(key, val) => { onFilterChange(key, val); setCurrentPage(1); }}
-            onClearFilter={onClearFilter}
-            onClearAll={() => { onClearAllFilters(); setCurrentPage(1); }}
-            activeFilterChips={activeFilterChips}
-          />
+          <div className="intern-directory-filter-surface">
+            <InternManagementFilters
+              filters={filters}
+              onFilterChange={(key, val) => { onFilterChange(key, val); setCurrentPage(1); }}
+              onClearFilter={onClearFilter}
+              onClearAll={() => { onClearAllFilters(); setCurrentPage(1); }}
+              activeFilterChips={activeFilterChips}
+            />
+          </div>
         </div>
 
         {/* ── Desktop Table ─────────────────────────────────────────────── */}
-        <div style={{ overflowX: 'auto', width: '100%', minWidth: 0 }} className="hide-on-mobile">
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8125rem' }}>
+        <div style={{ overflowX: 'auto', width: '100%', minWidth: 0 }} className="hide-on-mobile intern-directory-table-wrap">
+          <table className="intern-directory-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8125rem' }}>
             <thead>
               <tr
                 style={{
@@ -275,9 +303,10 @@ const InternDirectory = ({
                 {/* Select all checkbox */}
                 <th style={{ padding: '0.75rem 0.625rem', width: '38px' }}>
                   <button
-                    onClick={isAllSelected ? onClearSelection : () => onSelectAll(paginated.map((i) => i.id))}
+                    onClick={isAllSelected ? onClearSelection : () => onSelectAll(selectedPageIds)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4f46e5', display: 'flex', fontSize: '1.1rem' }}
                     aria-label={isAllSelected ? 'Deselect all' : 'Select all'}
+                    type="button"
                   >
                     {isAllSelected ? (
                       <RiCheckboxFill />
@@ -316,7 +345,7 @@ const InternDirectory = ({
               <AnimatePresence mode="wait">
                 {paginated.length === 0 ? (
                   <tr key="empty">
-                    <td colSpan={12} style={{ padding: '2rem' }}>
+                    <td colSpan={visibleColumnCount} style={{ padding: '2rem' }}>
                       <InternEmptyState type={emptyType} />
                     </td>
                   </tr>
@@ -346,6 +375,7 @@ const InternDirectory = ({
                           <button
                             style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: '#4f46e5', fontSize: '1.1rem' }}
                             aria-label={isSelected ? `Deselect ${intern.name}` : `Select ${intern.name}`}
+                            type="button"
                           >
                             {isSelected ? <RiCheckboxFill /> : <RiCheckboxBlankLine style={{ color: 'var(--color-neutral-300)' }} />}
                           </button>
@@ -471,6 +501,7 @@ const InternDirectory = ({
                                 title="View Profile"
                                 onClick={() => navigate(`/supervisor/interns/${intern.id}`)}
                                 style={{ fontSize: '0.95rem', padding: '0.25rem', color: '#4f46e5' }}
+                                type="button"
                               >
                                 <RiEyeLine />
                               </button>
@@ -479,6 +510,7 @@ const InternDirectory = ({
                                 title="Assign Task"
                                 onClick={() => toast.success(`Opening task assignment for ${intern.name}...`)}
                                 style={{ fontSize: '0.95rem', padding: '0.25rem', color: '#059669' }}
+                                type="button"
                               >
                                 <RiTaskLine />
                               </button>
@@ -487,6 +519,7 @@ const InternDirectory = ({
                                 title="Schedule Review"
                                 onClick={() => toast.success(`Opening review scheduler for ${intern.name}...`)}
                                 style={{ fontSize: '0.95rem', padding: '0.25rem', color: '#7c3aed' }}
+                                type="button"
                               >
                                 <RiCalendarEventLine />
                               </button>
@@ -503,7 +536,7 @@ const InternDirectory = ({
         </div>
 
         {/* ── Mobile Card Layout ─────────────────────────────────────────── */}
-        <div className="show-on-mobile">
+        <div className="show-on-mobile intern-directory-mobile-list">
           {paginated.length === 0 ? (
             <InternEmptyState type={emptyType} />
           ) : (
@@ -527,7 +560,7 @@ const InternDirectory = ({
                     }}
                     onClick={() => navigate(`/supervisor/interns/${intern.id}`)}
                   >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.875rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.875rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <Avatar name={intern.name} src={intern.avatar} size="md" />
                         <div>
@@ -535,23 +568,33 @@ const InternDirectory = ({
                           <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>{intern.department}</p>
                         </div>
                       </div>
-                      <span
-                        style={{
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '9999px',
-                          fontSize: '0.7rem',
-                          fontWeight: 600,
-                          backgroundColor: statusStyle.bg,
-                          color: statusStyle.text,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {intern.status}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onToggleSelect(intern.id); }}
+                          aria-label={isSelected ? `Deselect ${intern.name}` : `Select ${intern.name}`}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: '#4f46e5', fontSize: '1.1rem', padding: 0 }}
+                        >
+                          {isSelected ? <RiCheckboxFill /> : <RiCheckboxBlankLine style={{ color: 'var(--color-neutral-300)' }} />}
+                        </button>
+                        <span
+                          style={{
+                            padding: '0.2rem 0.5rem',
+                            borderRadius: '9999px',
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            backgroundColor: statusStyle.bg,
+                            color: statusStyle.text,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {intern.status}
+                        </span>
+                      </div>
                     </div>
 
                     <p style={{ margin: '0 0 0.625rem 0', fontSize: '0.8125rem', color: 'var(--color-neutral-600)' }}>
-                      📋 {intern.currentTask}
+                      {intern.currentTask}
                     </p>
 
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -611,6 +654,7 @@ const InternDirectory = ({
                   onClick={() => setCurrentPage(page)}
                   className={page === currentPage ? 'btn btn-primary' : 'btn btn-secondary'}
                   style={{ padding: '0.35rem 0.625rem', fontSize: '0.8125rem', minWidth: '32px' }}
+                  type="button"
                 >
                   {page}
                 </button>
@@ -623,7 +667,6 @@ const InternDirectory = ({
       {/* Bulk Action Toolbar */}
       <BulkActionToolbar
         selectedCount={selectedInterns.length}
-        selectedInterns={selectedInterns}
         onClear={onClearSelection}
       />
     </>

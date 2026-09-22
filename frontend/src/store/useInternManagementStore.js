@@ -42,7 +42,6 @@ export const useInternManagementStore = create(
         performanceMax: '',
         onboardingStatus: 'All',
         reviewStatus: 'All',
-        batch: 'All',
       },
       search: '',
       activeFilterChips: [],
@@ -354,7 +353,6 @@ export const useInternManagementStore = create(
           performanceMax: '',
           onboardingStatus: 'All',
           reviewStatus: 'All',
-          batch: 'All',
         };
         set((s) => ({
           filters: { ...s.filters, [key]: defaults[key] },
@@ -374,7 +372,6 @@ export const useInternManagementStore = create(
             performanceMax: '',
             onboardingStatus: 'All',
             reviewStatus: 'All',
-            batch: 'All',
           },
           search: '',
           activeFilterChips: [],
@@ -394,7 +391,6 @@ export const useInternManagementStore = create(
           performanceMax: '',
           onboardingStatus: 'All',
           reviewStatus: 'All',
-          batch: 'All',
         };
         const labels = {
           period: 'Period',
@@ -404,7 +400,6 @@ export const useInternManagementStore = create(
           performanceMax: 'Score ≤',
           onboardingStatus: 'Onboarding',
           reviewStatus: 'Review',
-          batch: 'Batch',
         };
         Object.entries(filters).forEach(([key, value]) => {
 
@@ -432,10 +427,14 @@ export const useInternManagementStore = create(
         });
       },
 
-      selectAllInterns: () => {
-        set((s) => ({
-          selectedInterns: s.internList.map((i) => i.id),
-        }));
+      selectAllInterns: (internIds = null) => {
+        set((s) => {
+          const ids = Array.isArray(internIds) ? internIds : s.internList.map((i) => i.id);
+
+          return {
+            selectedInterns: Array.from(new Set([...s.selectedInterns, ...ids])),
+          };
+        });
       },
 
       clearSelection: () => set({ selectedInterns: [] }),

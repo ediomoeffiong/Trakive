@@ -4,6 +4,7 @@ const ProfileModel = require('../models/profile.model');
 const RoleModel = require('../models/role.model');
 const AuditLogModel = require('../models/auditLog.model');
 const InternshipRecordModel = require('../models/internshipRecord.model');
+const SupervisorNoteModel = require('../models/supervisorNote.model');
 const { validateInternshipDates } = require('../validators/internshipDate.validator');
 const { hashPassword } = require('../utils/password.utils');
 const { getPaginationParams, formatPaginatedResponse } = require('../utils/pagination');
@@ -434,6 +435,35 @@ const InternService = {
     }
     await this.getIntern(record.user_id, requestingUser);
     return await InternshipRecordModel.getFinalPerformanceSummary(internshipRecordId);
+  },
+
+  async getSupervisorNotes(internUserId, requestingUser) {
+    await this.getIntern(internUserId, requestingUser);
+    return SupervisorNoteModel.findByIntern(internUserId, requestingUser.id);
+  },
+
+  async saveSupervisorNote(internUserId, note, requestingUser) {
+    await this.getIntern(internUserId, requestingUser);
+    if (!note.title || !note.content) {
+      throw ApiError.badRequest('Note title and content are required');
+    }
+    const saved = await SupervisorNoteModel.upsert(internUserId, requestingUser.id, note);
+    if (!saved) throw ApiError.notFound('Note not found');
+    return saved;
+  },
+
+  async deleteSupervisorNote(internUserId, noteId, requestingUser) {
+    await this.getIntern(internUserId, requestingUser);
+    const deleted = await SupervisorNoteModel.delete(internUserId, requestingUser.id, noteId);
+    if (!deleted) throw ApiError.notFound('Note not found');
+    return deleted;
+  },
+
+  async toggleSupervisorNotePin(internUserId, noteId, requestingUser) {
+    await this.getIntern(internUserId, requestingUser);
+    const note = await SupervisorNoteModel.togglePin(internUserId, requestingUser.id, noteId);
+    if (!note) throw ApiError.notFound('Note not found');
+    return note;
   },
 };
 

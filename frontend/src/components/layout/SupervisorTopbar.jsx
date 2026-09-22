@@ -284,7 +284,7 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
                   }}
                 >
                   <RiUser3Line />
-                  Supervisor Profile
+                  Profile
                 </button>
 
                 <button
@@ -308,7 +308,7 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
                   }}
                 >
                   <RiSettings3Line />
-                  Portal Settings
+                  Settings
                 </button>
 
                 <div style={{ height: '1px', backgroundColor: 'var(--color-neutral-200)', margin: '0.5rem 0' }} />

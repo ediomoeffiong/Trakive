@@ -5,12 +5,9 @@ import toast from 'react-hot-toast';
 import {
   RiTaskLine,
   RiCalendarEventLine,
-  RiMessage2Line,
   RiCheckboxCircleLine,
-  RiBarChartLine,
   RiMailLine,
   RiPhoneLine,
-  RiLinkedinBoxLine,
   RiMapPinLine,
   RiTimeLine,
   RiUserAddLine,
@@ -30,7 +27,7 @@ const STATUS_STYLES = {
 const TREND_COLORS = {
   up: { color: '#10b981', bg: '#d1fae5', label: 'Trending up' },
   down: { color: '#ef4444', bg: '#fee2e2', label: 'Trending down' },
-  stable: { color: '#0284c7', bg: '#e0f2fe', label: 'Stable' },
+  stable: { color: 'var(--color-primary-700)', bg: 'var(--color-primary-50)', label: 'Stable' },
 };
 
 const SUPERVISOR_OPTIONS = [
@@ -64,13 +61,6 @@ const QuickActionButton = ({ icon: Icon, label, color, bg, onClick }) => (
     <Icon style={{ fontSize: '1rem', flexShrink: 0 }} />
     {label}
   </motion.button>
-);
-
-const InfoChip = ({ icon: Icon, label, color = 'var(--color-neutral-600)' }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8125rem', color }}>
-    <Icon style={{ fontSize: '0.9rem', flexShrink: 0, color: 'var(--color-neutral-400)' }} />
-    {label}
-  </div>
 );
 
 const InternProfileHeader = ({ profile, performance }) => {
@@ -140,25 +130,16 @@ const InternProfileHeader = ({ profile, performance }) => {
       >
         {/* ── Light Blue Hero Header ───────────────────────────────────── */}
         <div
+          className="intern-profile-hero"
           style={{
             padding: '1.5rem 1.75rem 2rem 1.75rem',
-            background: 'linear-gradient(135deg, #0284c7 0%, #00b4d8 100%)',
+            background: 'var(--brand-blue)',
             color: '#ffffff',
             position: 'relative',
           }}
         >
-          {/* Ambient Glow Pattern Overlay */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: 'radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.25) 0%, transparent 50%), radial-gradient(circle at 10% 90%, rgba(255, 255, 255, 0.15) 0%, transparent 45%)',
-              pointerEvents: 'none',
-            }}
-          />
-
           {/* Top Bar: Back Button & Verification Badge */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', position: 'relative', zIndex: 2 }}>
+          <div className="intern-profile-hero-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', position: 'relative', zIndex: 2 }}>
             <button
               type="button"
               onClick={() => navigate(-1)}
@@ -171,7 +152,7 @@ const InternProfileHeader = ({ profile, performance }) => {
                 background: 'rgba(255, 255, 255, 0.95)',
                 backdropFilter: 'blur(10px)',
                 border: '1px solid rgba(255, 255, 255, 0.5)',
-                color: '#0369a1',
+                color: 'var(--color-primary-800)',
                 fontSize: '0.8125rem',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -215,7 +196,7 @@ const InternProfileHeader = ({ profile, performance }) => {
             }}
           >
             {/* Left: Avatar & Info */}
-            <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', flexWrap: 'wrap', flex: 1, minWidth: 280 }}>
+            <div className="intern-profile-identity" style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', flexWrap: 'wrap', flex: 1, minWidth: 280 }}>
               <div
                 style={{
                   borderRadius: '1.125rem',
@@ -284,7 +265,7 @@ const InternProfileHeader = ({ profile, performance }) => {
             </div>
 
             {/* Right Metrics Cards */}
-            <div style={{ display: 'flex', gap: '0.875rem', flexShrink: 0 }}>
+            <div className="intern-profile-metrics" style={{ display: 'flex', gap: '0.875rem', flexShrink: 0 }}>
               <div
                 style={{
                   textAlign: 'center',
@@ -360,9 +341,9 @@ const InternProfileHeader = ({ profile, performance }) => {
                     borderRadius: '0.5rem',
                     fontSize: '0.75rem',
                     fontWeight: 700,
-                    border: period.status === 'active' || period.status === 'Current' ? '1px solid #00b4d8' : '1px solid #cbd5e1',
-                    background: period.status === 'active' || period.status === 'Current' ? '#e0f7ff' : '#ffffff',
-                    color: period.status === 'active' || period.status === 'Current' ? '#0284c7' : '#64748b',
+                    border: period.status === 'active' || period.status === 'Current' ? '1px solid var(--brand-blue)' : '1px solid #cbd5e1',
+                    background: period.status === 'active' || period.status === 'Current' ? 'var(--color-primary-50)' : '#ffffff',
+                    color: period.status === 'active' || period.status === 'Current' ? 'var(--color-primary-700)' : '#64748b',
                     cursor: 'pointer',
                     boxShadow: period.status === 'active' ? '0 1px 3px rgba(2, 132, 199, 0.15)' : 'none',
                     transition: 'all 0.15s ease',
@@ -388,7 +369,7 @@ const InternProfileHeader = ({ profile, performance }) => {
           >
             <a
               href={`mailto:${profile.email}`}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.84rem', color: '#0284c7', fontWeight: 600, textDecoration: 'none' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.84rem', color: 'var(--color-primary-700)', fontWeight: 600, textDecoration: 'none' }}
             >
               <RiMailLine style={{ fontSize: '1rem' }} /> {profile.email}
             </a>
@@ -422,11 +403,11 @@ const InternProfileHeader = ({ profile, performance }) => {
             <QuickActionButton
               icon={RiUserAddLine}
               label={secondarySupervisor ? `Change Secondary (${secondarySupervisor})` : "Assign Extra Supervisor"}
-              color="#0284c7"
-              bg="#e0f7ff"
+              color="var(--color-primary-700)"
+              bg="var(--color-primary-50)"
               onClick={() => setShowSecondaryModal(true)}
             />
-            <QuickActionButton icon={RiTaskLine} label="Assign Task" color="#0284c7" bg="#e0f7ff" onClick={() => handleAction('assign-task')} />
+            <QuickActionButton icon={RiTaskLine} label="Assign Task" color="var(--color-primary-700)" bg="var(--color-primary-50)" onClick={() => handleAction('assign-task')} />
             <QuickActionButton icon={RiCalendarEventLine} label="Schedule Review" color="#0891b2" bg="#ecfeff" onClick={() => handleAction('schedule-review')} />
             <QuickActionButton icon={RiCheckboxCircleLine} label="Approve Onboarding" color="#059669" bg="#ecfdf5" onClick={() => handleAction('approve-onboarding')} />
           </div>

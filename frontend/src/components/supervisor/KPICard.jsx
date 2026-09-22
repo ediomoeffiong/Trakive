@@ -13,7 +13,6 @@ import {
   RiCheckboxMultipleLine,
   RiAwardLine,
   RiArrowUpLine,
-  RiArrowDownLine,
 } from 'react-icons/ri';
 
 const ICON_MAP = {
@@ -66,7 +65,7 @@ const COLOR_THEMES = {
   },
 };
 
-const KPICard = ({ card, index = 0, onClick }) => {
+const KPICard = ({ card, index = 0, onClick, compact = false }) => {
   const navigate = useNavigate();
   const Icon = ICON_MAP[card.iconName] || RiTeamLine;
   const theme = COLOR_THEMES[card.color] || COLOR_THEMES.blue;
@@ -95,7 +94,7 @@ const KPICard = ({ card, index = 0, onClick }) => {
       style={{
         background: '#ffffff',
         borderRadius: '1rem',
-        padding: '1.25rem',
+        padding: compact ? '1rem' : '1.25rem',
         border: `1px solid var(--color-neutral-200)`,
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
         display: 'flex',
@@ -121,18 +120,19 @@ const KPICard = ({ card, index = 0, onClick }) => {
         }}
       />
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.625rem', marginBottom: compact ? '0.65rem' : '0.75rem' }}>
         <div
           style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '0.75rem',
+            width: compact ? '36px' : '42px',
+            height: compact ? '36px' : '42px',
+            borderRadius: compact ? '0.65rem' : '0.75rem',
             backgroundColor: theme.iconBg,
             color: theme.iconColor,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '1.25rem',
+            fontSize: compact ? '1.05rem' : '1.25rem',
+            flexShrink: 0,
           }}
         >
           <Icon />
@@ -145,8 +145,10 @@ const KPICard = ({ card, index = 0, onClick }) => {
             gap: '0.25rem',
             padding: '0.25rem 0.5rem',
             borderRadius: '9999px',
-            fontSize: '0.75rem',
+            fontSize: compact ? '0.68rem' : '0.75rem',
             fontWeight: 600,
+            lineHeight: 1,
+            whiteSpace: 'nowrap',
             backgroundColor:
               card.trendType === 'positive'
                 ? '#dcfce7'
@@ -167,13 +169,13 @@ const KPICard = ({ card, index = 0, onClick }) => {
       </div>
 
       <div>
-        <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-500)' }}>
+        <p style={{ margin: 0, fontSize: compact ? '0.75rem' : '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-500)' }}>
           {card.label}
         </p>
-        <h2 style={{ margin: '0.25rem 0', fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
+        <h2 style={{ margin: '0.2rem 0', fontSize: compact ? '1.45rem' : '1.75rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
           {card.value}
         </h2>
-        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
+        <p style={{ margin: 0, fontSize: compact ? '0.68rem' : '0.75rem', color: 'var(--color-neutral-400)', lineHeight: 1.35 }}>
           {card.description}
         </p>
       </div>

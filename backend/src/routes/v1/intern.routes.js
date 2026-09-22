@@ -20,6 +20,10 @@ const {
   getInternHistory,
   createInternshipPeriod,
   getFinalPerformanceSummary,
+  getSupervisorNotes,
+  saveSupervisorNote,
+  deleteSupervisorNote,
+  toggleSupervisorNotePin,
 } = require('../../controllers/intern.controller');
 
 const router = express.Router();
@@ -33,8 +37,11 @@ router.patch('/:id/department', authenticate, requireRole('admin', 'hr'), valida
 router.patch('/:id/supervisor', authenticate, requireRole('admin', 'hr', 'head'), validate({ body: assignSupervisorSchema }), assignSupervisor);
 router.get('/:id/profile', authenticate, getIntern);
 router.get('/:id/history', authenticate, getInternHistory);
+router.get('/:id/notes', authenticate, requireRole('supervisor', 'admin', 'hr', 'head'), getSupervisorNotes);
+router.post('/:id/notes', authenticate, requireRole('supervisor', 'admin', 'hr', 'head'), saveSupervisorNote);
+router.delete('/:id/notes/:noteId', authenticate, requireRole('supervisor', 'admin', 'hr', 'head'), deleteSupervisorNote);
+router.patch('/:id/notes/:noteId/pin', authenticate, requireRole('supervisor', 'admin', 'hr', 'head'), toggleSupervisorNotePin);
 router.post('/:id/internships', authenticate, requireRole('admin', 'hr', 'supervisor'), createInternshipPeriod);
 router.get('/internships/:internshipId/summary', authenticate, getFinalPerformanceSummary);
 
 module.exports = router;
-

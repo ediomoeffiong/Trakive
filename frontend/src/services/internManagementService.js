@@ -8,7 +8,6 @@
 import api from './api';
 import { weeklyPlanService } from './weeklyPlanService';
 import { reviewService } from './reviewService';
-import { mockInternProfiles } from '../data/internProfiles';
 import { mockUsers } from '../data/mockUsers';
 import { mockInternProgress } from '../data/internProgress';
 import { mockInternDocuments } from '../data/internDocuments';
@@ -16,6 +15,7 @@ import { mockSupervisorNotes } from '../data/supervisorNotes';
 import { mockInternActivity } from '../data/internActivity';
 import { mockInternPerformance } from '../data/internPerformance';
 import { normalizeDepartmentForPerson, normalizePersonRecord } from '../utils/people';
+import { getAccessToken } from '../utils/authSession';
 
 // ── Simulated network delay ──────────────────────────────────────────────────
 const DELAY_MS = 600;
@@ -46,6 +46,10 @@ const saveNotesStore = (store) => {
 let notesStore = loadNotesStore();
 
 const unwrapApiData = (payload) => payload?.data?.data ?? payload?.data ?? payload;
+const hasRealBackendToken = () => {
+  const token = getAccessToken();
+  return Boolean(token && !String(token).startsWith('mock-') && !String(token).startsWith('mock-jwt-token'));
+};
 
 const extractItems = (payload) => {
   const data = unwrapApiData(payload);
@@ -754,6 +758,14 @@ export const internManagementService = {
    * @returns {Promise<{ notes: Array }>}
    */
   async fetchSupervisorNotes(internId) {
+    if (hasRealBackendToken()) {
+      try {
+        const notes = unwrapApiData(await api.get(`/interns/${internId}/notes`));
+        return { notes: Array.isArray(notes) ? notes : [] };
+      } catch (error) {
+        console.warn('Failed to fetch supervisor notes from API:', error);
+      }
+    }
     await delay(300);
     return { notes: notesStore[internId] || [] };
   },
@@ -765,6 +777,14 @@ export const internManagementService = {
    * @returns {Promise<{ note: object }>}
    */
   async saveNote(internId, note) {
+    if (hasRealBackendToken()) {
+      try {
+        const saved = unwrapApiData(await api.post(`/interns/${internId}/notes`, note));
+        return { note: saved };
+      } catch (error) {
+        console.warn('Failed to save supervisor note to API:', error);
+      }
+    }
     await delay(400);
     if (!notesStore[internId]) notesStore[internId] = [];
 
@@ -801,6 +821,14 @@ export const internManagementService = {
    * @returns {Promise<{ success: boolean }>}
    */
   async deleteNote(internId, noteId) {
+    if (hasRealBackendToken()) {
+      try {
+        await api.delete(`/interns/${internId}/notes/${noteId}`);
+        return { success: true };
+      } catch (error) {
+        console.warn('Failed to delete supervisor note from API:', error);
+      }
+    }
     await delay(300);
     if (notesStore[internId]) {
       notesStore[internId] = notesStore[internId].filter((n) => n.id !== noteId);
@@ -816,6 +844,14 @@ export const internManagementService = {
    * @returns {Promise<{ note: object }>}
    */
   async togglePinNote(internId, noteId) {
+    if (hasRealBackendToken()) {
+      try {
+        const note = unwrapApiData(await api.patch(`/interns/${internId}/notes/${noteId}/pin`));
+        return { note };
+      } catch (error) {
+        console.warn('Failed to update supervisor note pin through API:', error);
+      }
+    }
     await delay(200);
     let updated = null;
     if (notesStore[internId]) {

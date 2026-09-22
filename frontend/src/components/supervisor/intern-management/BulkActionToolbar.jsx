@@ -17,7 +17,7 @@ import {
 } from 'react-icons/ri';
 import { ROUTES } from '../../../constants';
 
-const BulkActionToolbar = ({ selectedCount, onClear, selectedInterns }) => {
+const BulkActionToolbar = ({ selectedCount, onClear }) => {
   const navigate = useNavigate();
 
   const handleAction = (action) => {

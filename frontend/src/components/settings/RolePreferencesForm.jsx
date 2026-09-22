@@ -344,20 +344,23 @@ export const RoleSelectorDebug = () => {
 const RolePreferencesForm = () => {
   const { rolePreferences, fetchRolePreferences, updateRolePreferenceField, saveRolePreferences, saving, isDirty, discardChanges } = useSettingsStore();
   const user = useAppStore((s) => s.user);
-  const role = user?.role || 'Intern';
-  const meta = ROLE_SETTINGS_LABELS[role] || ROLE_SETTINGS_LABELS.Intern;
+  const userRole = user?.role || 'Intern';
+  const roleKey = Object.keys(ROLE_SETTINGS_LABELS).find(
+    (key) => key.toLowerCase() === userRole.toLowerCase()
+  ) || 'Intern';
+  const meta = ROLE_SETTINGS_LABELS[roleKey] || ROLE_SETTINGS_LABELS.Intern;
 
   useEffect(() => {
-    fetchRolePreferences(role);
+    fetchRolePreferences(roleKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role]);
+  }, [roleKey]);
 
   const handleToggle = (key) => updateRolePreferenceField(key, !rolePreferences[key]);
   const handleSet    = (key, val) => updateRolePreferenceField(key, val);
 
   const handleSave = async () => {
     try {
-      await saveRolePreferences(role);
+      await saveRolePreferences(roleKey);
       toast.success(`${meta.title} saved!`, { icon: '✅' });
     } catch {
       toast.error('Failed to save preferences.');
@@ -365,7 +368,7 @@ const RolePreferencesForm = () => {
   };
 
   const renderForm = () => {
-    switch (role) {
+    switch (roleKey) {
       case 'Supervisor':
         return <SupervisorPreferences prefs={rolePreferences} onToggle={handleToggle} onSet={handleSet} />;
       case 'HR Administrator':

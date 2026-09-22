@@ -96,6 +96,43 @@ const getFinalPerformanceSummary = asyncHandler(async (req, res) => {
   });
 });
 
+const getSupervisorNotes = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const result = await InternService.getSupervisorNotes(id, req.user);
+  return sendSuccess(res, {
+    message: 'Supervisor notes retrieved successfully',
+    data: result,
+  });
+});
+
+const saveSupervisorNote = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const result = await InternService.saveSupervisorNote(id, req.body, req.user);
+  return sendSuccess(res, {
+    statusCode: req.body.id ? 200 : 201,
+    message: 'Supervisor note saved successfully',
+    data: result,
+  });
+});
+
+const deleteSupervisorNote = asyncHandler(async (req, res) => {
+  const { id, noteId } = req.params;
+  const result = await InternService.deleteSupervisorNote(id, noteId, req.user);
+  return sendSuccess(res, {
+    message: 'Supervisor note deleted successfully',
+    data: result,
+  });
+});
+
+const toggleSupervisorNotePin = asyncHandler(async (req, res) => {
+  const { id, noteId } = req.params;
+  const result = await InternService.toggleSupervisorNotePin(id, noteId, req.user);
+  return sendSuccess(res, {
+    message: 'Supervisor note pin updated successfully',
+    data: result,
+  });
+});
+
 module.exports = {
   createIntern,
   getIntern,
@@ -107,5 +144,8 @@ module.exports = {
   getInternHistory,
   createInternshipPeriod,
   getFinalPerformanceSummary,
+  getSupervisorNotes,
+  saveSupervisorNote,
+  deleteSupervisorNote,
+  toggleSupervisorNotePin,
 };
-

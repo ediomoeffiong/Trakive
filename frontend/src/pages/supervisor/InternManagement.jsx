@@ -43,15 +43,9 @@ const InternManagementPage = () => {
 
   useEffect(() => {
     loadInternList();
-  }, []);
+  }, [loadInternList]);
 
   const supervisorName = user?.name?.split(' ')[0] ?? 'Supervisor';
-  const internCount = internList.length;
-  const activeCount = internList.filter((i) => i.status === 'Active').length;
-  const onboardingCount = internList.filter((i) => i.status === 'Pending Review' || Number(i.onboardingProgress) < 100).length;
-  const needsAttentionCount = internList.filter(
-    (i) => i.status === 'Needs Help' || (Number.isFinite(Number(i.performanceScore)) && Number(i.performanceScore) < 4.2),
-  ).length;
 
   return (
     <motion.div
@@ -73,11 +67,6 @@ const InternManagementPage = () => {
           padding: '1.75rem 2rem',
           color: '#ffffff',
           boxShadow: '0 8px 32px rgba(0, 180, 216, 0.22)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -108,7 +97,7 @@ const InternManagementPage = () => {
           }}
         />
 
-        <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: '680px' }}>
           <span
             style={{
               fontSize: '0.7rem',
@@ -129,47 +118,13 @@ const InternManagementPage = () => {
             Your Intern Cohort, {supervisorName}
           </h2>
           <p style={{ margin: 0, fontSize: '0.9375rem', color: '#ffffff', maxWidth: '520px', lineHeight: 1.55 }}>
-            Track progress, manage profiles, assign tasks, and monitor performance across{' '}
-            <strong style={{ color: '#ffffff', fontWeight: 800 }}>{internCount} intern{internCount === 1 ? '' : 's'}</strong> in your team.
+            Track progress, manage profiles, assign tasks, and monitor performance across your team.
           </p>
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            gap: '0.75rem',
-            position: 'relative',
-            zIndex: 1,
-            flexWrap: 'wrap',
-          }}
-        >
-          {[
-            { label: 'Active', value: activeCount },
-            { label: 'Onboarding', value: onboardingCount },
-            { label: 'Needs Attention', value: needsAttentionCount },
-          ].map(({ label, value }) => (
-            <div
-              key={label}
-              style={{
-                background: 'rgba(255,255,255,0.12)',
-                borderRadius: '0.75rem',
-                padding: '0.625rem 1rem',
-                textAlign: 'center',
-                border: '1px solid rgba(255,255,255,0.18)',
-                minWidth: '70px',
-              }}
-            >
-              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#ffffff' }}>{value}</p>
-              <p style={{ margin: 0, fontSize: '0.7rem', color: '#ffffff', fontWeight: 700 }}>{label}</p>
-            </div>
-          ))}
         </div>
       </motion.div>
 
       {/* ── KPI Summary ────────────────────────────────────────────────── */}
-      <section aria-label="Intern Management KPIs">
-        <InternKPISummary kpis={kpis} isLoading={loading.list && kpis.length === 0} />
-      </section>
+      <InternKPISummary kpis={kpis} isLoading={loading.list && kpis.length === 0} />
 
       {/* ── Intern Directory ───────────────────────────────────────────── */}
       <section aria-label="Intern Directory">

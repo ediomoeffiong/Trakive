@@ -19,14 +19,14 @@ const SkeletonBox = ({ height = '20px', width = '100%', borderRadius = '0.5rem',
 
 // ── KPI Cards skeleton ────────────────────────────────────────────────────────
 export const InternKPILoader = () => (
-  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+  <div className="intern-kpi-grid">
     {Array.from({ length: 6 }).map((_, i) => (
       <div
         key={i}
         style={{
           background: '#fff',
           borderRadius: '1rem',
-          padding: '1.25rem',
+          padding: '1rem',
           border: '1px solid var(--color-neutral-200)',
           display: 'flex',
           flexDirection: 'column',

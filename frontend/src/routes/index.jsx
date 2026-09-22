@@ -42,6 +42,7 @@ import AttendancePage from '../pages/AttendancePage';
 // Supervisor Pages
 import SupervisorDashboardPage from '../pages/supervisor/Dashboard';
 import SupervisorPlaceholderPage from '../pages/supervisor/PlaceholderPage';
+import SupervisorSettingsPage from '../pages/supervisor/SettingsPage';
 import InternManagementPage from '../pages/supervisor/InternManagement';
 import InternProfilePage from '../pages/supervisor/InternProfile';
 import TaskManagementPage from '../pages/supervisor/TaskManagement';
@@ -182,7 +183,7 @@ const router = createBrowserRouter([
           },
           {
             path: ROUTES.SUPERVISOR_SETTINGS,
-            element: <SupervisorPlaceholderPage title="Supervisor Portal Settings" description="Configure evaluation rubrics, notification rules, and default task workflows." />,
+            element: <SupervisorSettingsPage />,
           },
         ],
       },
@@ -232,7 +233,6 @@ const router = createBrowserRouter([
       },
     ],
   },
-
 
   // ── Catch-all ──────────────────────────────────────────────────────────────
   { path: ROUTES.NOT_FOUND, element: <NotFound /> },

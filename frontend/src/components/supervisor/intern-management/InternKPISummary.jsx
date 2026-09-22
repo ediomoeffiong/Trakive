@@ -15,14 +15,10 @@ const InternKPISummary = ({ kpis = [], isLoading = false }) => {
   return (
     <section aria-label="Intern Management KPIs">
       <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '1.25rem',
-        }}
+        className="intern-kpi-grid"
       >
         {kpis.map((card, idx) => (
-          <KPICard key={card.id} card={card} index={idx} />
+          <KPICard key={card.id} card={card} index={idx} compact />
         ))}
       </div>
     </section>

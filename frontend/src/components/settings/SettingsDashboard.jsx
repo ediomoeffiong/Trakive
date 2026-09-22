@@ -7,8 +7,8 @@ import { motion } from 'framer-motion';
 import {
   RiUserSettingsLine, RiShieldCheckLine, RiBellLine, RiPaletteLine,
   RiShieldUserLine, RiEyeLine, RiTranslate2, RiComputerLine,
-  RiSettings4Line, RiArrowRightLine, RiCheckboxCircleLine, RiTimeLine,
-  RiGlobalLine,
+  RiSettings4Line, RiArrowRightLine, RiCheckboxCircleLine,
+  RiGlobalLine, RiNotification3Line, RiLockPasswordLine, RiUserLine,
 } from 'react-icons/ri';
 import { useSettingsStore }  from '../../store/useSettingsStore';
 import { useAppStore }       from '../../store/useAppStore';
@@ -21,7 +21,7 @@ const CATEGORIES = [
     label:       'Account',
     description: 'Update name, username, email, and phone number',
     icon:        RiUserSettingsLine,
-    color:       { bg: '#eff6ff', text: '#2563eb' },
+    color:       { bg: 'var(--color-primary-50)', text: 'var(--color-primary-700)' },
   },
   {
     id:          'security',
@@ -49,7 +49,7 @@ const CATEGORIES = [
     label:       'Appearance',
     description: 'Theme, layout density, and sidebar behavior',
     icon:        RiPaletteLine,
-    color:       { bg: '#eff6ff', text: '#2563eb' },
+    color:       { bg: 'var(--color-primary-50)', text: 'var(--color-primary-700)' },
   },
   {
     id:          'privacy',
@@ -70,7 +70,7 @@ const CATEGORIES = [
     label:       'Language & Region',
     description: 'Language, date format, timezone, and currency',
     icon:        RiTranslate2,
-    color:       { bg: '#eff6ff', text: '#2563eb' },
+    color:       { bg: 'var(--color-primary-50)', text: 'var(--color-primary-700)' },
   },
   {
     id:          'role',
@@ -92,15 +92,15 @@ const CategoryCard = ({ category, onClick }) => {
       id={`settings-category-${category.id}`}
       style={{
         display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-        padding: '1.25rem', borderRadius: '1rem', border: 'none', cursor: 'pointer',
+        padding: '1.125rem', borderRadius: '0.75rem', cursor: 'pointer',
         background: 'var(--color-neutral-50)',
-        border: '1.5px solid var(--color-neutral-100)',
+        border: '1px solid var(--color-neutral-200)',
         textAlign: 'left', gap: '0.875rem',
         transition: 'border-color 0.2s',
       }}
     >
       <div style={{
-        width: 44, height: 44, borderRadius: '0.75rem', flexShrink: 0,
+        width: 42, height: 42, borderRadius: '0.65rem', flexShrink: 0,
         background: category.color.bg, color: category.color.text,
         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.35rem',
       }}>
@@ -134,35 +134,35 @@ const PreferencesSummary = ({ settings, user }) => {
 
   const rows = [
     {
-      icon: '🎨',
+      icon: RiPaletteLine,
       label: 'Theme',
       value: s.appearance?.theme
         ? s.appearance.theme.charAt(0).toUpperCase() + s.appearance.theme.slice(1)
         : 'Light',
     },
     {
-      icon: '🌍',
+      icon: RiGlobalLine,
       label: 'Language',
       value: s.language?.locale?.toUpperCase() || 'EN',
     },
     {
-      icon: '🔔',
+      icon: RiNotification3Line,
       label: 'Notifications',
       value: s.notifications?.inAppNotifications ? 'Enabled' : 'Disabled',
     },
     {
-      icon: '🔐',
+      icon: RiShieldCheckLine,
       label: '2FA',
       value: s.security?.twoFactorEnabled ? 'Active' : 'Inactive',
       alert: !s.security?.twoFactorEnabled,
     },
     {
-      icon: '🔑',
+      icon: RiLockPasswordLine,
       label: 'Last Password Change',
       value: formatDate(s.security?.lastPasswordChange),
     },
     {
-      icon: '👤',
+      icon: RiUserLine,
       label: 'Profile Visibility',
       value: s.privacy?.profileVisibility
         ? s.privacy.profileVisibility.charAt(0).toUpperCase() + s.privacy.profileVisibility.slice(1)
@@ -188,14 +188,14 @@ const PreferencesSummary = ({ settings, user }) => {
 
       {/* Rows */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-        {rows.map(({ icon, label, value, alert }) => (
+        {rows.map(({ icon: RowIcon, label, value, alert }) => (
           <div key={label} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '0.6875rem 0', gap: '0.5rem',
             borderBottom: '1px solid var(--color-neutral-100)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '1rem' }}>{icon}</span>
+              <RowIcon style={{ fontSize: '1rem', color: 'var(--color-primary-600)', flexShrink: 0 }} />
               <span style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-600)' }}>
                 {label}
               </span>
@@ -216,12 +216,10 @@ const PreferencesSummary = ({ settings, user }) => {
       {user && (
         <div style={{
           marginTop: '1rem', padding: '0.625rem 0.875rem', borderRadius: '0.75rem',
-          background: 'linear-gradient(135deg, var(--color-primary-600), var(--color-primary-500))',
+          background: 'var(--brand-blue)',
           display: 'flex', alignItems: 'center', gap: '0.625rem',
         }}>
-          <span style={{ fontSize: '1rem' }}>
-            {user.role === 'Intern' ? '🎓' : user.role === 'Supervisor' ? '👨‍💼' : user.role === 'HR Administrator' ? '🏛️' : '🏢'}
-          </span>
+          <RiUserLine style={{ color: '#fff', fontSize: '1rem', flexShrink: 0 }} />
           <div>
             <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', margin: 0 }}>
               Signed in as
@@ -239,18 +237,14 @@ const PreferencesSummary = ({ settings, user }) => {
 // ── Welcome Banner ────────────────────────────────────────────────────────────
 const WelcomeBanner = ({ user }) => (
   <div style={{
-    padding: '1.5rem 2rem', borderRadius: '1.25rem',
-    background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+    padding: '1.5rem 2rem', borderRadius: '0.875rem',
+    background: 'var(--brand-blue)',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem',
     position: 'relative', overflow: 'hidden',
   }}>
-    {/* Decorative circles */}
-    <div style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', top: -60, right: 80 }} />
-    <div style={{ position: 'absolute', width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', bottom: -40, right: 20 }} />
-
     <div style={{ position: 'relative', zIndex: 1 }}>
       <h2 style={{ fontSize: '1.375rem', fontWeight: 800, color: '#fff', margin: '0 0 0.375rem', letterSpacing: '-0.02em' }}>
-        ⚙️ Settings & Preferences
+        Settings & Preferences
       </h2>
       <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.75)', margin: 0 }}>
         Manage your account, security, notifications, and personalization preferences.
@@ -311,6 +305,12 @@ const SettingsDashboard = ({ onNavigate }) => {
         @media (max-width: 900px) {
           .settings-summary-grid {
             grid-template-columns: 1fr !important;
+          }
+        }
+        @media (max-width: 520px) {
+          #settings-category-account,
+          [id^="settings-category-"] {
+            padding: 1rem !important;
           }
         }
       `}</style>
