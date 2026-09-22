@@ -86,7 +86,7 @@ export const defaultSettings = {
     announcements:      true,
     reminders:          true,
     weeklyDigest:       true,
-    emailNotifications: true,
+    emailNotifications: false,
     pushNotifications:  false,
     inAppNotifications: true,
   },

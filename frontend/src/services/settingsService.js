@@ -14,6 +14,17 @@ const clone = (obj) => JSON.parse(JSON.stringify(obj));
 const delay = (ms = 250) => new Promise((resolve) => setTimeout(resolve, ms));
 const dataOf = (response) => response?.data?.data ?? response?.data;
 
+const UNSUPPORTED_NOTIFICATION_FIELDS = {
+  emailNotifications: false,
+  pushNotifications: false,
+};
+
+const normalizeNotificationSettings = (notifications = {}) => ({
+  ...defaultSettings.notifications,
+  ...(notifications || {}),
+  ...UNSUPPORTED_NOTIFICATION_FIELDS,
+});
+
 let _settings = clone(defaultSettings);
 let _sessions = [...mockSessions];
 let _rolePrefs = {};
@@ -63,7 +74,7 @@ const mergeSettings = (serverSettings = {}) => {
     ...serverSettings,
     account: { ...defaultSettings.account, ...persisted.account, ...serverSettings.account, ...account },
     security: { ...defaultSettings.security, ...persisted.security, ...serverSettings.security },
-    notifications: { ...defaultSettings.notifications, ...persisted.notifications, ...serverSettings.notifications },
+    notifications: normalizeNotificationSettings({ ...persisted.notifications, ...serverSettings.notifications }),
     appearance: { ...defaultSettings.appearance, ...persisted.appearance, ...serverSettings.appearance },
     privacy: { ...defaultSettings.privacy, ...persisted.privacy, ...serverSettings.privacy },
     accessibility: { ...defaultSettings.accessibility, ...persisted.accessibility, ...serverSettings.accessibility },
@@ -226,16 +237,20 @@ export const updateSettingsCategory = async (category, updates) => {
     return toggleTwoFactor(updates.twoFactorEnabled);
   }
 
+  const normalizedUpdates = category === 'notifications'
+    ? normalizeNotificationSettings(updates)
+    : updates;
+
   if (hasRealBackendToken()) {
     try {
-      const updated = dataOf(await api.put(`/settings/category/${category}`, updates));
-      return saveLocalCategory(category, updated);
+      const updated = dataOf(await api.put(`/settings/category/${category}`, normalizedUpdates));
+      return saveLocalCategory(category, category === 'notifications' ? normalizeNotificationSettings(updated) : updated);
     } catch (error) {
       throw new Error(error.response?.data?.message || error.message || `Unable to update ${category} settings`);
     }
   }
   await delay();
-  return saveLocalCategory(category, updates);
+  return saveLocalCategory(category, normalizedUpdates);
 };
 
 export const saveRolePreferences = async (role, data) => {

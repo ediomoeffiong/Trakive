@@ -6,7 +6,7 @@
 
 import toast from 'react-hot-toast';
 import {
-  RiBellLine, RiMailLine, RiSmartphoneLine, RiApps2Line,
+  RiMailLine, RiSmartphoneLine, RiApps2Line,
   RiTaskLine, RiStarLine, RiCheckboxMultipleLine, RiMegaphoneLine,
   RiAlarmLine, RiBarChartBoxLine, RiMoonLine,
 } from 'react-icons/ri';
@@ -15,7 +15,7 @@ import Switch              from '../ui/Switch';
 import UnsavedChangesBar   from './UnsavedChangesBar';
 
 // ── Reusable switch row ───────────────────────────────────────────────────────
-const SwitchRow = ({ icon: Icon, label, description, checked, onChange, disabled }) => (
+const SwitchRow = ({ icon: Icon, label, description, checked, onChange, disabled, disabledReason }) => (
   <div style={{
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '0.875rem 0', gap: '1rem',
@@ -38,6 +38,11 @@ const SwitchRow = ({ icon: Icon, label, description, checked, onChange, disabled
         {description && (
           <p style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)', margin: 0 }}>
             {description}
+          </p>
+        )}
+        {disabled && disabledReason && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)', margin: '0.25rem 0 0' }}>
+            {disabledReason}
           </p>
         )}
       </div>
@@ -66,6 +71,7 @@ const NotificationPrefsForm = () => {
   const { settings, updateField, saveCategory, saving, isDirty, discardChanges } = useSettingsStore();
   const prefs = settings.notifications;
 
+  const isEnabled = (key) => Boolean(prefs[key]);
   const toggle = (key) => updateField('notifications', key, !prefs[key]);
 
   const handleSave = async () => {
@@ -89,23 +95,24 @@ const NotificationPrefsForm = () => {
           icon={RiApps2Line}
           label="In-App Notifications"
           description="Show notifications inside the Trakive dashboard"
-          checked={prefs.inAppNotifications}
+          checked={isEnabled('inAppNotifications')}
           onChange={() => toggle('inAppNotifications')}
         />
         <SwitchRow
           icon={RiMailLine}
           label="Email Notifications"
           description="Receive important updates via email"
-          checked={prefs.emailNotifications}
-          onChange={() => toggle('emailNotifications')}
+          checked={false}
+          disabled
+          disabledReason="Email delivery is not connected yet."
         />
         <SwitchRow
           icon={RiSmartphoneLine}
           label="Push Notifications"
-          description="Browser push alerts (coming soon)"
-          checked={prefs.pushNotifications}
-          onChange={() => toggle('pushNotifications')}
+          description="Browser push alerts"
+          checked={false}
           disabled
+          disabledReason="Browser push subscriptions are not configured yet."
         />
       </NotifSection>
 
@@ -118,42 +125,42 @@ const NotificationPrefsForm = () => {
           icon={RiTaskLine}
           label="Task Notifications"
           description="Assignments, deadlines, updates, and comments on tasks"
-          checked={prefs.taskNotifications}
+          checked={isEnabled('taskNotifications')}
           onChange={() => toggle('taskNotifications')}
         />
         <SwitchRow
           icon={RiStarLine}
           label="Performance Reviews"
           description="Review requests, scores, and supervisor feedback"
-          checked={prefs.reviewNotifications}
+          checked={isEnabled('reviewNotifications')}
           onChange={() => toggle('reviewNotifications')}
         />
         <SwitchRow
           icon={RiCheckboxMultipleLine}
           label="Onboarding Updates"
           description="Step completions, requirements, and new onboarding content"
-          checked={prefs.onboardingUpdates}
+          checked={isEnabled('onboardingUpdates')}
           onChange={() => toggle('onboardingUpdates')}
         />
         <SwitchRow
           icon={RiMegaphoneLine}
           label="Announcements"
           description="Organization-wide and department announcements"
-          checked={prefs.announcements}
+          checked={isEnabled('announcements')}
           onChange={() => toggle('announcements')}
         />
         <SwitchRow
           icon={RiAlarmLine}
           label="Reminders"
           description="Scheduled reminders for deadlines and meetings"
-          checked={prefs.reminders}
+          checked={isEnabled('reminders')}
           onChange={() => toggle('reminders')}
         />
         <SwitchRow
           icon={RiBarChartBoxLine}
           label="Weekly Summary"
           description="A weekly digest of your progress and activities"
-          checked={prefs.weeklyDigest}
+          checked={isEnabled('weeklyDigest')}
           onChange={() => toggle('weeklyDigest')}
         />
       </NotifSection>

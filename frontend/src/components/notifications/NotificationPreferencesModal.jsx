@@ -62,12 +62,15 @@ const PREFERENCE_SECTIONS = [
         key: 'emailNotifications',
         label: 'Email Notifications',
         description: 'Receive notifications to your registered email address.',
+        disabled: true,
+        disabledReason: 'Email delivery is not connected yet.',
       },
       {
         key: 'pushNotifications',
         label: 'Push Notifications',
-        description: 'Browser push notifications (coming soon).',
+        description: 'Browser push notifications.',
         disabled: true,
+        disabledReason: 'Browser push subscriptions are not configured yet.',
       },
     ],
   },
@@ -247,16 +250,21 @@ const NotificationPreferencesModal = ({ open, onClose }) => {
                               {item.label}
                               {item.disabled && (
                                 <span style={{ marginLeft: '0.375rem', fontSize: '0.6875rem', color: 'var(--color-neutral-400)', fontWeight: 500 }}>
-                                  (Coming soon)
+                                  (Unavailable)
                                 </span>
                               )}
                             </p>
                             <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
                               {item.description}
                             </p>
+                            {item.disabledReason && (
+                              <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
+                                {item.disabledReason}
+                              </p>
+                            )}
                           </div>
                           <Switch
-                            checked={!!localPrefs[item.key]}
+                            checked={item.disabled ? false : !!localPrefs[item.key]}
                             onChange={() => !item.disabled && handleToggle(item.key)}
                             disabled={item.disabled}
                             size="md"

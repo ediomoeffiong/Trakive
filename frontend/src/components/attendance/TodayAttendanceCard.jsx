@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   RiCalendarCheckLine,
@@ -9,6 +9,7 @@ import {
   RiCompass3Line,
   RiLightbulbLine,
   RiSendPlaneLine,
+  RiSettings3Line,
 } from 'react-icons/ri';
 import { Card, Button, Badge, Skeleton } from '../ui';
 import { attendanceService } from '../../services/attendanceService';
@@ -56,7 +57,75 @@ async function getLocationPermissionState() {
   }
 }
 
+function requestPosition(options) {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, options);
+  });
+}
+
+function watchForPosition(options, waitMs) {
+  return new Promise((resolve, reject) => {
+    let watchId = null;
+    const timer = setTimeout(() => {
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      const error = new Error('Location lookup timed out.');
+      error.code = 3;
+      reject(error);
+    }, waitMs);
+
+    watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        clearTimeout(timer);
+        navigator.geolocation.clearWatch(watchId);
+        resolve(position);
+      },
+      () => {
+        // Windows can report a denial before the location provider returns a fix.
+      },
+      options,
+    );
+  });
+}
+
+function shouldRetryWithApproximateLocation(error, permissionState) {
+  if (error.code === 2 || error.code === 3) return true;
+  if (error.code === LOCATION_ERROR.UNAVAILABLE || error.code === LOCATION_ERROR.TIMEOUT) return true;
+  // Site permission is already granted, but Windows denied the precise lookup.
+  return error.code === 1 && permissionState === 'granted';
+}
+
+function openWindowsLocationSettings() {
+  const anchor = document.createElement('a');
+  anchor.href = 'ms-settings:privacy-location';
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+}
+
+function canOpenWindowsLocationSettings() {
+  return typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent || '');
+}
+
 async function getLocation() {
+  if (typeof window !== 'undefined' && !window.isSecureContext) {
+    throw makeLocationError(
+      LOCATION_ERROR.UNAVAILABLE,
+      'Location check-in requires HTTPS or localhost. Open Trakive from a secure URL and try again.',
+    );
+  }
+  if (!navigator.geolocation) {
+    throw makeLocationError(LOCATION_ERROR.UNSUPPORTED, 'Geolocation is not available in this browser.');
+  }
+
+  // Start the lookup in this turn so a button click still counts as the user gesture
+  // Windows needs before it will show the system location prompt.
+  const preciseRequest = requestPosition({
+    enableHighAccuracy: true,
+    timeout: 12000,
+    maximumAge: 0,
+  });
+  preciseRequest.catch(() => {});
+
   const permissionState = await getLocationPermissionState();
   if (permissionState === 'denied') {
     throw makeLocationError(
@@ -65,27 +134,35 @@ async function getLocation() {
     );
   }
 
-  return new Promise((resolve, reject) => {
-    if (typeof window !== 'undefined' && !window.isSecureContext) {
-      reject(makeLocationError(
-        LOCATION_ERROR.UNAVAILABLE,
-        'Location check-in requires HTTPS or localhost. Open Trakive from a secure URL and try again.',
-      ));
-      return;
+  try {
+    return await preciseRequest;
+  } catch (error) {
+    error.permissionState = permissionState;
+    if (!shouldRetryWithApproximateLocation(error, permissionState)) throw error;
+
+    try {
+      return await requestPosition({
+        enableHighAccuracy: false,
+        timeout: 12000,
+        maximumAge: 30000,
+      });
+    } catch (fallbackError) {
+      if (fallbackError.code === 1 && permissionState === 'granted') {
+        try {
+          return await watchForPosition({
+            enableHighAccuracy: false,
+            timeout: 10000,
+            maximumAge: 30000,
+          }, 10000);
+        } catch {
+          fallbackError.permissionState = permissionState;
+          throw fallbackError;
+        }
+      }
+      fallbackError.permissionState = permissionState;
+      throw fallbackError;
     }
-    if (!navigator.geolocation) {
-      reject(makeLocationError(LOCATION_ERROR.UNSUPPORTED, 'Geolocation is not available in this browser.'));
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(resolve, (error) => {
-      error.permissionState = permissionState;
-      reject(error);
-    }, {
-      enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 0,
-    });
-  });
+  }
 }
 
 const getAttendanceErrorMessage = (err) => {
@@ -107,7 +184,7 @@ const getAttendanceErrorMessage = (err) => {
   if (err.code === 1 || err.code === LOCATION_ERROR.DENIED) {
     if (/HTTPS|secure URL/i.test(err.message || '')) return err.message;
     if (err.permissionState === 'granted') {
-      return 'Trakive has browser location access, but your device or operating system still denied the location lookup. Turn on device location services for this browser, then try again.';
+      return 'Trakive is allowed in the browser, but Windows blocked the location lookup. Turn on Location services, allow desktop apps to access location, then check in again.';
     }
     return 'Location permission is blocked for Trakive. Enable location access in your browser site settings, then tap Check In again.';
   }
@@ -133,6 +210,7 @@ const TodayAttendanceCard = ({ compact = false, onRequestCorrection }) => {
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
   const [error, setError] = useState('');
+  const [osLocationBlocked, setOsLocationBlocked] = useState(false);
   const [reason, setReason] = useState('');
   const [submittingCorrection, setSubmittingCorrection] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -143,14 +221,13 @@ const TodayAttendanceCard = ({ compact = false, onRequestCorrection }) => {
     return () => clearInterval(timer);
   }, []);
 
-  const autoKey = useMemo(() => `trakive_attendance_auto_${state?.date || 'today'}`, [state?.date]);
-
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = await attendanceService.getToday();
       setState(data);
       setError('');
+      setOsLocationBlocked(false);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Unable to load attendance.');
     } finally {
@@ -161,6 +238,7 @@ const TodayAttendanceCard = ({ compact = false, onRequestCorrection }) => {
   const submitCheckIn = useCallback(async (source = 'manual') => {
     setCheckingIn(true);
     setError('');
+    setOsLocationBlocked(false);
     try {
       const position = await getLocation();
       await attendanceService.checkIn({
@@ -174,7 +252,10 @@ const TodayAttendanceCard = ({ compact = false, onRequestCorrection }) => {
     } catch (err) {
       const message = getAttendanceErrorMessage(err);
       setError(message);
-      if (source !== 'auto') toast.error(message);
+      setOsLocationBlocked(
+        (err.code === 1 || err.code === LOCATION_ERROR.DENIED) && err.permissionState === 'granted',
+      );
+      toast.error(message);
     } finally {
       setCheckingIn(false);
     }
@@ -206,13 +287,6 @@ const TodayAttendanceCard = ({ compact = false, onRequestCorrection }) => {
   useEffect(() => {
     load();
   }, [load]);
-
-  useEffect(() => {
-    if (!state?.can_check_in || checkingIn) return;
-    if (sessionStorage.getItem(autoKey)) return;
-    sessionStorage.setItem(autoKey, '1');
-    submitCheckIn('auto');
-  }, [state?.can_check_in, autoKey, checkingIn, submitCheckIn]);
 
   if (loading) {
     return (
@@ -414,6 +488,17 @@ const TodayAttendanceCard = ({ compact = false, onRequestCorrection }) => {
             <div style={{ flex: 1 }}>
               <p style={{ margin: 0, fontWeight: 600 }}>Check-In Issue</p>
               <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', lineHeight: 1.45 }}>{error}</p>
+              {osLocationBlocked && canOpenWindowsLocationSettings() && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={openWindowsLocationSettings}
+                  style={{ marginTop: '0.65rem' }}
+                >
+                  <RiSettings3Line style={{ marginRight: '0.3rem' }} />
+                  Open Windows location settings
+                </Button>
+              )}
             </div>
           </div>
         )}

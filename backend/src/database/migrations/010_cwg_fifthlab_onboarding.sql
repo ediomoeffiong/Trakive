@@ -17,8 +17,14 @@ BEGIN
     SELECT id INTO v_fifthlab_id FROM organizations WHERE slug = 'fifthlab' LIMIT 1;
     SELECT id INTO v_cwg_id FROM organizations WHERE slug = 'cwg-plc' LIMIT 1;
 
-    -- Update departments with legacy org to fifthlab if any
-    UPDATE departments SET organization_id = v_fifthlab_id WHERE organization_id NOT IN (v_fifthlab_id, v_cwg_id);
+    -- Update departments with legacy org to fifthlab if any without duplicate
+    UPDATE departments d
+    SET organization_id = v_fifthlab_id 
+    WHERE organization_id NOT IN (v_fifthlab_id, v_cwg_id)
+      AND NOT EXISTS (
+        SELECT 1 FROM departments d2 
+        WHERE d2.organization_id = v_fifthlab_id AND d2.name = d.name
+      );
 
     -- Insert standard departments for FifthLab
     INSERT INTO departments (organization_id, name, code, description)

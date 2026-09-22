@@ -1,9 +1,8 @@
 /**
  * @file notificationService.js
- * @description Role-aware mock service layer for Trakive's Notifications & Communication Center.
+ * @description Role-aware service layer for Trakive's Notifications & Communication Center.
  *
  * Supports both Intern and Supervisor portals seamlessly.
- * All methods return Promises with artificial delays to simulate backend responses.
  */
 
 import api from './api';
@@ -18,6 +17,8 @@ import {
   defaultSupervisorPreferences,
 } from '../data';
 import { useAppStore } from '../store/useAppStore';
+import { getAccessToken } from '../utils/authSession';
+import { settingsService } from './settingsService';
 
 /** Artificial network delay */
 const delay = (ms = 500) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -28,6 +29,59 @@ let _supervisorNotifications = [];
 let _preferences = { ...defaultNotificationPreferences };
 let _supervisorPreferences = { ...defaultSupervisorPreferences };
 
+const hasRealBackendToken = () => {
+  const token = getAccessToken();
+  return Boolean(token && !String(token).startsWith('mock-') && !String(token).startsWith('mock-jwt-token'));
+};
+
+const dataOf = (response) => response?.data?.data ?? response?.data;
+
+const typeToCategory = (type = '') => {
+  const normalized = String(type || '').toLowerCase();
+  if (normalized === 'task') return 'task_assigned';
+  if (normalized === 'weekly') return 'weekly_summary';
+  if (normalized.startsWith('onboarding')) return 'onboarding';
+  if (normalized === 'project') return 'task_updated';
+  if (normalized === 'attendance' || normalized === 'leave') return 'reminder';
+  if (normalized === 'message') return 'announcement';
+  return 'system_update';
+};
+
+const mapApiNotification = (n, role) => ({
+  id: n.id,
+  category: typeToCategory(n.type),
+  title: n.title,
+  shortDescription: n.message,
+  message: n.message,
+  timestamp: n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now',
+  date: n.created_at || new Date().toISOString(),
+  isRead: Boolean(n.is_read),
+  isArchived: Boolean(n.archived_at),
+  actionLabel: n.link_url ? 'View Details' : undefined,
+  actionRoute: n.link_url || (role === 'Supervisor' ? '/supervisor/dashboard' : '/dashboard'),
+  linkUrl: n.link_url,
+  priority: 'normal',
+  type: n.type,
+});
+
+const preferenceKeyForCategory = (category) => {
+  if (category === 'task_assigned' || category === 'task_updated') return 'taskNotifications';
+  if (category === 'weekly_summary') return 'weeklyDigest';
+  if (category === 'onboarding') return 'onboardingUpdates';
+  if (category === 'reminder') return 'reminders';
+  if (category === 'announcement') return 'announcements';
+  if (category === 'system_update') return 'systemUpdates';
+  return null;
+};
+
+const applyNotificationPreferences = (notifications = [], preferences = {}) => {
+  if (preferences.inAppNotifications === false) return [];
+  return notifications.filter((notification) => {
+    const preferenceKey = preferenceKeyForCategory(notification.category);
+    return !preferenceKey || preferences[preferenceKey] !== false;
+  });
+};
+
 const getEffectiveRole = (explicitRole) => {
   if (explicitRole) return explicitRole;
   try {
@@ -35,18 +89,6 @@ const getEffectiveRole = (explicitRole) => {
     return currentUser?.role || 'Intern';
   } catch {
     return 'Intern';
-  }
-};
-
-const isDemoUser = () => {
-  try {
-    const user = useAppStore.getState()?.user;
-    if (!user) return false;
-    const demoIds = ['u-1', 'u-2', 'u-3', 'u-4'];
-    const demoEmails = ['intern@thefifthlab.com', 'supervisor@thefifthlab.com', 'hr@thefifthlab.com', 'head@thefifthlab.com'];
-    return demoIds.includes(user.id) || demoEmails.includes(user.email?.toLowerCase());
-  } catch {
-    return false;
   }
 };
 
@@ -78,32 +120,24 @@ export const notificationService = {
    * @returns {Promise<Array>}
    */
   getNotifications: async (role) => {
-    try {
-      const response = await api.get('/notifications');
-      const list = response?.data?.data || response?.data;
-      if (Array.isArray(list)) {
-        return list.map((n) => ({
-          id: n.id,
-          category: n.type || 'system_update',
-          title: n.title,
-          shortDescription: n.message,
-          message: n.message,
-          timestamp: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          date: n.created_at,
-          isRead: !!n.is_read,
-          actionLabel: 'View Onboarding',
-          actionRoute: n.link_url || (role === 'Supervisor' ? '/supervisor/onboarding' : '/dashboard/onboarding'),
-          priority: 'normal',
-        }));
+    if (hasRealBackendToken()) {
+      try {
+        const list = dataOf(await api.get('/notifications'));
+        if (Array.isArray(list)) {
+          const mapped = list.map((n) => mapApiNotification(n, role));
+          const settings = await settingsService.fetchSettings();
+          return applyNotificationPreferences(mapped, settings.notifications || {});
+        }
+      } catch {
+        // Fall back to durable local notifications when the API is unavailable.
       }
-    } catch (e) {
-      // ignore network errors
     }
     const activeRole = getEffectiveRole(role);
     const key = getUserNotifKey(activeRole);
     const saved = localStorage.getItem(key);
     if (saved) {
-      return JSON.parse(saved);
+      const settings = await settingsService.fetchSettings();
+      return applyNotificationPreferences(JSON.parse(saved), settings.notifications || {});
     }
     return [];
   },
@@ -187,6 +221,10 @@ export const notificationService = {
    * @returns {Promise<object>}
    */
   getPreferences: async (role) => {
+    if (hasRealBackendToken()) {
+      const settings = await settingsService.fetchSettings();
+      return { ...defaultNotificationPreferences, ...(settings.notifications || {}) };
+    }
     await delay(200);
     const activeRole = getEffectiveRole(role);
     if (activeRole === 'Supervisor') {
@@ -202,6 +240,10 @@ export const notificationService = {
    * @returns {Promise<object>} Updated notification
    */
   markAsRead: async (id, role) => {
+    if (hasRealBackendToken()) {
+      const updated = dataOf(await api.patch(`/notifications/${id}/read`));
+      return mapApiNotification(updated, role);
+    }
     await delay(150);
     const activeRole = getEffectiveRole(role);
     const list = await notificationService.getNotifications(activeRole);
@@ -217,6 +259,10 @@ export const notificationService = {
    * @returns {Promise<object>} Updated notification
    */
   markAsUnread: async (id, role) => {
+    if (hasRealBackendToken()) {
+      const updated = dataOf(await api.patch(`/notifications/${id}/unread`));
+      return mapApiNotification(updated, role);
+    }
     await delay(150);
     const activeRole = getEffectiveRole(role);
     const list = await notificationService.getNotifications(activeRole);
@@ -231,6 +277,10 @@ export const notificationService = {
    * @returns {Promise<Array>}
    */
   markAllAsRead: async (role) => {
+    if (hasRealBackendToken()) {
+      const updated = dataOf(await api.patch('/notifications/read-all'));
+      return Array.isArray(updated) ? updated.map((n) => mapApiNotification(n, role)) : [];
+    }
     await delay(200);
     const activeRole = getEffectiveRole(role);
     const list = await notificationService.getNotifications(activeRole);
@@ -246,6 +296,10 @@ export const notificationService = {
    * @returns {Promise<{ success: boolean }>}
    */
   deleteNotification: async (id, role) => {
+    if (hasRealBackendToken()) {
+      await api.delete(`/notifications/${id}`);
+      return { success: true };
+    }
     await delay(150);
     const activeRole = getEffectiveRole(role);
     const list = await notificationService.getNotifications(activeRole);
@@ -261,6 +315,10 @@ export const notificationService = {
    * @returns {Promise<object>} Updated notification
    */
   archiveNotification: async (id, role) => {
+    if (hasRealBackendToken()) {
+      const updated = dataOf(await api.patch(`/notifications/${id}/archive`));
+      return mapApiNotification(updated, role);
+    }
     await delay(150);
     const activeRole = getEffectiveRole(role);
     const list = await notificationService.getNotifications(activeRole);
@@ -276,13 +334,21 @@ export const notificationService = {
    * @returns {Promise<object>} Updated preferences
    */
   updatePreferences: async (prefs, role) => {
+    const normalizedPrefs = {
+      ...(prefs || {}),
+      emailNotifications: false,
+      pushNotifications: false,
+    };
+    if (hasRealBackendToken()) {
+      return settingsService.updateSettingsCategory('notifications', normalizedPrefs);
+    }
     await delay(200);
     const activeRole = getEffectiveRole(role);
     if (activeRole === 'Supervisor') {
-      _supervisorPreferences = { ..._supervisorPreferences, ...prefs };
+      _supervisorPreferences = { ..._supervisorPreferences, ...normalizedPrefs };
       return { ..._supervisorPreferences };
     }
-    _preferences = { ..._preferences, ...prefs };
+    _preferences = { ..._preferences, ...normalizedPrefs };
     return { ..._preferences };
   },
 

@@ -12,8 +12,23 @@ const NotificationModel = {
   },
 
   async findByUserId(userId) {
-    const res = await query('SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
+    const res = await query(
+      `SELECT *
+       FROM notifications
+       WHERE user_id = $1
+         AND archived_at IS NULL
+       ORDER BY created_at DESC`,
+      [userId],
+    );
     return res.rows;
+  },
+
+  async findByIdForUser(id, userId) {
+    const res = await query(
+      'SELECT * FROM notifications WHERE id = $1 AND user_id = $2',
+      [id, userId],
+    );
+    return res.rows[0] || null;
   },
 
   async findPaginated({
@@ -30,6 +45,8 @@ const NotificationModel = {
     let whereClauses = [];
     let values = [];
     let idx = 1;
+
+    whereClauses.push('n.archived_at IS NULL');
 
     if (user_id) {
       whereClauses.push(`n.user_id = $${idx}`);
@@ -104,6 +121,8 @@ const NotificationModel = {
     let values = [];
     let idx = 1;
 
+    whereClauses.push('n.archived_at IS NULL');
+
     if (user_id) {
       whereClauses.push(`n.user_id = $${idx}`);
       values.push(user_id);
@@ -163,6 +182,52 @@ const NotificationModel = {
     `;
     const res = await query(sql, [userId, type, linkUrl, createdWithinHours]);
     return res.rows.length > 0;
+  },
+
+  async markRead(id, userId, isRead = true) {
+    const sql = `
+      UPDATE notifications
+      SET is_read = $3,
+          read_at = CASE WHEN $3 THEN COALESCE(read_at, NOW()) ELSE NULL END
+      WHERE id = $1
+        AND user_id = $2
+      RETURNING *;
+    `;
+    const res = await query(sql, [id, userId, Boolean(isRead)]);
+    return res.rows[0] || null;
+  },
+
+  async markAllRead(userId) {
+    const sql = `
+      UPDATE notifications
+      SET is_read = true,
+          read_at = COALESCE(read_at, NOW())
+      WHERE user_id = $1
+        AND archived_at IS NULL
+      RETURNING *;
+    `;
+    const res = await query(sql, [userId]);
+    return res.rows;
+  },
+
+  async archive(id, userId) {
+    const sql = `
+      UPDATE notifications
+      SET archived_at = NOW()
+      WHERE id = $1
+        AND user_id = $2
+      RETURNING *;
+    `;
+    const res = await query(sql, [id, userId]);
+    return res.rows[0] || null;
+  },
+
+  async delete(id, userId) {
+    const res = await query(
+      'DELETE FROM notifications WHERE id = $1 AND user_id = $2 RETURNING id',
+      [id, userId],
+    );
+    return res.rows[0] || null;
   },
 };
 

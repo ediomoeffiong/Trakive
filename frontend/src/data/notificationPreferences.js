@@ -13,7 +13,7 @@ export const defaultNotificationPreferences = {
   systemUpdates: false,
 
   // Delivery methods
-  emailNotifications: true,
+  emailNotifications: false,
   inAppNotifications: true,
 
   // Email digest
@@ -35,7 +35,7 @@ export const defaultSupervisorPreferences = {
   announcements: true,
   reminders: true,
   systemUpdates: true,
-  emailNotifications: true,
+  emailNotifications: false,
   inAppNotifications: true,
   emailDigest: 'instant',
   quietHoursEnabled: false,

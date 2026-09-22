@@ -202,7 +202,8 @@ export const useNotificationStore = create((set, get) => ({
     const prev = get().preferences;
     set((state) => ({ preferences: { ...state.preferences, ...prefs } }));
     try {
-      await notificationService.updatePreferences(prefs);
+      const updated = await notificationService.updatePreferences(prefs);
+      set({ preferences: updated });
     } catch {
       set({ preferences: prev });
     }

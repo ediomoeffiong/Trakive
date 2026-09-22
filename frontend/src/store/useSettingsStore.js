@@ -147,11 +147,15 @@ export const useSettingsStore = create((set, get) => ({
     set({ saving: true, error: null });
     try {
       const updates = get().settings[category];
-      await settingsService.updateSettingsCategory(category, updates);
+      const saved = await settingsService.updateSettingsCategory(category, updates);
       set((state) => ({
+        settings: {
+          ...state.settings,
+          [category]: clone(saved),
+        },
         pristineSettings: {
           ...state.pristineSettings,
-          [category]: clone(updates),
+          [category]: clone(saved),
         },
         isDirty: false,
         saving:  false,
