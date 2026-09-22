@@ -1,71 +1,66 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
-import { RiDownload2Line, RiFilePdf2Line, RiMapPinLine, RiRefreshLine } from 'react-icons/ri';
-import { Card, Button, Badge, Skeleton, EmptyState } from '../../components/ui';
+import {
+  RiDownload2Line,
+  RiFilePdf2Line,
+  RiRefreshLine,
+  RiAddCircleLine,
+  RiListCheck,
+  RiFeedbackLine,
+  RiBarChartBoxLine,
+  RiSettings4Line,
+  RiArrowLeftSLine,
+  RiArrowRightSLine,
+} from 'react-icons/ri';
+import { Card, Button } from '../../components/ui';
+import {
+  SupervisorAttendanceKPIs,
+  SupervisorRosterTable,
+  SupervisorCorrectionQueue,
+  SupervisorAttendanceCharts,
+  SupervisorAttendanceSettings,
+  ManualAttendanceModal,
+  ReviewCorrectionModal,
+} from '../../components/supervisor/attendance';
 import { attendanceService } from '../../services/attendanceService';
+import { useCurrentUser } from '../../store';
 
-const label = (value) => {
-  if (value === 'remote') return 'Online';
-  if (value === 'not_required') return 'Not expected';
-  return (value || 'pending').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+const pageVariants = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
 };
+
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
-const statusVariant = {
-  present: 'success',
-  late: 'warning',
-  absent: 'danger',
-  remote: 'primary',
-  excused: 'neutral',
-  pending: 'warning',
-  not_required: 'neutral',
-};
-
-function Field({ label: title, children }) {
-  return (
-    <label style={{ display: 'grid', gap: '0.35rem', fontSize: '0.8rem', color: 'var(--color-neutral-500)', fontWeight: 600 }}>
-      {title}
-      {children}
-    </label>
-  );
-}
-
-const inputStyle = {
-  width: '100%',
-  border: '1px solid var(--color-neutral-200)',
-  borderRadius: 8,
-  padding: '0.65rem 0.75rem',
-  font: 'inherit',
-  color: 'var(--color-neutral-800)',
-  background: '#fff',
-};
-
-const emptyOffice = () => ({ id: null, name: '', latitude: '', longitude: '', radius_meters: 200, address: '', is_active: true });
-
-const mapOfficeToForm = (item) => ({
-  id: item?.id || null,
-  name: item?.name || '',
-  latitude: item?.latitude ?? '',
-  longitude: item?.longitude ?? '',
-  radius_meters: item?.radius_meters ?? 200,
-  address: item?.address || '',
-  is_active: item?.is_active ?? true,
-});
+const TABS = [
+  { id: 'roster', label: 'Intern Roster', icon: RiListCheck },
+  { id: 'corrections', label: 'Correction Requests', icon: RiFeedbackLine, showBadge: true },
+  { id: 'analytics', label: 'Analytics & Trends', icon: RiBarChartBoxLine },
+  { id: 'settings', label: 'Policies & Geofencing', icon: RiSettings4Line },
+];
 
 const AttendanceDashboard = () => {
+  const user = useCurrentUser();
   const [date, setDate] = useState(todayIso());
   const [dashboard, setDashboard] = useState(null);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [office, setOffice] = useState(() => emptyOffice());
-  const [policy, setPolicy] = useState({ required_weekdays: [2, 3, 4], grace_minutes: 60, timezone: 'Africa/Lagos', attendance_score_enabled: true, attendance_score_weight: 30 });
-  const [override, setOverride] = useState({ start_date: todayIso(), end_date: todayIso(), status: 'remote', reason: '' });
-  const [holiday, setHoliday] = useState({ date: todayIso(), name: '' });
-  const [manual, setManual] = useState({ intern_id: '', date: todayIso(), status: 'present', reason: '' });
+  const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [activeTab, setActiveTab] = useState('roster');
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  // Modal states
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [selectedInternForManual, setSelectedInternForManual] = useState(null);
+
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedCorrectionForReview, setSelectedCorrectionForReview] = useState(null);
+  const [reviewAction, setReviewAction] = useState('approved');
+
+  const loadData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    else setRefreshing(true);
     try {
       const [dash, conf] = await Promise.all([
         attendanceService.getSupervisorDashboard({ date }),
@@ -74,85 +69,33 @@ const AttendanceDashboard = () => {
       setDashboard(dash);
       setConfig(conf);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Unable to load attendance dashboard.');
+      toast.error(err.response?.data?.message || 'Unable to load supervisor attendance dashboard.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [date]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    loadData();
+  }, [loadData]);
 
-  useEffect(() => {
-    const offices = config?.offices || [];
-    if (offices.length === 0) return;
-
-    setOffice((current) => {
-      const selected = offices.find((item) => item.id === current.id) || offices[0];
-      const hasUnsavedOffice =
-        !current.id &&
-        (String(current.name).trim() ||
-          String(current.latitude).trim() ||
-          String(current.longitude).trim() ||
-          String(current.address).trim());
-      return hasUnsavedOffice ? current : mapOfficeToForm(selected);
-    });
-  }, [config?.offices]);
-
-  const exportParams = useMemo(() => ({ date }), [date]);
-
-  const submit = async (kind) => {
-    try {
-      if (kind === 'office') {
-        const latitude = Number(office.latitude);
-        const longitude = Number(office.longitude);
-        const radius = Number(office.radius_meters || 200);
-        if (!office.name.trim() || !Number.isFinite(latitude) || !Number.isFinite(longitude) || !Number.isFinite(radius)) {
-          toast.error('Add a valid office name, latitude, longitude, and radius.');
-          return;
-        }
-
-        const payload = {
-          name: office.name.trim(),
-          address: office.address?.trim() || null,
-          latitude,
-          longitude,
-          radius_meters: radius,
-          is_active: office.is_active,
-        };
-        if (office.id) payload.id = office.id;
-
-        const savedOffice = await attendanceService.saveOffice(payload);
-        setOffice(mapOfficeToForm(savedOffice));
-      }
-      if (kind === 'policy') await attendanceService.savePolicy(policy);
-      if (kind === 'override') await attendanceService.createOverride(override);
-      if (kind === 'holiday') {
-        await attendanceService.addHoliday(holiday);
-        setHoliday({ date: todayIso(), name: '' });
-      }
-      if (kind === 'manual') await attendanceService.manualAttendance(manual);
-      toast.success('Attendance change saved.');
-      await load();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Unable to save attendance change.');
-    }
+  // Date jumper helpers
+  const handleStepDay = (delta) => {
+    const current = new Date(`${date}T12:00:00Z`);
+    current.setUTCDate(current.getUTCDate() + delta);
+    setDate(current.toISOString().slice(0, 10));
   };
 
-  const review = async (id, status) => {
-    try {
-      await attendanceService.reviewCorrection(id, { status, reason: status === 'approved' ? 'Approved by supervisor' : 'Rejected by supervisor' });
-      toast.success(`Correction ${status}.`);
-      await load();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Unable to review correction.');
-    }
+  const handleSetToday = () => {
+    setDate(todayIso());
   };
 
-  const download = async (format) => {
+  // Export handler
+  const handleExport = async (format) => {
+    setExporting(true);
     try {
-      const response = await attendanceService.exportReport({ ...exportParams, format });
+      const response = await attendanceService.exportReport({ date, format });
       const url = window.URL.createObjectURL(response.data);
       const link = document.createElement('a');
       const disposition = response.headers?.['content-disposition'] || '';
@@ -163,223 +106,401 @@ const AttendanceDashboard = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+      toast.success(`Exported attendance as ${format.toUpperCase()}`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Unable to export attendance report.');
+    } finally {
+      setExporting(false);
     }
   };
 
+  // Manual Adjust trigger
+  const handleOpenManual = (intern = null) => {
+    setSelectedInternForManual(intern);
+    setIsManualModalOpen(true);
+  };
+
+  // Review Correction trigger
+  const handleOpenReview = (request, action) => {
+    setSelectedCorrectionForReview(request);
+    setReviewAction(action);
+    setIsReviewModalOpen(true);
+  };
+
+  const supervisorName = user?.name?.split(' ')[0] || 'Supervisor';
+  const pendingCorrectionsCount = (dashboard?.correction_queue || []).length;
+  const isPhysicalDay = Boolean(dashboard?.required);
+  const dayType = dashboard?.day_type;
+
+  const dateObject = new Date(`${date}T12:00:00`);
+  const formattedDateTitle = dateObject.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '3rem', minWidth: 0 }}
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.75rem',
+        paddingBottom: '3.5rem',
+        minWidth: 0,
+        maxWidth: '100%',
+      }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.75rem', color: 'var(--color-neutral-900)' }}>Attendance Dashboard</h1>
-          <p style={{ margin: '0.35rem 0 0', color: 'var(--color-neutral-500)' }}>
-            Track intern attendance on physical work days. Online days are not expected unless an intern completes a task.
+      {/* ── 1. Hero Overview Banner ────────────────────────────────────────── */}
+      <section
+        className="accent-banner"
+        style={{
+          background: 'linear-gradient(135deg, #00b4d8 0%, #0077b6 100%)',
+          borderRadius: '1.25rem',
+          padding: '1.75rem 2rem',
+          color: '#ffffff',
+          boxShadow: '0 8px 32px rgba(0, 180, 216, 0.22)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1.25rem',
+        }}
+      >
+        <div style={{ maxWidth: '640px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+            <span style={{
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              backdropFilter: 'blur(8px)',
+              padding: '0.25rem 0.65rem',
+              borderRadius: '999px',
+              color: '#ffffff',
+            }}>
+              SUPERVISOR ATTENDANCE HUB
+            </span>
+
+            {/* Day Type Badge */}
+            <span style={{
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              backgroundColor: isPhysicalDay ? 'rgba(34, 197, 94, 0.35)' : dayType === 'online' ? 'rgba(14, 165, 233, 0.35)' : 'rgba(255, 255, 255, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.4)',
+              padding: '0.25rem 0.65rem',
+              borderRadius: '999px',
+              color: '#ffffff',
+            }}>
+              {isPhysicalDay ? '📍 Physical Office Workday' : dayType === 'online' ? '💻 Online Work Day' : '🎉 Holiday / Closure'}
+            </span>
+          </div>
+
+          <h2 style={{ margin: '0 0 0.35rem 0', fontSize: '1.75rem', fontWeight: 800, color: '#ffffff' }}>
+            Attendance Oversight, {supervisorName} 👋
+          </h2>
+          <p style={{ margin: 0, fontSize: '0.9375rem', color: 'rgba(255, 255, 255, 0.95)', lineHeight: 1.55 }}>
+            {isPhysicalDay
+              ? 'Physical office presence is required today. Live GPS verification is active.'
+              : (dayType === 'online'
+                ? 'Online Work Day — Interns automatically receive attendance credit upon completing weekly tasks.'
+                : 'No mandatory office check-in scheduled for this date.')}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} style={inputStyle} />
-          <Button variant="outline" onClick={load}><RiRefreshLine /> Refresh</Button>
-          <Button variant="outline" onClick={() => download('csv')}><RiDownload2Line /> CSV</Button>
-          <Button variant="outline" onClick={() => download('pdf')}><RiFilePdf2Line /> PDF</Button>
+
+        {/* Action Controls in Hero */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
+          <Button
+            size="sm"
+            onClick={() => handleOpenManual()}
+            style={{
+              background: '#ffffff',
+              color: '#0077b6',
+              fontWeight: 700,
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
+            }}
+          >
+            <RiAddCircleLine style={{ marginRight: '0.35rem' }} />
+            Manual Attendance
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleExport('csv')}
+            disabled={exporting}
+            style={{
+              borderColor: 'rgba(255, 255, 255, 0.4)',
+              color: '#ffffff',
+              background: 'rgba(255, 255, 255, 0.1)',
+            }}
+          >
+            <RiDownload2Line style={{ marginRight: '0.25rem' }} /> CSV
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleExport('pdf')}
+            disabled={exporting}
+            style={{
+              borderColor: 'rgba(255, 255, 255, 0.4)',
+              color: '#ffffff',
+              background: 'rgba(255, 255, 255, 0.1)',
+            }}
+          >
+            <RiFilePdf2Line style={{ marginRight: '0.25rem' }} /> PDF
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => loadData(true)}
+            style={{
+              borderColor: 'rgba(255, 255, 255, 0.4)',
+              color: '#ffffff',
+              background: 'rgba(255, 255, 255, 0.1)',
+            }}
+          >
+            <RiRefreshLine style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none', marginRight: '0.25rem' }} />
+            {refreshing ? 'Syncing...' : 'Refresh'}
+          </Button>
         </div>
-      </div>
+      </section>
 
-      {loading ? (
-        <div className="dashboard-kpi-grid">{[1, 2, 3, 4].map((i) => <Skeleton key={i} height="110px" />)}</div>
-      ) : (
-        <div className="dashboard-kpi-grid">
-          {[
-            [dashboard?.required ? 'Expected Physical' : 'Expected (Online Day)', dashboard?.required ? (dashboard?.counts?.expected || 0) : '0 (Not required)'],
-            ['Present (Office)', dashboard?.counts?.present || 0],
-            ['Late', dashboard?.counts?.late || 0],
-            [dashboard?.day_type === 'online' ? 'Task Credited (Online)' : 'Pending Check-in', dashboard?.day_type === 'online' ? (dashboard?.counts?.remote || 0) : (dashboard?.counts?.pending || 0)],
-          ].map(([title, value]) => (
-            <Card key={title}>
-              <p style={{ margin: 0, color: 'var(--color-neutral-500)', fontSize: '0.8rem' }}>{title}</p>
-              <h3 style={{ margin: '0.35rem 0 0', fontSize: '1.6rem' }}>{value}</h3>
-            </Card>
-          ))}
+      {/* ── 2. Interactive Date Navigation Bar ─────────────────────────────── */}
+      <section style={{
+        background: '#ffffff',
+        border: '1px solid var(--color-neutral-200)',
+        borderRadius: '0.875rem',
+        padding: '0.875rem 1.25rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+      }}>
+        {/* Left: Day stepping */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            type="button"
+            onClick={() => handleStepDay(-1)}
+            aria-label="Previous Day"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '34px',
+              height: '34px',
+              borderRadius: '8px',
+              border: '1px solid var(--color-neutral-200)',
+              background: '#ffffff',
+              cursor: 'pointer',
+              color: 'var(--color-neutral-700)',
+              transition: 'background-color 0.15s ease',
+            }}
+          >
+            <RiArrowLeftSLine fontSize="1.2rem" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleStepDay(1)}
+            aria-label="Next Day"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '34px',
+              height: '34px',
+              borderRadius: '8px',
+              border: '1px solid var(--color-neutral-200)',
+              background: '#ffffff',
+              cursor: 'pointer',
+              color: 'var(--color-neutral-700)',
+              transition: 'background-color 0.15s ease',
+            }}
+          >
+            <RiArrowRightSLine fontSize="1.2rem" />
+          </button>
+
+          <Button size="xs" variant="outline" onClick={handleSetToday}>
+            Today
+          </Button>
+
+          <strong style={{ marginLeft: '0.5rem', fontSize: '1rem', color: 'var(--color-neutral-900)' }}>
+            {formattedDateTitle}
+          </strong>
         </div>
-      )}
 
-      <Card header={<h3 style={{ margin: 0 }}>{dashboard?.required ? "Today's Expected Interns (Physical Day)" : "Today's Interns (Online Work Day — Physical Attendance Not Expected)"}</h3>}>
-        {dashboard?.reason && (
-          <p style={{ margin: '0 0 1rem', color: 'var(--color-neutral-600)', fontSize: '0.875rem' }}>{dashboard.reason}</p>
-        )}
-        {loading ? (
-          <Skeleton height="260px" />
-        ) : (dashboard?.expected || []).length === 0 ? (
-          <EmptyState title="No interns match the selected filters" description="Try another date or filter." />
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', minWidth: 850, borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ textAlign: 'left', color: 'var(--color-neutral-500)', fontSize: '0.78rem' }}>
-                  <th style={{ padding: '0.75rem' }}>Intern</th>
-                  <th style={{ padding: '0.75rem' }}>Department</th>
-                  <th style={{ padding: '0.75rem' }}>Status</th>
-                  <th style={{ padding: '0.75rem' }}>Check In</th>
-                  <th style={{ padding: '0.75rem' }}>Office</th>
-                  <th style={{ padding: '0.75rem' }}>Verification</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dashboard.expected.map((row) => (
-                  <tr key={row.internship_record_id} style={{ borderTop: '1px solid var(--color-neutral-100)' }}>
-                    <td style={{ padding: '0.75rem' }}>
-                      <strong>{row.first_name} {row.last_name}</strong>
-                      <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>{row.email}</p>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>{row.department_name || '-'}</td>
-                    <td style={{ padding: '0.75rem' }}><Badge variant={statusVariant[row.status || 'pending'] || 'neutral'}>{label(row.status)}</Badge></td>
-                    <td style={{ padding: '0.75rem' }}>{row.check_in ? new Date(row.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
-                    <td style={{ padding: '0.75rem' }}>{row.office_name || '-'}</td>
-                    <td style={{ padding: '0.75rem' }}>{label(row.verification_status)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+        {/* Right: Date Picker */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)', fontWeight: 500 }}>
+            Select Date:
+          </span>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            style={{
+              border: '1px solid var(--color-neutral-300)',
+              borderRadius: '0.5rem',
+              padding: '0.45rem 0.75rem',
+              fontFamily: 'inherit',
+              fontSize: '0.85rem',
+              color: 'var(--color-neutral-800)',
+              background: '#ffffff',
+            }}
+          />
+        </div>
+      </section>
 
-      <div className="grid-responsive">
-        <Card header={<h3 style={{ margin: 0 }}>Correction Queue</h3>}>
-          {(dashboard?.correction_queue || []).length === 0 ? (
-            <EmptyState title="No pending correction requests" description="Requests from interns will appear here." />
-          ) : (
-            <div style={{ display: 'grid', gap: '0.75rem' }}>
-              {dashboard.correction_queue.map((request) => (
-                <div key={request.id} style={{ border: '1px solid var(--color-neutral-200)', borderRadius: 8, padding: '0.875rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    <strong>{request.first_name} {request.last_name}</strong>
-                    <Badge variant={request.status === 'pending' ? 'warning' : request.status === 'approved' ? 'success' : 'danger'}>{label(request.status)}</Badge>
-                  </div>
-                  <p style={{ margin: '0.4rem 0', color: 'var(--color-neutral-600)', fontSize: '0.85rem' }}>{request.reason}</p>
-                  {request.status === 'pending' && (
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <Button size="sm" onClick={() => review(request.id, 'approved')}>Approve</Button>
-                      <Button size="sm" variant="outline" onClick={() => review(request.id, 'rejected')}>Reject</Button>
-                    </div>
-                  )}
-                </div>
-              ))}
+      {/* ── 3. KPI Summary Metrics ─────────────────────────────────────────── */}
+      <section>
+        <SupervisorAttendanceKPIs
+          dashboard={dashboard}
+          loading={loading}
+          onSelectTab={setActiveTab}
+        />
+      </section>
+
+      {/* ── 4. Main Tabbed Workspaces ──────────────────────────────────────── */}
+      <section>
+        <Card
+          header={
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1rem',
+            }}>
+              {/* Tab Navigation buttons */}
+              <div style={{
+                display: 'inline-flex',
+                background: 'var(--color-neutral-100)',
+                padding: '0.25rem',
+                borderRadius: '0.625rem',
+                border: '1px solid var(--color-neutral-200)',
+                flexWrap: 'wrap',
+                gap: '2px',
+              }}>
+                {TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  const isCorrections = tab.id === 'corrections';
+
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.8125rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        border: 'none',
+                        background: isActive ? '#ffffff' : 'transparent',
+                        color: isActive ? 'var(--color-primary-700)' : 'var(--color-neutral-600)',
+                        boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <Icon />
+                      <span>{tab.label}</span>
+                      {isCorrections && pendingCorrectionsCount > 0 && (
+                        <span style={{
+                          padding: '0.1rem 0.45rem',
+                          borderRadius: '999px',
+                          fontSize: '0.6875rem',
+                          fontWeight: 700,
+                          background: '#f59e0b',
+                          color: '#ffffff',
+                          lineHeight: 1.2,
+                        }}>
+                          {pendingCorrectionsCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Contextual Status or Quick Action */}
+              {activeTab === 'roster' && (
+                <span style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
+                  Total Interns: <strong>{(dashboard?.expected || []).length}</strong>
+                </span>
+              )}
             </div>
+          }
+        >
+          {/* Tab 1: Intern Roster */}
+          {activeTab === 'roster' && (
+            <SupervisorRosterTable
+              expected={dashboard?.expected || []}
+              loading={loading}
+              onManualAdjust={handleOpenManual}
+              dayType={dayType}
+              required={isPhysicalDay}
+            />
+          )}
+
+          {/* Tab 2: Correction Queue */}
+          {activeTab === 'corrections' && (
+            <SupervisorCorrectionQueue
+              queue={dashboard?.correction_queue || []}
+              loading={loading}
+              onReview={handleOpenReview}
+            />
+          )}
+
+          {/* Tab 3: Analytics & Trends */}
+          {activeTab === 'analytics' && (
+            <SupervisorAttendanceCharts
+              dashboard={dashboard}
+              loading={loading}
+            />
+          )}
+
+          {/* Tab 4: Policies & Geofencing */}
+          {activeTab === 'settings' && (
+            <SupervisorAttendanceSettings
+              config={config}
+              loading={loading}
+              onReload={() => loadData(true)}
+            />
           )}
         </Card>
+      </section>
 
-        <Card header={<h3 style={{ margin: 0 }}>Manual Correction</h3>}>
-          <div style={{ display: 'grid', gap: '0.75rem' }}>
-            <Field label="Intern User ID"><input style={inputStyle} value={manual.intern_id} onChange={(e) => setManual({ ...manual, intern_id: e.target.value })} /></Field>
-            <Field label="Date"><input type="date" style={inputStyle} value={manual.date} onChange={(e) => setManual({ ...manual, date: e.target.value })} /></Field>
-            <Field label="Status">
-              <select style={inputStyle} value={manual.status} onChange={(e) => setManual({ ...manual, status: e.target.value })}>
-                {['present', 'late', 'absent', 'excused', 'remote', 'public_holiday', 'non_workday'].map((item) => <option key={item} value={item}>{label(item)}</option>)}
-              </select>
-            </Field>
-            <Field label="Reason"><textarea rows={3} style={inputStyle} value={manual.reason} onChange={(e) => setManual({ ...manual, reason: e.target.value })} /></Field>
-            <Button onClick={() => submit('manual')}>Save Correction</Button>
-          </div>
-        </Card>
-      </div>
+      {/* ── 5. Modals Integration ─────────────────────────────────────────── */}
+      <ManualAttendanceModal
+        isOpen={isManualModalOpen}
+        onClose={() => setIsManualModalOpen(false)}
+        onSuccess={() => loadData(true)}
+        interns={dashboard?.expected || []}
+        selectedIntern={selectedInternForManual}
+        defaultDate={date}
+      />
 
-      <div className="grid-responsive">
-        <Card header={<h3 style={{ margin: 0 }}>Office / Geofence</h3>}>
-          <div style={{ display: 'grid', gap: '0.75rem' }}>
-            <Field label="Office name"><input style={inputStyle} value={office.name} onChange={(e) => setOffice({ ...office, name: e.target.value })} /></Field>
-            <Field label="Address"><input style={inputStyle} value={office.address} onChange={(e) => setOffice({ ...office, address: e.target.value })} /></Field>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem' }}>
-              <Field label="Latitude"><input style={inputStyle} value={office.latitude} onChange={(e) => setOffice({ ...office, latitude: e.target.value })} /></Field>
-              <Field label="Longitude"><input style={inputStyle} value={office.longitude} onChange={(e) => setOffice({ ...office, longitude: e.target.value })} /></Field>
-              <Field label="Radius (m)"><input type="number" style={inputStyle} value={office.radius_meters} onChange={(e) => setOffice({ ...office, radius_meters: e.target.value })} /></Field>
-            </div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
-              <input type="checkbox" checked={office.is_active} onChange={(e) => setOffice({ ...office, is_active: e.target.checked })} />
-              Active geofence
-            </label>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <Button onClick={() => submit('office')}><RiMapPinLine /> {office.id ? 'Update Office' : 'Save Office'}</Button>
-              <Button variant="outline" onClick={() => setOffice(emptyOffice())}>New Office</Button>
-            </div>
-            <div style={{ display: 'grid', gap: '0.5rem' }}>
-              {(config?.offices || []).map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setOffice(mapOfficeToForm(item))}
-                  style={{
-                    textAlign: 'left',
-                    border: `1px solid ${office.id === item.id ? 'var(--color-primary-300)' : 'var(--color-neutral-200)'}`,
-                    background: office.id === item.id ? 'var(--color-primary-50)' : '#fff',
-                    borderRadius: 8,
-                    padding: '0.65rem 0.75rem',
-                    font: 'inherit',
-                    color: 'var(--color-neutral-600)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <strong style={{ color: 'var(--color-neutral-800)' }}>{item.name}</strong> · {item.radius_meters}m
-                  <span style={{ marginLeft: '0.4rem', color: item.is_active ? 'var(--color-success-600)' : 'var(--color-neutral-400)' }}>
-                    {item.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </Card>
-
-        <Card header={<h3 style={{ margin: 0 }}>Department Policy</h3>}>
-          <div style={{ display: 'grid', gap: '0.75rem' }}>
-            <Field label="Required weekdays">
-              <input style={inputStyle} value={policy.required_weekdays.join(',')} onChange={(e) => setPolicy({ ...policy, required_weekdays: e.target.value.split(',').map((n) => Number(n.trim())).filter((n) => Number.isFinite(n)) })} />
-            </Field>
-            <Field label="Grace minutes"><input type="number" style={inputStyle} value={policy.grace_minutes} onChange={(e) => setPolicy({ ...policy, grace_minutes: Number(e.target.value) })} /></Field>
-            <Field label="Timezone"><input style={inputStyle} value={policy.timezone} onChange={(e) => setPolicy({ ...policy, timezone: e.target.value })} /></Field>
-            <Field label="Attendance weight"><input type="number" style={inputStyle} value={policy.attendance_score_weight} onChange={(e) => setPolicy({ ...policy, attendance_score_weight: Number(e.target.value) })} /></Field>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
-              <input type="checkbox" checked={policy.attendance_score_enabled} onChange={(e) => setPolicy({ ...policy, attendance_score_enabled: e.target.checked })} />
-              Include attendance in performance score
-            </label>
-            <Button onClick={() => submit('policy')}>Save Policy</Button>
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid-responsive">
-        <Card header={<h3 style={{ margin: 0 }}>Schedule Override</h3>}>
-          <div style={{ display: 'grid', gap: '0.75rem' }}>
-            <Field label="Start date"><input type="date" style={inputStyle} value={override.start_date} onChange={(e) => setOverride({ ...override, start_date: e.target.value })} /></Field>
-            <Field label="End date"><input type="date" style={inputStyle} value={override.end_date} onChange={(e) => setOverride({ ...override, end_date: e.target.value })} /></Field>
-            <Field label="Status">
-              <select style={inputStyle} value={override.status} onChange={(e) => setOverride({ ...override, status: e.target.value })}>
-                {['remote', 'excused', 'public_holiday', 'non_workday'].map((item) => <option key={item} value={item}>{label(item)}</option>)}
-              </select>
-            </Field>
-            <Field label="Reason"><textarea rows={3} style={inputStyle} value={override.reason} onChange={(e) => setOverride({ ...override, reason: e.target.value })} /></Field>
-            <Button onClick={() => submit('override')}>Create Override</Button>
-          </div>
-        </Card>
-
-        <Card header={<h3 style={{ margin: 0 }}>Organization Holiday</h3>}>
-          <div style={{ display: 'grid', gap: '0.75rem' }}>
-            <Field label="Date"><input type="date" style={inputStyle} value={holiday.date} onChange={(e) => setHoliday({ ...holiday, date: e.target.value })} /></Field>
-            <Field label="Name"><input style={inputStyle} value={holiday.name} onChange={(e) => setHoliday({ ...holiday, name: e.target.value })} /></Field>
-            <Button onClick={() => submit('holiday')}>Add Holiday / Closure</Button>
-            <div style={{ display: 'grid', gap: '0.5rem' }}>
-              {(config?.holidays || []).slice(0, 8).map((item) => (
-                <div key={item.id} style={{ fontSize: '0.85rem', color: 'var(--color-neutral-600)' }}>
-                  <strong>{new Date(item.date).toLocaleDateString()}</strong> · {item.name}
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-      </div>
+      <ReviewCorrectionModal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        onSuccess={() => loadData(true)}
+        request={selectedCorrectionForReview}
+        action={reviewAction}
+      />
     </motion.div>
   );
 };

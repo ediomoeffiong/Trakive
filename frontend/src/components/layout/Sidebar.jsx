@@ -29,12 +29,12 @@ import { useSidebarCollapsed, useToggleSidebar, useAppStore } from '../../store'
 // ── Navigation Configuration ──────────────────────────────────────────────────
 const NAV_ITEMS = [
   { label: 'Dashboard',     icon: RiDashboardLine,         to: ROUTES.DASHBOARD },
-  { label: 'Analytics',     icon: RiBarChartBoxLine,       to: ROUTES.ANALYTICS },
-  { label: 'Tasks',         icon: RiTaskLine,              to: ROUTES.TASKS },
   { label: 'Attendance',    icon: RiCalendarCheckLine,     to: ROUTES.ATTENDANCE },
+  { label: 'Tasks',         icon: RiTaskLine,              to: ROUTES.TASKS },
   { label: 'Projects',      icon: RiFolderLine,            to: ROUTES.PROJECTS },
   { label: 'Onboarding',    icon: RiCheckboxMultipleLine,  to: ROUTES.ONBOARDING },
   { label: 'Reviews',       icon: RiStarLine,              to: ROUTES.REVIEWS },
+  { label: 'Analytics',     icon: RiBarChartBoxLine,       to: ROUTES.ANALYTICS },
 ];
 
 

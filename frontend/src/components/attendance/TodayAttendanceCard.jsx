@@ -2,10 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   RiCalendarCheckLine,
-  RiMapPinLine,
   RiRefreshLine,
   RiTimeLine,
   RiErrorWarningLine,
+  RiCheckDoubleLine,
+  RiCompass3Line,
+  RiLightbulbLine,
+  RiSendPlaneLine,
 } from 'react-icons/ri';
 import { Card, Button, Badge, Skeleton } from '../ui';
 import { attendanceService } from '../../services/attendanceService';
@@ -125,13 +128,20 @@ const getAttendanceErrorMessage = (err) => {
   return message || 'Location check-in failed. Please try again or submit a supervisor review request.';
 };
 
-const TodayAttendanceCard = ({ compact = false }) => {
+const TodayAttendanceCard = ({ compact = false, onRequestCorrection }) => {
   const [state, setState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
   const [error, setError] = useState('');
   const [reason, setReason] = useState('');
   const [submittingCorrection, setSubmittingCorrection] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+
+  // Live clock updating every second
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const autoKey = useMemo(() => `trakive_attendance_auto_${state?.date || 'today'}`, [state?.date]);
 
@@ -159,7 +169,7 @@ const TodayAttendanceCard = ({ compact = false }) => {
         accuracy_meters: position.coords.accuracy,
         source,
       });
-      toast.success('Attendance check-in recorded.');
+      toast.success('Attendance check-in recorded successfully!');
       await load();
     } catch (err) {
       const message = getAttendanceErrorMessage(err);
@@ -171,8 +181,8 @@ const TodayAttendanceCard = ({ compact = false }) => {
   }, [load]);
 
   const submitCorrection = async () => {
-    if (!reason.trim()) {
-      toast.error('Add a short reason for supervisor review.');
+    if (!reason.trim() || reason.trim().length < 5) {
+      toast.error('Add a clear reason for supervisor review (minimum 5 characters).');
       return;
     }
     setSubmittingCorrection(true);
@@ -180,7 +190,7 @@ const TodayAttendanceCard = ({ compact = false }) => {
       await attendanceService.requestCorrection({
         date: state?.date,
         requested_status: 'present',
-        reason,
+        reason: reason.trim(),
         location_payload: { last_error: error },
       });
       setReason('');
@@ -207,9 +217,12 @@ const TodayAttendanceCard = ({ compact = false }) => {
   if (loading) {
     return (
       <Card>
-        <Skeleton height="1rem" width="45%" />
-        <Skeleton height="2rem" width="70%" style={{ marginTop: '0.75rem' }} />
-        <Skeleton height="2.5rem" width="100%" style={{ marginTop: '1rem' }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Skeleton height="1.25rem" width="40%" />
+          <Skeleton height="1.5rem" width="80px" borderRadius="999px" />
+        </div>
+        <Skeleton height="3rem" width="100%" style={{ marginTop: '1rem' }} />
+        <Skeleton height="2.5rem" width="100%" style={{ marginTop: '0.75rem' }} />
       </Card>
     );
   }
@@ -217,98 +230,265 @@ const TodayAttendanceCard = ({ compact = false }) => {
   const record = state?.record;
   const required = Boolean(state?.required);
   const status = record?.status || state?.derived_status || (required ? 'pending' : 'non_workday');
+  const isOnlineDay = state?.is_online_day || (!required && statusLabel(status, state?.date) === 'Online');
 
   return (
     <Card
       header={
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-            <span style={{ width: 36, height: 36, display: 'grid', placeItems: 'center', borderRadius: 8, background: 'var(--color-primary-50)', color: 'var(--color-primary-600)' }}>
+            <span style={{
+              width: 40,
+              height: 40,
+              display: 'grid',
+              placeItems: 'center',
+              borderRadius: '0.625rem',
+              background: 'var(--color-primary-50)',
+              color: 'var(--color-primary-600)',
+              fontSize: '1.25rem',
+            }}>
               <RiCalendarCheckLine />
             </span>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--color-neutral-900)' }}>Today's Attendance</h3>
-              <p style={{ margin: '0.15rem 0 0', fontSize: '0.78rem', color: 'var(--color-neutral-500)' }}>{state?.date}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
+                  Today's Attendance
+                </h3>
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--color-neutral-500)',
+                  background: 'var(--color-neutral-100)',
+                  padding: '0.15rem 0.5rem',
+                  borderRadius: '999px',
+                }}>
+                  {state?.date}
+                </span>
+              </div>
+              <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--color-neutral-500)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <RiTimeLine /> Live Time: <strong style={{ color: 'var(--color-neutral-800)' }}>{currentTime.toLocaleTimeString()}</strong>
+              </p>
             </div>
           </div>
-          <Badge variant={statusVariant[status] || 'warning'}>{statusLabel(status, state?.date)}</Badge>
+          <Badge variant={statusVariant[status] || 'warning'}>
+            {statusLabel(status, state?.date)}
+          </Badge>
         </div>
       }
     >
-      <div style={{ display: 'grid', gap: '0.875rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem' }}>
-          <div>
-            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>Required</p>
-            <p style={{ margin: '0.2rem 0 0', fontWeight: 700 }}>{required ? 'In office' : (statusLabel(status, state?.date) === 'Online' ? 'Online' : 'No')}</p>
-          </div>
-          <div>
-            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>Schedule</p>
-            <p style={{ margin: '0.2rem 0 0', fontWeight: 700 }}>
-              <RiTimeLine style={{ verticalAlign: '-2px' }} /> {String(state?.schedule?.arrival_time || '08:00').slice(0, 5)}
-              {' '}+ {state?.schedule?.grace_minutes ?? 60}m
+      <div style={{ display: 'grid', gap: '1rem' }}>
+        {/* Metric summary boxes */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: compact ? 'repeat(auto-fit, minmax(130px, 1fr))' : 'repeat(auto-fit, minmax(160px, 1fr))',
+          gap: '0.75rem',
+        }}>
+          <div style={{
+            background: 'var(--color-neutral-50)',
+            border: '1px solid var(--color-neutral-200)',
+            borderRadius: '0.625rem',
+            padding: '0.75rem 0.875rem',
+          }}>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)', fontWeight: 500 }}>Work Mode</p>
+            <p style={{ margin: '0.25rem 0 0', fontWeight: 700, fontSize: '0.925rem', color: 'var(--color-neutral-900)' }}>
+              {required ? 'In-Office Required' : (isOnlineDay ? 'Online Work Day' : 'Non-Work Day')}
             </p>
           </div>
-          <div>
-            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>Office Verification</p>
-            <p style={{ margin: '0.2rem 0 0', fontWeight: 700 }}>
-              <RiMapPinLine style={{ verticalAlign: '-2px' }} /> {statusLabel(record?.verification_status || (required ? 'pending' : 'not_required'))}
+
+          <div style={{
+            background: 'var(--color-neutral-50)',
+            border: '1px solid var(--color-neutral-200)',
+            borderRadius: '0.625rem',
+            padding: '0.75rem 0.875rem',
+          }}>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)', fontWeight: 500 }}>Daily Schedule</p>
+            <p style={{ margin: '0.25rem 0 0', fontWeight: 700, fontSize: '0.925rem', color: 'var(--color-neutral-900)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <RiTimeLine style={{ color: 'var(--color-primary-500)' }} />
+              {String(state?.schedule?.arrival_time || '08:00').slice(0, 5)}
+              <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-neutral-500)' }}>
+                (+{state?.schedule?.grace_minutes ?? 60}m grace)
+              </span>
+            </p>
+          </div>
+
+          <div style={{
+            background: 'var(--color-neutral-50)',
+            border: '1px solid var(--color-neutral-200)',
+            borderRadius: '0.625rem',
+            padding: '0.75rem 0.875rem',
+          }}>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)', fontWeight: 500 }}>Verification</p>
+            <p style={{ margin: '0.25rem 0 0', fontWeight: 700, fontSize: '0.925rem', color: 'var(--color-neutral-900)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <RiCompass3Line style={{ color: 'var(--color-primary-500)' }} />
+              {statusLabel(record?.verification_status || (required ? 'pending' : 'not_required'))}
             </p>
           </div>
         </div>
 
+        {/* Checked In Confirmation Banner */}
         {record?.check_in && (
-          <div style={{ padding: '0.75rem', border: '1px solid var(--color-neutral-200)', borderRadius: 8, background: 'var(--color-neutral-50)' }}>
-            <strong>Checked in:</strong> {new Date(record.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            {record.office_name ? ` at ${record.office_name}` : ''}
+          <div style={{
+            padding: '0.875rem 1rem',
+            border: '1px solid #bbf7d0',
+            borderRadius: '0.625rem',
+            background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <RiCheckDoubleLine style={{ color: '#16a34a', fontSize: '1.25rem' }} />
+              <div>
+                <strong style={{ color: '#15803d', fontSize: '0.875rem' }}>Check-In Confirmed</strong>
+                <p style={{ margin: '0.1rem 0 0', fontSize: '0.78rem', color: '#166534' }}>
+                  Recorded at {new Date(record.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  {record.office_name ? ` • ${record.office_name}` : ''}
+                </p>
+              </div>
+            </div>
+            <span style={{
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              padding: '0.2rem 0.6rem',
+              borderRadius: '999px',
+              background: '#22c55e',
+              color: '#ffffff',
+            }}>
+              {record.status === 'late' ? 'Late Arrival' : 'On-Time'}
+            </span>
           </div>
         )}
 
+        {/* Reason / Holiday banner if applicable */}
         {state?.reason && !required && (
-          <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-600)' }}>{state.reason}</p>
-        )}
-
-        {(state?.is_online_day || !required) && (
-          <div style={{ padding: '0.875rem 1rem', borderRadius: 10, background: 'linear-gradient(135deg, #e0f7fc 0%, #ccfbf1 100%)', border: '1.5px solid #90e0ef' }}>
-            <p style={{ margin: 0, fontSize: '0.925rem', fontWeight: 800, color: '#007791', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              💡 Complete a Task to mark Attendance
-            </p>
-            <p style={{ margin: '0.35rem 0 0', fontSize: '0.8125rem', color: '#0e7490', lineHeight: 1.5 }}>
-              Today is an Online Work Day — physical office check-in is not required. Completing any assigned task today will automatically credit your attendance.
-            </p>
+          <div style={{
+            padding: '0.75rem 1rem',
+            borderRadius: '0.625rem',
+            background: 'var(--color-neutral-100)',
+            color: 'var(--color-neutral-700)',
+            fontSize: '0.85rem',
+          }}>
+            {state.reason}
           </div>
         )}
 
+        {/* Online Work Day Notice */}
+        {isOnlineDay && (
+          <div style={{
+            padding: '0.875rem 1.125rem',
+            borderRadius: '0.75rem',
+            background: 'linear-gradient(135deg, #e0f7fc 0%, #cffafe 100%)',
+            border: '1px solid #a5f3fc',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.75rem',
+          }}>
+            <RiLightbulbLine style={{ color: '#007791', fontSize: '1.35rem', marginTop: 2, flexShrink: 0 }} />
+            <div>
+              <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: '#007791' }}>
+                Online Work Day — Task Attendance Active
+              </p>
+              <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: '#0e7490', lineHeight: 1.5 }}>
+                Physical office check-in is not required today. Completing any assigned weekly task will automatically credit your attendance.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Location / Geofence Error Notice */}
         {error && (
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', color: 'var(--color-danger-600)', fontSize: '0.85rem' }}>
-            <RiErrorWarningLine style={{ marginTop: 2, flexShrink: 0 }} />
-            <span>{error}</span>
+          <div style={{
+            display: 'flex',
+            gap: '0.625rem',
+            alignItems: 'flex-start',
+            color: 'var(--color-danger-700)',
+            background: 'var(--color-danger-50)',
+            border: '1px solid var(--color-danger-200)',
+            padding: '0.75rem 1rem',
+            borderRadius: '0.625rem',
+            fontSize: '0.85rem',
+          }}>
+            <RiErrorWarningLine style={{ marginTop: 2, flexShrink: 0, fontSize: '1.1rem' }} />
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontWeight: 600 }}>Check-In Issue</p>
+              <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', lineHeight: 1.45 }}>{error}</p>
+            </div>
           </div>
         )}
 
+        {/* Check In Action Button */}
         {state?.can_check_in && (
-          <Button onClick={() => submitCheckIn('manual')} disabled={checkingIn} style={{ width: '100%' }}>
-            <RiRefreshLine /> {checkingIn ? 'Checking location...' : 'Check In'}
-          </Button>
-        )}
-
-        {state?.can_check_in && (
-          <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.5 }}>
-            Check-in uses your current device location and is verified on the server against the configured office geofence.
-          </p>
-        )}
-
-        {required && !record?.check_in && (
-          <div style={{ display: 'grid', gap: '0.5rem' }}>
-            <textarea
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              placeholder="Request supervisor review if legitimate attendance could not be verified"
-              rows={3}
-              style={{ width: '100%', resize: 'vertical', border: '1px solid var(--color-neutral-200)', borderRadius: 8, padding: '0.75rem', font: 'inherit' }}
-            />
-            <Button variant="outline" onClick={submitCorrection} disabled={submittingCorrection}>
-              {submittingCorrection ? 'Sending...' : 'Submit Correction Request'}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <Button
+              onClick={() => submitCheckIn('manual')}
+              disabled={checkingIn}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                fontSize: '0.9375rem',
+                fontWeight: 700,
+                boxShadow: '0 4px 12px rgba(0, 180, 216, 0.25)',
+              }}
+            >
+              <RiRefreshLine style={{ animation: checkingIn ? 'spin 1s linear infinite' : 'none', marginRight: '0.35rem' }} />
+              {checkingIn ? 'Verifying Device GPS Location...' : 'Check In at Office Now'}
             </Button>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)', textAlign: 'center', lineHeight: 1.45 }}>
+              Check-in uses your device location and is securely verified against configured office geofences.
+            </p>
+          </div>
+        )}
+
+        {/* Correction Request Inline Option (if required and missed check in) */}
+        {required && !record?.check_in && (
+          <div style={{
+            borderTop: '1px solid var(--color-neutral-200)',
+            paddingTop: '0.875rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.625rem',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-700)' }}>
+                Missed Check-in or GPS Issue?
+              </span>
+              {onRequestCorrection ? (
+                <Button size="xs" variant="outline" onClick={() => onRequestCorrection(state?.date)}>
+                  <RiSendPlaneLine style={{ marginRight: '0.25rem' }} />
+                  Request Review
+                </Button>
+              ) : null}
+            </div>
+
+            {!onRequestCorrection && (
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <textarea
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                  placeholder="Explain why you could not check in (e.g. Geolocation error, verified arrival with team)..."
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    resize: 'vertical',
+                    border: '1px solid var(--color-neutral-300)',
+                    borderRadius: '0.5rem',
+                    padding: '0.65rem 0.75rem',
+                    fontFamily: 'inherit',
+                    fontSize: '0.8125rem',
+                  }}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={submitCorrection}
+                  disabled={submittingCorrection || reason.trim().length < 5}
+                >
+                  {submittingCorrection ? 'Submitting...' : 'Submit Correction Request'}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

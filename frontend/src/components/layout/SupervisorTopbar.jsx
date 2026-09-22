@@ -284,7 +284,7 @@ const SupervisorTopbar = ({ onMobileMenuToggle, onMobileMenuOpen, mobileOpen = f
                   }}
                 >
                   <RiUser3Line />
-                  Profile
+                  My Profile
                 </button>
 
                 <button
