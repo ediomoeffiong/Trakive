@@ -14,10 +14,15 @@ import {
   RiUserStarLine,
 } from 'react-icons/ri';
 import Avatar from '../ui/Avatar';
-
+import { useCurrentUser } from '../../store';
+import { USER_ROLES } from '../../constants';
 
 export const ReportSummaryGrid = ({ summaryCards }) => {
   const navigate = useNavigate();
+  const user = useCurrentUser();
+  const isSupervisor = user?.role === USER_ROLES.SUPERVISOR;
+  const drilldownPath = (type) => isSupervisor ? `/supervisor/analytics/drilldown/${type}` : `/admin/analytics/drilldown/${type}`;
+  const comparePath = () => isSupervisor ? '/supervisor/analytics/compare' : '/admin/analytics/compare';
 
   if (!summaryCards) return null;
 
@@ -42,7 +47,7 @@ export const ReportSummaryGrid = ({ summaryCards }) => {
       {bestPerformingIntern && (
         <motion.div
           whileHover={{ y: -3 }}
-          onClick={() => navigate('/dashboard/analytics/drilldown/performance')}
+          onClick={() => navigate(drilldownPath('performance'))}
           style={cardWrapperStyle}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -83,7 +88,7 @@ export const ReportSummaryGrid = ({ summaryCards }) => {
       {mostImprovedIntern && (
         <motion.div
           whileHover={{ y: -3 }}
-          onClick={() => navigate('/dashboard/analytics/drilldown/performance')}
+          onClick={() => navigate(drilldownPath('performance'))}
           style={cardWrapperStyle}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -124,7 +129,7 @@ export const ReportSummaryGrid = ({ summaryCards }) => {
       {supervisorPerformance && (
         <motion.div
           whileHover={{ y: -3 }}
-          onClick={() => navigate('/dashboard/analytics/drilldown/review')}
+          onClick={() => navigate(drilldownPath('review'))}
           style={cardWrapperStyle}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -165,7 +170,7 @@ export const ReportSummaryGrid = ({ summaryCards }) => {
       {highestPerformingDept && (
         <motion.div
           whileHover={{ y: -3 }}
-          onClick={() => navigate('/dashboard/analytics/compare')}
+          onClick={() => navigate(comparePath())}
           style={cardWrapperStyle}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -198,7 +203,7 @@ export const ReportSummaryGrid = ({ summaryCards }) => {
       {/* 5. Upcoming Review Deadlines */}
       <motion.div
         whileHover={{ y: -3 }}
-        onClick={() => navigate('/dashboard/analytics/drilldown/review')}
+        onClick={() => navigate(drilldownPath('review'))}
         style={cardWrapperStyle}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -240,7 +245,7 @@ export const ReportSummaryGrid = ({ summaryCards }) => {
       {/* 6. Overdue Tasks */}
       <motion.div
         whileHover={{ y: -3 }}
-        onClick={() => navigate('/dashboard/analytics/drilldown/task')}
+        onClick={() => navigate(drilldownPath('task'))}
         style={cardWrapperStyle}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

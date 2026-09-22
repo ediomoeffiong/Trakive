@@ -13,6 +13,7 @@ export const useDashboardStore = create((set, get) => ({
   notifications: [],
   progress: null,
   chartData: null,
+  reviewSummary: null,
 
   // Loading states
   loadingStats: false,
@@ -105,6 +106,7 @@ export const useDashboardStore = create((set, get) => ({
         notifications: snapshot.notifications,
         progress: snapshot.progress,
         chartData: snapshot.chartData,
+        reviewSummary: snapshot.reviewSummary || null,
         loadingStats: false,
         loadingTasks: false,
         loadingActivities: false,

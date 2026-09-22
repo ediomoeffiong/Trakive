@@ -9,6 +9,7 @@ import toast         from 'react-hot-toast';
 import {
   RiComputerLine, RiSmartphoneLine, RiTabletLine,
   RiMapPinLine, RiTimeLine, RiDeleteBin7Line, RiLogoutBoxRLine, RiShieldCheckLine,
+  RiRefreshLine,
 } from 'react-icons/ri';
 import { useSettingsStore, useSessions } from '../../store/useSettingsStore';
 import Button from '../ui/Button';
@@ -138,13 +139,50 @@ const NoOtherSessions = () => (
   </div>
 );
 
+const SessionsError = ({ message, onRetry, loading }) => (
+  <div
+    style={{
+      padding: '1rem',
+      borderRadius: '0.75rem',
+      border: '1.5px solid var(--color-danger-200)',
+      background: 'var(--color-danger-50)',
+      color: 'var(--color-danger-700)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: '1rem',
+      flexWrap: 'wrap',
+    }}
+  >
+    <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600 }}>
+      {message || 'Unable to load live sessions right now.'}
+    </p>
+    <Button
+      variant="outline"
+      size="sm"
+      leftIcon={<RiRefreshLine />}
+      onClick={onRetry}
+      loading={loading}
+    >
+      Retry
+    </Button>
+  </div>
+);
+
 // ── Main Component ────────────────────────────────────────────────────────────
 const SessionsDevicesList = () => {
-  const { fetchSessions, revokeSession, revokeOtherSessions, loadingSessions, revokingSession } = useSettingsStore();
+  const {
+    fetchSessions,
+    revokeSession,
+    revokeOtherSessions,
+    loadingSessions,
+    revokingSession,
+    sessionsError,
+  } = useSettingsStore();
   const sessions = useSessions();
 
   useEffect(() => {
-    fetchSessions();
+    fetchSessions().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -155,8 +193,8 @@ const SessionsDevicesList = () => {
     try {
       await revokeSession(id);
       toast.success('Session signed out successfully.', { icon: '🔒' });
-    } catch {
-      toast.error('Failed to sign out session.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to sign out session.');
     }
   };
 
@@ -164,8 +202,8 @@ const SessionsDevicesList = () => {
     try {
       await revokeOtherSessions();
       toast.success('All other sessions signed out.', { icon: '🔐' });
-    } catch {
-      toast.error('Failed to sign out other sessions.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to sign out other sessions.');
     }
   };
 
@@ -191,7 +229,9 @@ const SessionsDevicesList = () => {
           </div>
         </div>
 
-        {loadingSessions ? (
+        {sessionsError && !loadingSessions ? (
+          <SessionsError message={sessionsError} onRetry={() => fetchSessions().catch(() => {})} loading={loadingSessions} />
+        ) : loadingSessions ? (
           <SessionsListSkeleton />
         ) : currentSession ? (
           <SessionCard
@@ -199,7 +239,11 @@ const SessionsDevicesList = () => {
             onRevoke={() => {}}
             isRevoking={false}
           />
-        ) : null}
+        ) : (
+          <p style={{ fontSize: '0.875rem', color: 'var(--color-neutral-500)', margin: 0 }}>
+            No active session record was returned for this login.
+          </p>
+        )}
       </div>
 
       {/* Other sessions */}

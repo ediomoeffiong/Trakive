@@ -4,10 +4,16 @@
  * - Desktop: pinned left, toggles between full (240px) and icon-only (72px)
  * - Mobile (< 1024px): slides in as an overlay from the left
  *
+/**
+ * @file Sidebar.jsx
+ * @description Collapsible navigation sidebar for Trakive's AppLayout.
+ * - Desktop: pinned left, toggles between full (240px) and icon-only (72px)
+ * - Mobile (< 1024px): slides in as an overlay from the left
+ *
  * State is managed by Zustand (useAppStore) so collapse preference persists.
  */
 
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -15,7 +21,6 @@ import {
   RiTaskLine,
   RiCheckboxMultipleLine,
   RiStarLine,
-  RiBarChartBoxLine,
   RiSettings3Line,
   RiArrowLeftSLine,
   RiArrowRightSLine,
@@ -34,9 +39,7 @@ const NAV_ITEMS = [
   { label: 'Projects',      icon: RiFolderLine,            to: ROUTES.PROJECTS },
   { label: 'Onboarding',    icon: RiCheckboxMultipleLine,  to: ROUTES.ONBOARDING },
   { label: 'Reviews',       icon: RiStarLine,              to: ROUTES.REVIEWS },
-  { label: 'Analytics',     icon: RiBarChartBoxLine,       to: ROUTES.ANALYTICS },
 ];
-
 
 const BOTTOM_NAV = [
   { label: 'Settings', icon: RiSettings3Line, to: ROUTES.SETTINGS },

@@ -19,11 +19,16 @@ import {
   RiCalendarLine,
 } from 'react-icons/ri';
 import toast from 'react-hot-toast';
-import { useAnalyticsStore } from '../../store';
+import { useAnalyticsStore, useCurrentUser } from '../../store';
+import { ROUTES, USER_ROLES } from '../../constants';
 import { EmptyState } from '../../components/analytics';
 
 export default function SavedReportsPage() {
   const navigate = useNavigate();
+  const user = useCurrentUser();
+  const isSupervisor = user?.role === USER_ROLES.SUPERVISOR;
+  const reportsHome = isSupervisor ? ROUTES.SUPERVISOR_REPORTS : ROUTES.ADMIN_REPORTS;
+  const builderRoute = isSupervisor ? ROUTES.SUPERVISOR_REPORTS_BUILDER : ROUTES.ADMIN_REPORTS_BUILDER;
   const {
     savedReports,
     duplicateReport,
@@ -76,7 +81,7 @@ export default function SavedReportsPage() {
         </div>
 
         <button
-          onClick={() => navigate('/dashboard/reports/builder')}
+          onClick={() => navigate(builderRoute)}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -210,7 +215,7 @@ export default function SavedReportsPage() {
                 </span>
 
                 <div style={{ display: 'flex', gap: '0.375rem' }}>
-                  <button onClick={() => navigate('/dashboard/analytics')} title="Open Report" style={iconActionStyle}>
+                  <button onClick={() => navigate(reportsHome)} title="Open Report" style={iconActionStyle}>
                     <RiExternalLinkLine />
                   </button>
                   <button onClick={() => duplicateReport(report.id)} title="Duplicate Report" style={iconActionStyle}>

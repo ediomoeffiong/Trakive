@@ -248,12 +248,13 @@ const loadDashboardSnapshot = async () => {
   const lastMonday = shiftDays(thisMonday, -7);
   const weekStarts = [0, 1, 2, 3].map((offset) => shiftDays(thisMonday, -offset * 7));
 
-  const [tasksRes, analyticsRes, notificationsRes, documentsRes, projectsRes, ...weekResults] = await Promise.all([
+  const [tasksRes, analyticsRes, notificationsRes, documentsRes, projectsRes, trendsRes, ...weekResults] = await Promise.all([
     api.get('/tasks', { params: { page: 1, limit: 100, sort: 'due_date:asc' } }).catch(() => null),
     api.get('/analytics/dashboard').catch(() => null),
     api.get('/notifications').catch(() => null),
     api.get('/onboarding/documents').catch(() => null),
     projectService.listProjects({ limit: 100 }).catch(() => ({ data: [] })),
+    api.get('/reviews/performance-trends').catch(() => null),
     ...weekStarts.map((weekStart) => weeklyPlanService.getWeeklyPlan(weekStart).catch(() => ({ data: { tasks: [] } }))),
   ]);
 
@@ -270,6 +271,8 @@ const loadDashboardSnapshot = async () => {
   const notifications = unwrapList(notificationsRes);
   const documentsPayload = unwrapData(documentsRes);
   const onboarding = getOnboardingProgress(user, documentsPayload);
+  const trendsPayload = unwrapData(trendsRes);
+  const reviewTrends = trendsPayload?.summary || null;
 
   const completedCount = analytics?.tasks?.completed ?? tasks.filter((task) => task.completed).length;
   const pendingCount = analytics?.tasks?.pending_in_progress
@@ -277,6 +280,32 @@ const loadDashboardSnapshot = async () => {
   const upcoming = tasks
     .filter((task) => !task.completed && task.dueDateKey)
     .sort((a, b) => String(a.dueDateKey).localeCompare(String(b.dueDateKey)));
+
+  // Calculate high-level performance metrics for Intern Dashboard
+  let perfScore = '4.8';
+  let perfTrend = '+0%';
+  let perfTrendUp = true;
+  if (reviewTrends?.overallScore != null && reviewTrends.overallScore !== '—') {
+    const rawScore = Number(reviewTrends.overallScore);
+    if (!Number.isNaN(rawScore) && rawScore > 0) {
+      perfScore = rawScore <= 5 ? rawScore.toFixed(1) : (rawScore / 20).toFixed(1);
+    }
+  } else if (analytics?.performance_overview?.average_task_rating) {
+    const rating = Number(analytics.performance_overview.average_task_rating);
+    perfScore = rating <= 5 ? rating.toFixed(1) : (rating / 20).toFixed(1);
+  }
+  if (reviewTrends?.trendDelta && reviewTrends.trendDelta !== '—') {
+    perfTrend = `${String(reviewTrends.trendDelta).startsWith('+') || String(reviewTrends.trendDelta).startsWith('-') ? '' : '+'}${reviewTrends.trendDelta}%`;
+    perfTrendUp = reviewTrends.trend !== 'down';
+  }
+
+  // Attendance summary rate
+  const attTotal = analytics?.attendance?.total_logged ?? 0;
+  const attPresent = analytics?.attendance?.present ?? 0;
+  const attRateRaw = analytics?.attendance?.attendance_rate;
+  const attendanceRate = attRateRaw != null
+    ? Math.round(Number(attRateRaw))
+    : (attTotal > 0 ? Math.round((attPresent / attTotal) * 100) : 100);
 
   const startDate = onboarding.info.start_date || user?.startDate || user?.start_date || '';
   const endDate = onboarding.info.end_date || user?.endDate || user?.end_date || '';
@@ -326,6 +355,25 @@ const loadDashboardSnapshot = async () => {
 
   return {
     stats: {
+      overallPerformance: {
+        label: 'Overall Performance',
+        value: perfScore,
+        suffix: ' / 5.0',
+        trend: perfTrend,
+        trendUp: perfTrendUp,
+      },
+      tasksCompleted: {
+        label: 'Tasks Completed',
+        value: completedCount,
+        ...percentTrend(thisWeekCompleted, lastWeekCompleted),
+      },
+      attendanceRate: {
+        label: 'Attendance Rate',
+        value: attendanceRate,
+        suffix: '%',
+        trend: attTotal > 0 ? `${attPresent}d present` : '100% on-track',
+        trendUp: attendanceRate >= 80,
+      },
       internshipProgress: {
         label: 'Overall Internship Progress',
         value: internshipPct,
@@ -333,21 +381,19 @@ const loadDashboardSnapshot = async () => {
         trend: startDate && endDate ? `${Math.max(daysBetween(todayKey, endDate), 0)}d left` : '0%',
         trendUp: internshipPct > 0,
       },
-      tasksCompleted: {
-        label: 'Tasks Completed',
-        value: completedCount,
-        ...percentTrend(thisWeekCompleted, lastWeekCompleted),
-      },
-      pendingTasks: {
-        label: 'Pending Tasks',
-        value: pendingCount,
-        ...percentTrend(pendingCount, lastWeekTotal - lastWeekCompleted),
-      },
       upcomingDeadlines: {
         label: 'Upcoming Deadlines',
         value: upcoming.length,
         ...percentTrend(upcoming.length, lastWeekUpcoming),
       },
+    },
+    reviewSummary: {
+      overallScore: perfScore,
+      rating: reviewTrends?.averageRating || (Number(perfScore) * 20),
+      completedReviews: reviewTrends?.completedReviews || 0,
+      nextReviewDate: reviewTrends?.nextReviewDate || null,
+      trend: reviewTrends?.trend || 'stable',
+      trendDelta: reviewTrends?.trendDelta || '0',
     },
     tasks,
     activities,

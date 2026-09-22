@@ -53,6 +53,7 @@ export const useSettingsStore = create((set, get) => ({
 
   // ── Error ────────────────────────────────────────────────────────────────────
   error: null,
+  sessionsError: null,
 
   // ── Fetch All ────────────────────────────────────────────────────────────────
 
@@ -72,12 +73,13 @@ export const useSettingsStore = create((set, get) => ({
   },
 
   fetchSessions: async () => {
-    set({ loadingSessions: true });
+    set({ loadingSessions: true, sessionsError: null });
     try {
       const sessions = await settingsService.fetchSessions();
-      set({ sessions, loadingSessions: false });
+      set({ sessions, loadingSessions: false, sessionsError: null });
     } catch (err) {
-      set({ error: err.message, loadingSessions: false });
+      set({ sessionsError: err.message, loadingSessions: false });
+      throw err;
     }
   },
 
@@ -278,7 +280,7 @@ export const useSettingsStore = create((set, get) => ({
   // ── Session Actions ───────────────────────────────────────────────────────
 
   revokeSession: async (sessionId) => {
-    set({ revokingSession: sessionId });
+    set({ revokingSession: sessionId, sessionsError: null });
     try {
       await settingsService.revokeSession(sessionId);
       set((state) => ({
@@ -286,12 +288,13 @@ export const useSettingsStore = create((set, get) => ({
         revokingSession: null,
       }));
     } catch (err) {
-      set({ error: err.message, revokingSession: null });
+      set({ sessionsError: err.message, revokingSession: null });
+      throw err;
     }
   },
 
   revokeOtherSessions: async () => {
-    set({ revokingSession: 'all' });
+    set({ revokingSession: 'all', sessionsError: null });
     try {
       await settingsService.revokeOtherSessions();
       set((state) => ({
@@ -299,14 +302,15 @@ export const useSettingsStore = create((set, get) => ({
         revokingSession: null,
       }));
     } catch (err) {
-      set({ error: err.message, revokingSession: null });
+      set({ sessionsError: err.message, revokingSession: null });
+      throw err;
     }
   },
 
   // ── UI Actions ────────────────────────────────────────────────────────────
   setActiveSection:   (section) => set({ activeSection: section }),
   setEmailVerifyOpen: (open)    => set({ emailVerifyOpen: open, ...(open ? {} : { pendingEmail: null }) }),
-  clearError:         ()        => set({ error: null }),
+  clearError:         ()        => set({ error: null, sessionsError: null }),
 }));
 
 // ── Convenience Selectors ─────────────────────────────────────────────────────

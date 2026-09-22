@@ -25,6 +25,7 @@ import {
   RiTaskLine,
   RiFolderLine,
   RiCalendarCheckLine,
+  RiStarLine,
 } from 'react-icons/ri';
 import {
   ResponsiveContainer,
@@ -255,6 +256,7 @@ const Dashboard = () => {
     notifications,
     progress,
     chartData,
+    reviewSummary,
     loadingStats,
     loadingTasks,
     loadingActivities,
@@ -308,6 +310,8 @@ const Dashboard = () => {
   // KPI icon map
   const getKpiIcon = (label) => {
     switch (label) {
+      case 'Overall Performance': return RiStarLine;
+      case 'Attendance Rate': return RiCalendarCheckLine;
       case 'Overall Internship Progress': return RiBarChartLine;
       case 'Tasks Completed': return RiCheckboxCircleLine;
       case 'Pending Tasks': return RiTimeLine;
@@ -436,6 +440,8 @@ const Dashboard = () => {
               const isProgress = key === 'internshipProgress';
               
               const kpiRoutes = {
+                overallPerformance: ROUTES.REVIEWS,
+                attendanceRate: ROUTES.ATTENDANCE,
                 internshipProgress: ROUTES.ONBOARDING,
                 tasksCompleted: ROUTES.TASKS,
                 pendingTasks: ROUTES.TASKS,
@@ -481,8 +487,8 @@ const Dashboard = () => {
                       </div>
                       <div style={{
                         width: '42px', height: '42px', borderRadius: '10px',
-                        background: isProgress ? 'var(--color-primary-50)' : 'var(--color-neutral-100)',
-                        color: isProgress ? 'var(--color-primary-600)' : 'var(--color-neutral-600)',
+                        background: key === 'overallPerformance' ? '#fef3c7' : key === 'attendanceRate' ? 'var(--color-success-50)' : isProgress ? 'var(--color-primary-50)' : 'var(--color-neutral-100)',
+                        color: key === 'overallPerformance' ? '#d97706' : key === 'attendanceRate' ? 'var(--color-success-600)' : isProgress ? 'var(--color-primary-600)' : 'var(--color-neutral-600)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem'
                       }}>
                         <Icon />
@@ -698,7 +704,7 @@ const Dashboard = () => {
               {[
                 { label: 'View All Tasks', to: ROUTES.TASKS, icon: RiTaskLine },
                 { label: 'Continue Onboarding', to: ROUTES.ONBOARDING, icon: RiCheckboxMultipleLine },
-                { label: 'Upload Weekly Report', to: ROUTES.REPORTS, icon: RiUploadCloud2Line },
+                { label: 'View Attendance Record', to: ROUTES.ATTENDANCE, icon: RiCalendarCheckLine },
                 { label: 'View Performance Reviews', to: ROUTES.REVIEWS, icon: RiFeedbackLine },
                 { label: 'Edit Profile Settings', to: ROUTES.PROFILE, icon: RiUser3Line }
               ].map((act, idx) => {
@@ -728,6 +734,45 @@ const Dashboard = () => {
                   </button>
                 );
               })}
+            </div>
+          </Card>
+
+          {/* Performance & Standing Summary */}
+          <Card header={<h5 style={{ margin: 0 }}>Performance & Standing</h5>}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.25rem 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
+                    <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
+                      {reviewSummary?.averageRating ? reviewSummary.averageRating.toFixed(1) : '—'}
+                    </span>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--color-neutral-400)', fontWeight: 600 }}>/ 5.0</span>
+                  </div>
+                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>
+                    {reviewSummary?.totalReviews ? `${reviewSummary.totalReviews} evaluation${reviewSummary.totalReviews > 1 ? 's' : ''}` : 'No reviews recorded yet'}
+                  </p>
+                </div>
+                <Badge variant={reviewSummary?.standingBadge === 'Exceptional' ? 'success' : reviewSummary?.standingBadge === 'On Track' ? 'primary' : reviewSummary?.standingBadge === 'Needs Attention' ? 'warning' : 'neutral'}>
+                  {reviewSummary?.standingBadge || 'Pending'}
+                </Badge>
+              </div>
+
+              {reviewSummary?.recentFeedback && (
+                <div style={{ padding: '0.625rem 0.75rem', background: 'var(--color-neutral-50)', borderRadius: '0.5rem', border: '1px solid var(--color-neutral-200)' }}>
+                  <p style={{ margin: 0, fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--color-neutral-600)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    &ldquo;{reviewSummary.recentFeedback}&rdquo;
+                  </p>
+                </div>
+              )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                style={{ width: '100%', justifyContent: 'center' }}
+                onClick={() => navigate(ROUTES.REVIEWS)}
+              >
+                View Reviews & Trends <RiArrowRightLine style={{ marginLeft: '0.25rem' }} />
+              </Button>
             </div>
           </Card>
 

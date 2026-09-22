@@ -19,7 +19,7 @@ import {
   useAnalyticsStore,
   useCurrentUser,
 } from '../../store';
-import { USER_ROLES } from '../../constants';
+import { ROUTES, USER_ROLES } from '../../constants';
 import {
   AnalyticsFilters,
   PerformanceLineChart,
@@ -136,7 +136,7 @@ export default function AnalyticsDashboardPage() {
 
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
-            onClick={() => navigate('/dashboard/reports/builder')}
+            onClick={() => navigate(effectiveRole === USER_ROLES.SUPERVISOR ? ROUTES.SUPERVISOR_REPORTS_BUILDER : ROUTES.ADMIN_REPORTS_BUILDER)}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -154,7 +154,7 @@ export default function AnalyticsDashboardPage() {
             <RiAddLine /> Build Report
           </button>
           <button
-            onClick={() => navigate('/dashboard/reports/saved')}
+            onClick={() => navigate(effectiveRole === USER_ROLES.SUPERVISOR ? ROUTES.SUPERVISOR_REPORTS_SAVED : ROUTES.ADMIN_REPORTS_SAVED)}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -215,7 +215,7 @@ export default function AnalyticsDashboardPage() {
                     value={metrics?.overallPerformanceScore != null && Number(metrics.overallPerformanceScore) > 0 ? `${metrics.overallPerformanceScore} / 5.0` : '0.0 / 5.0'}
                     trend={metrics?.performanceScoreTrend}
                     positive={metrics?.performanceScorePositive}
-                    onClick={() => navigate('/dashboard/analytics/drilldown/performance')}
+                    onClick={() => navigate(effectiveRole === USER_ROLES.SUPERVISOR ? ROUTES.SUPERVISOR_ANALYTICS_DRILLDOWN.replace(':type', 'performance') : ROUTES.ADMIN_ANALYTICS_DRILLDOWN.replace(':type', 'performance'))}
                   />
                   {effectiveRole !== USER_ROLES.INTERN && (
                     <KPICardItem
@@ -223,7 +223,7 @@ export default function AnalyticsDashboardPage() {
                       value={metrics?.activeInterns ?? 0}
                       trend={metrics?.activeInternsTrend}
                       positive={metrics?.activeInternsPositive}
-                      onClick={() => navigate('/dashboard/analytics/compare')}
+                      onClick={() => navigate(effectiveRole === USER_ROLES.SUPERVISOR ? ROUTES.SUPERVISOR_ANALYTICS_COMPARE : ROUTES.ADMIN_ANALYTICS_COMPARE)}
                     />
                   )}
                   <KPICardItem
@@ -231,14 +231,14 @@ export default function AnalyticsDashboardPage() {
                     value={metrics?.completedTasks ?? 0}
                     trend={metrics?.completedTasksTrend}
                     positive={metrics?.completedTasksPositive}
-                    onClick={() => navigate('/dashboard/analytics/drilldown/task')}
+                    onClick={() => navigate(effectiveRole === USER_ROLES.SUPERVISOR ? ROUTES.SUPERVISOR_ANALYTICS_DRILLDOWN.replace(':type', 'task') : ROUTES.ADMIN_ANALYTICS_DRILLDOWN.replace(':type', 'task'))}
                   />
                   <KPICardItem
                     title="Onboarding Completion"
                     value={metrics?.onboardingCompletionRate ?? '0%'}
                     trend={metrics?.onboardingCompletionTrend}
                     positive={metrics?.onboardingCompletionPositive}
-                    onClick={() => navigate('/dashboard/analytics/drilldown/performance')}
+                    onClick={() => navigate(effectiveRole === USER_ROLES.SUPERVISOR ? ROUTES.SUPERVISOR_ANALYTICS_DRILLDOWN.replace(':type', 'performance') : ROUTES.ADMIN_ANALYTICS_DRILLDOWN.replace(':type', 'performance'))}
                   />
                 </div>
               </section>

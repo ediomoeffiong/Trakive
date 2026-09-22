@@ -93,22 +93,42 @@ const SettingsModel = {
 
   async listActiveSessions(userId) {
     const result = await query(
-      `SELECT id, token_hash, ip_address, user_agent, expires_at, created_at
+      `SELECT id, token_hash, ip_address, user_agent, expires_at, created_at, last_seen_at
        FROM refresh_tokens
        WHERE user_id = $1
          AND is_revoked = false
          AND expires_at > NOW()
-       ORDER BY created_at DESC`,
+       ORDER BY last_seen_at DESC, created_at DESC`,
       [userId],
     );
     return result.rows;
   },
 
+  async touchSessionByHash(userId, refreshTokenHash, ipAddress = null, userAgent = null) {
+    if (!refreshTokenHash) return null;
+    const result = await query(
+      `UPDATE refresh_tokens
+       SET last_seen_at = NOW(),
+           ip_address = COALESCE($3, ip_address),
+           user_agent = COALESCE($4, user_agent)
+       WHERE user_id = $1
+         AND token_hash = $2
+         AND is_revoked = false
+         AND expires_at > NOW()
+       RETURNING id`,
+      [userId, refreshTokenHash, ipAddress, userAgent],
+    );
+    return result.rows[0] || null;
+  },
+
   async revokeSession(userId, sessionId) {
     const result = await query(
       `UPDATE refresh_tokens
-       SET is_revoked = true
-       WHERE user_id = $1 AND id = $2
+       SET is_revoked = true,
+           revoked_at = NOW()
+       WHERE user_id = $1
+         AND id = $2
+         AND is_revoked = false
        RETURNING id`,
       [userId, sessionId],
     );
@@ -125,7 +145,8 @@ const SettingsModel = {
 
     const result = await query(
       `UPDATE refresh_tokens
-       SET is_revoked = true
+       SET is_revoked = true,
+           revoked_at = NOW()
        WHERE user_id = $1
          AND is_revoked = false
          AND expires_at > NOW()

@@ -54,7 +54,10 @@ const SettingsController = {
   }),
 
   getSessions: asyncHandler(async (req, res) => {
-    const result = await SettingsService.getSessions(req.user.id, req.headers['x-refresh-token']);
+    const result = await SettingsService.getSessions(req.user.id, req.headers['x-refresh-token'], {
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent'),
+    });
     return sendSuccess(res, {
       message: 'Sessions retrieved successfully',
       data: result,

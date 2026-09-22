@@ -33,7 +33,7 @@ const AuthService = {
   /**
    * User Registration
    */
-  async register(data) {
+  async register(data, ipAddress = null, userAgent = null) {
     const existingUser = await UserModel.findByEmail(data.email);
     if (existingUser) {
       throw ApiError.conflict('User with this email already exists');
@@ -188,9 +188,9 @@ const AuthService = {
     const refreshExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     await query(
-      `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-       VALUES ($1, $2, $3)`,
-      [userProfile.id, refreshTokenHash, refreshExpiry]
+      `INSERT INTO refresh_tokens (user_id, token_hash, ip_address, user_agent, expires_at, last_seen_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())`,
+      [userProfile.id, refreshTokenHash, ipAddress, userAgent, refreshExpiry]
     );
 
     return {
@@ -264,8 +264,8 @@ const AuthService = {
     const refreshExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     await query(
-      `INSERT INTO refresh_tokens (user_id, token_hash, ip_address, user_agent, expires_at)
-       VALUES ($1, $2, $3, $4, $5)`,
+      `INSERT INTO refresh_tokens (user_id, token_hash, ip_address, user_agent, expires_at, last_seen_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())`,
       [userProfile.id, refreshTokenHash, ipAddress, userAgent, refreshExpiry]
     );
 
@@ -310,7 +310,10 @@ const AuthService = {
     if (!storedToken || storedToken.is_revoked || new Date(storedToken.expires_at) < new Date()) {
       if (storedToken && storedToken.family_id) {
         await query(
-          `UPDATE refresh_tokens SET is_revoked = true WHERE family_id = $1`,
+          `UPDATE refresh_tokens
+           SET is_revoked = true,
+               revoked_at = NOW()
+           WHERE family_id = $1`,
           [storedToken.family_id]
         );
       }
@@ -324,7 +327,10 @@ const AuthService = {
 
     // Revoke old refresh token
     await query(
-      `UPDATE refresh_tokens SET is_revoked = true WHERE id = $1`,
+      `UPDATE refresh_tokens
+       SET is_revoked = true,
+           revoked_at = NOW()
+       WHERE id = $1`,
       [storedToken.id]
     );
 
@@ -342,8 +348,8 @@ const AuthService = {
 
     // Insert new refresh token with same family_id
     await query(
-      `INSERT INTO refresh_tokens (user_id, token_hash, family_id, ip_address, user_agent, expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
+      `INSERT INTO refresh_tokens (user_id, token_hash, family_id, ip_address, user_agent, expires_at, last_seen_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
       [
         userProfile.id,
         newRefreshTokenHash,
@@ -369,7 +375,10 @@ const AuthService = {
     if (refreshToken) {
       const hashed = hashToken(refreshToken);
       await query(
-        `UPDATE refresh_tokens SET is_revoked = true WHERE token_hash = $1`,
+        `UPDATE refresh_tokens
+         SET is_revoked = true,
+             revoked_at = NOW()
+         WHERE token_hash = $1`,
         [hashed]
       );
     }
@@ -408,7 +417,10 @@ const AuthService = {
 
     // Invalidate all active refresh tokens for security
     await query(
-      `UPDATE refresh_tokens SET is_revoked = true WHERE user_id = $1`,
+      `UPDATE refresh_tokens
+       SET is_revoked = true,
+           revoked_at = NOW()
+       WHERE user_id = $1`,
       [userId]
     );
 
@@ -469,7 +481,10 @@ const AuthService = {
 
     // Invalidate all sessions
     await query(
-      `UPDATE refresh_tokens SET is_revoked = true WHERE user_id = $1`,
+      `UPDATE refresh_tokens
+       SET is_revoked = true,
+           revoked_at = NOW()
+       WHERE user_id = $1`,
       [resetRecord.user_id]
     );
 

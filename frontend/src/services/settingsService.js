@@ -102,9 +102,9 @@ export const fetchSessions = async () => {
       const sessions = dataOf(await api.get('/settings/sessions', {
         headers: { 'X-Refresh-Token': getRefreshToken() || '' },
       }));
-      if (Array.isArray(sessions)) return sessions.length ? sessions : [mockSessions[0]];
-    } catch {
-      // Use fallback below.
+      return Array.isArray(sessions) ? sessions : [];
+    } catch (error) {
+      throw new Error(error.response?.data?.message || error.message || 'Unable to load active sessions');
     }
   }
   await delay();

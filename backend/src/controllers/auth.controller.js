@@ -4,7 +4,10 @@ const AuthService = require('../services/auth.service');
 
 const AuthController = {
   register: asyncHandler(async (req, res) => {
-    const result = await AuthService.register(req.body);
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
+
+    const result = await AuthService.register(req.body, ipAddress, userAgent);
     return sendSuccess(res, {
       statusCode: 201,
       message: 'User registered successfully',
