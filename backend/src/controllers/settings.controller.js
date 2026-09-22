@@ -2,6 +2,19 @@ const asyncHandler = require('../utils/asyncHandler');
 const { sendSuccess } = require('../utils/apiResponse');
 const SettingsService = require('../services/settings.service');
 
+const extractClientIp = (req) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    const firstIp = forwarded.split(',')[0].trim();
+    if (firstIp) return firstIp;
+  }
+  const cfIp = req.headers['cf-connecting-ip'];
+  if (cfIp) return cfIp.trim();
+  const realIp = req.headers['x-real-ip'];
+  if (realIp) return realIp.trim();
+  return req.ip || req.connection?.remoteAddress || null;
+};
+
 const getRefreshToken = (req) => req.body?.refreshToken || req.headers['x-refresh-token'] || null;
 
 const SettingsController = {
@@ -57,7 +70,7 @@ const SettingsController = {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
     const result = await SettingsService.getSessions(req.user.id, req.headers['x-refresh-token'], {
-      ipAddress: req.ip || req.connection.remoteAddress,
+      ipAddress: extractClientIp(req),
       userAgent: req.get('User-Agent'),
       page,
       limit,

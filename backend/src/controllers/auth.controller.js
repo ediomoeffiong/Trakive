@@ -2,9 +2,22 @@ const asyncHandler = require('../utils/asyncHandler');
 const { sendSuccess } = require('../utils/apiResponse');
 const AuthService = require('../services/auth.service');
 
+const extractClientIp = (req) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    const firstIp = forwarded.split(',')[0].trim();
+    if (firstIp) return firstIp;
+  }
+  const cfIp = req.headers['cf-connecting-ip'];
+  if (cfIp) return cfIp.trim();
+  const realIp = req.headers['x-real-ip'];
+  if (realIp) return realIp.trim();
+  return req.ip || req.connection?.remoteAddress || null;
+};
+
 const AuthController = {
   register: asyncHandler(async (req, res) => {
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = extractClientIp(req);
     const userAgent = req.get('User-Agent');
 
     const result = await AuthService.register(req.body, ipAddress, userAgent);
@@ -17,7 +30,7 @@ const AuthController = {
 
   login: asyncHandler(async (req, res) => {
     const { email, password } = req.body;
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = extractClientIp(req);
     const userAgent = req.get('User-Agent');
 
     const result = await AuthService.login(email, password, ipAddress, userAgent);
@@ -30,7 +43,7 @@ const AuthController = {
 
   refresh: asyncHandler(async (req, res) => {
     const { refreshToken } = req.body;
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = extractClientIp(req);
     const userAgent = req.get('User-Agent');
 
     const result = await AuthService.refresh(refreshToken, ipAddress, userAgent);

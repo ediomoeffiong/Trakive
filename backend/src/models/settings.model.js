@@ -92,6 +92,10 @@ const SettingsModel = {
   },
 
   async listActiveSessions(userId) {
+    const isProd = process.env.NODE_ENV === 'production';
+    const localhostFilter = isProd
+      ? `AND (ip_address IS NULL OR ip_address NOT IN ('::1', '127.0.0.1', 'localhost', '::ffff:127.0.0.1', 'Localhost'))`
+      : '';
     const result = await query(
       `SELECT id, token_hash, ip_address, user_agent, expires_at, created_at, last_seen_at, is_revoked, revoked_at
        FROM (
@@ -100,6 +104,7 @@ const SettingsModel = {
          WHERE user_id = $1
            AND is_revoked = false
            AND expires_at > NOW()
+           ${localhostFilter}
          ORDER BY COALESCE(user_agent, id::text), last_seen_at DESC, created_at DESC
        ) active_devices
        ORDER BY last_seen_at DESC, created_at DESC
@@ -110,23 +115,32 @@ const SettingsModel = {
   },
 
   async countActiveSessions(userId) {
+    const isProd = process.env.NODE_ENV === 'production';
+    const localhostFilter = isProd
+      ? `AND (ip_address IS NULL OR ip_address NOT IN ('::1', '127.0.0.1', 'localhost', '::ffff:127.0.0.1', 'Localhost'))`
+      : '';
     const result = await query(
       `SELECT COUNT(DISTINCT COALESCE(user_agent, id::text))::int AS count
        FROM refresh_tokens
        WHERE user_id = $1
          AND is_revoked = false
-         AND expires_at > NOW()`,
+         AND expires_at > NOW()
+         ${localhostFilter}`,
       [userId],
     );
     return parseInt(result.rows[0]?.count, 10) || 0;
   },
 
   async listOtherSessions(userId, { limit = 10, offset = 0 } = {}) {
+    const isProd = process.env.NODE_ENV === 'production';
+    const condition = isProd
+      ? `(is_revoked = true OR expires_at <= NOW() OR ip_address IN ('::1', '127.0.0.1', 'localhost', '::ffff:127.0.0.1', 'Localhost'))`
+      : `(is_revoked = true OR expires_at <= NOW())`;
     const result = await query(
       `SELECT id, token_hash, ip_address, user_agent, expires_at, created_at, last_seen_at, is_revoked, revoked_at
        FROM refresh_tokens
        WHERE user_id = $1
-         AND (is_revoked = true OR expires_at <= NOW())
+         AND ${condition}
        ORDER BY COALESCE(revoked_at, last_seen_at, created_at) DESC
        LIMIT $2 OFFSET $3`,
       [userId, limit, offset],
@@ -135,11 +149,15 @@ const SettingsModel = {
   },
 
   async countOtherSessions(userId) {
+    const isProd = process.env.NODE_ENV === 'production';
+    const condition = isProd
+      ? `(is_revoked = true OR expires_at <= NOW() OR ip_address IN ('::1', '127.0.0.1', 'localhost', '::ffff:127.0.0.1', 'Localhost'))`
+      : `(is_revoked = true OR expires_at <= NOW())`;
     const result = await query(
       `SELECT COUNT(*)::int AS count
        FROM refresh_tokens
        WHERE user_id = $1
-         AND (is_revoked = true OR expires_at <= NOW())`,
+         AND ${condition}`,
       [userId],
     );
     return parseInt(result.rows[0]?.count, 10) || 0;

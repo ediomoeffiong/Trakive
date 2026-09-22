@@ -134,9 +134,20 @@ export const fetchSessions = async ({ page = 1, limit = 10 } = {}) => {
   const rawCurrent = readLocal('current_sessions', _currentSessions);
   const storedOther = readLocal('other_sessions', _otherSessions);
 
+  const isProd = import.meta.env.PROD || false;
+  // In production, do not count localhost sign-ins in current active sessions
+  const eligibleCurrent = (rawCurrent || []).filter((session) => {
+    if (isProd) {
+      const ip = String(session.ip || '').toLowerCase();
+      const loc = String(session.location || '').toLowerCase();
+      return ip !== 'localhost' && ip !== '127.0.0.1' && ip !== '::1' && ip !== '::ffff:127.0.0.1' && !loc.includes('local development');
+    }
+    return true;
+  });
+
   // Normalize current sessions to guarantee 1 isCurrent = true and max 3 active devices
   let foundCurrent = false;
-  const normalizedCurrent = (rawCurrent || []).slice(0, 3).map((session, index) => {
+  const normalizedCurrent = eligibleCurrent.slice(0, 3).map((session, index) => {
     const isThisCurrent = session.isCurrent || index === 0;
     if (isThisCurrent && !foundCurrent) {
       foundCurrent = true;
