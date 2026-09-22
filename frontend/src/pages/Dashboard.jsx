@@ -51,7 +51,7 @@ import {
   CircularProgress,
   Skeleton,
 } from '../components/ui';
-import { useCurrentUser } from '../store';
+import { useCurrentUser, useOnboardingStatus } from '../store';
 import { useDashboardStore } from '../store/useDashboardStore';
 import { ROUTES } from '../constants';
 import { projectService } from '../services/projectService';
@@ -269,10 +269,21 @@ const Dashboard = () => {
 
   const [taskFilter, setTaskFilter] = useState('all');
 
+  const {
+    status: onboardingStatus,
+    isCompleted: isOnboardingCompleted,
+    actionMessage: onboardingActionMessage,
+    rejectionReason: onboardingRejectionReason,
+    fetchStatus: fetchOnboardingStatus,
+  } = useOnboardingStatus();
+
   useEffect(() => {
     if (!user?.id) return;
     fetchAllDashboardData();
-  }, [user?.id, fetchAllDashboardData]);
+    if (user?.role === 'Intern') {
+      fetchOnboardingStatus();
+    }
+  }, [user?.id, user?.role, fetchAllDashboardData, fetchOnboardingStatus]);
 
   // Greeting helper
   const getGreeting = () => {
@@ -339,40 +350,81 @@ const Dashboard = () => {
   return (
     <div className="dashboard-page">
       
-      {/* Action Required Banner for Incomplete Setup */}
-      {(!user?.hasCompletedOnboarding || !user?.profileCompleted || (progress?.onboarding && progress.onboarding.value < 100)) && (
+      {/* ── Contextual Onboarding Alert Banner (Auto-clears when onboarding is completed) ── */}
+      {!isOnboardingCompleted && (
         <div style={{
-          background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-          border: '1px solid #fde68a',
+          background: onboardingStatus === 'action_required'
+            ? 'linear-gradient(135deg, #fff1f2 0%, #fee2e2 100%)'
+            : onboardingStatus === 'pending'
+            ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)'
+            : 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+          border: onboardingStatus === 'action_required'
+            ? '1px solid #fecaca'
+            : onboardingStatus === 'pending'
+            ? '1px solid #bfdbfe'
+            : '1px solid #fde68a',
           borderRadius: '1.125rem',
           padding: '1.125rem 1.5rem',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem',
-          boxShadow: '0 4px 12px rgba(245, 158, 11, 0.12)'
+          boxShadow: onboardingStatus === 'action_required'
+            ? '0 4px 12px rgba(239, 68, 68, 0.12)'
+            : onboardingStatus === 'pending'
+            ? '0 4px 12px rgba(59, 130, 246, 0.12)'
+            : '0 4px 12px rgba(245, 158, 11, 0.12)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
             <div style={{
               width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem',
-              background: '#fde68a', color: '#92400e', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: onboardingStatus === 'action_required' ? '#fecaca' : onboardingStatus === 'pending' ? '#bfdbfe' : '#fde68a',
+              color: onboardingStatus === 'action_required' ? '#991b1b' : onboardingStatus === 'pending' ? '#1e40af' : '#92400e',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '1.25rem', flexShrink: 0
             }}>
-              📋
+              {onboardingStatus === 'action_required' ? '⚠️' : onboardingStatus === 'pending' ? '⏳' : '📋'}
             </div>
             <div>
-              <h4 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 700, color: '#92400e' }}>
-                Account Setup Pending
+              <h4 style={{
+                margin: 0,
+                fontSize: '0.9375rem',
+                fontWeight: 700,
+                color: onboardingStatus === 'action_required' ? '#991b1b' : onboardingStatus === 'pending' ? '#1e40af' : '#92400e',
+              }}>
+                {onboardingStatus === 'action_required'
+                  ? 'Onboarding Action Required — Document Rejected'
+                  : onboardingStatus === 'pending'
+                  ? 'Onboarding Under Supervisor Review'
+                  : 'Intern Onboarding Incomplete'}
               </h4>
-              <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8125rem', color: '#b45309' }}>
-                Please finish your onboarding checklist steps and complete your profile details.
+              <p style={{
+                margin: '0.2rem 0 0 0',
+                fontSize: '0.8125rem',
+                color: onboardingStatus === 'action_required' ? '#b91c1c' : onboardingStatus === 'pending' ? '#1d4ed8' : '#b45309',
+              }}>
+                {onboardingStatus === 'action_required'
+                  ? (onboardingRejectionReason ? `Supervisor feedback: "${onboardingRejectionReason}". Please upload a corrected PDF.` : (onboardingActionMessage || 'One or more submitted documents require revision.'))
+                  : onboardingStatus === 'pending'
+                  ? 'Your required onboarding documents have been submitted and are currently awaiting supervisor verification.'
+                  : (onboardingActionMessage || 'Please finish your onboarding checklist steps and submit required documents.')}
               </p>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
-            <Button size="sm" onClick={() => navigate(ROUTES.ONBOARDING)}>
-              Finish Onboarding
+            <Button
+              size="sm"
+              variant={onboardingStatus === 'action_required' ? 'danger' : 'primary'}
+              onClick={() => navigate(ROUTES.ONBOARDING)}
+            >
+              {onboardingStatus === 'action_required'
+                ? 'Resubmit Document'
+                : onboardingStatus === 'pending'
+                ? 'View Onboarding Status'
+                : 'Finish Onboarding'}
             </Button>
-            <Button size="sm" variant="outline" onClick={() => navigate(ROUTES.PROFILE)}>
-              Complete Profile
-            </Button>
+            {!user?.profileCompleted && (
+              <Button size="sm" variant="outline" onClick={() => navigate(ROUTES.PROFILE)}>
+                Complete Profile
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -442,7 +494,7 @@ const Dashboard = () => {
               const kpiRoutes = {
                 overallPerformance: ROUTES.REVIEWS,
                 attendanceRate: ROUTES.ATTENDANCE,
-                internshipProgress: ROUTES.ONBOARDING,
+                internshipProgress: isOnboardingCompleted ? `${ROUTES.PROFILE}?tab=internship` : ROUTES.ONBOARDING,
                 tasksCompleted: ROUTES.TASKS,
                 pendingTasks: ROUTES.TASKS,
                 upcomingDeadlines: ROUTES.TASKS,
@@ -526,10 +578,16 @@ const Dashboard = () => {
                 
                 {/* Onboarding progress circular */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                  <CircularProgress value={progress.onboarding?.value} size={90} variant="primary" />
+                  <CircularProgress
+                    value={isOnboardingCompleted ? 100 : (progress.onboarding?.value || 0)}
+                    size={90}
+                    variant={isOnboardingCompleted ? 'success' : 'primary'}
+                  />
                   <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.875rem', fontWeight: 600 }}>Onboarding Pathway</p>
                   <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
-                    {progress.onboarding?.completedSteps} of {progress.onboarding?.totalSteps} steps completed
+                    {isOnboardingCompleted
+                      ? 'All requirements approved ✓'
+                      : `${progress.onboarding?.completedSteps || 0} of ${progress.onboarding?.totalSteps || 3} steps completed`}
                   </p>
                 </div>
 
@@ -703,7 +761,9 @@ const Dashboard = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '0.5rem 0' }}>
               {[
                 { label: 'View All Tasks', to: ROUTES.TASKS, icon: RiTaskLine },
-                { label: 'Continue Onboarding', to: ROUTES.ONBOARDING, icon: RiCheckboxMultipleLine },
+                isOnboardingCompleted
+                  ? { label: 'Onboarding & Records', to: `${ROUTES.PROFILE}?tab=internship`, icon: RiFolderShieldLine }
+                  : { label: 'Continue Onboarding', to: ROUTES.ONBOARDING, icon: RiCheckboxMultipleLine },
                 { label: 'View Attendance Record', to: ROUTES.ATTENDANCE, icon: RiCalendarCheckLine },
                 { label: 'View Performance Reviews', to: ROUTES.REVIEWS, icon: RiFeedbackLine },
                 { label: 'Edit Profile Settings', to: ROUTES.PROFILE, icon: RiUser3Line }

@@ -89,12 +89,12 @@ const AttendancePage = () => {
         maxWidth: '100%',
       }}
     >
-      {/* ── 1. Hero Welcome Banner ────────────────────────────────────────── */}
+      {/* ── 1. Hero Banner ────────────────────────────────────────────────── */}
       <section
         className="accent-banner"
         style={{
-          background: 'linear-gradient(135deg, #00b4d8 0%, #0077b6 100%)',
-          borderRadius: '1.25rem',
+          background: '#00b4d8',
+          borderRadius: '1.125rem',
           padding: '1.75rem 2rem',
           color: '#ffffff',
           boxShadow: '0 8px 32px rgba(0, 180, 216, 0.22)',
@@ -120,21 +120,10 @@ const AttendancePage = () => {
             }}>
               INTERN ATTENDANCE PORTAL
             </span>
-            <span style={{
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              backgroundColor: attendancePercentage >= 85 ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)',
-              border: `1px solid ${attendancePercentage >= 85 ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)'}`,
-              padding: '0.25rem 0.65rem',
-              borderRadius: '999px',
-              color: '#ffffff',
-            }}>
-              {attendancePercentage}% Overall Standing
-            </span>
           </div>
 
           <h2 style={{ margin: '0 0 0.35rem 0', fontSize: '1.75rem', fontWeight: 800, color: '#ffffff' }}>
-            Welcome, {internFirstName}! 📅
+            Here's your attendance, {internFirstName}
           </h2>
           <p style={{ margin: 0, fontSize: '0.9375rem', color: 'rgba(255, 255, 255, 0.95)', lineHeight: 1.55 }}>
             Track your daily office check-ins, online task attendance, monthly standing, and review requests.
@@ -147,7 +136,7 @@ const AttendancePage = () => {
             onClick={() => handleOpenCorrection()}
             style={{
               background: '#ffffff',
-              color: '#0077b6',
+              color: '#00b4d8',
               fontWeight: 700,
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
             }}

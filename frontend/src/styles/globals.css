@@ -1148,6 +1148,8 @@ h1.app-topbar-heading {
 /* ── Responsive: mobile sidebar overlay ─────────────────────────────────────── */
 @media (max-width: 1023px) {
   .app-sidebar {
+    top: var(--topbar-height);
+    height: calc(100dvh - var(--topbar-height));
     transform: translateX(-100%);
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -1161,9 +1163,16 @@ h1.app-topbar-heading {
     margin-left: 0 !important;
   }
 
+  .app-topbar {
+    z-index: 50;
+  }
+
   .sidebar-overlay {
     position: fixed;
-    inset: 0;
+    top: var(--topbar-height);
+    right: 0;
+    bottom: 0;
+    left: 0;
     background: rgb(0 0 0 / 0.4);
     z-index: 39;
     backdrop-filter: blur(2px);
@@ -1415,12 +1424,47 @@ a {
 }
 
 /* Compact spacing mode */
+.spacing-compact {
+  --topbar-height: 56px;
+}
+
 .spacing-compact .app-content {
-  padding: 1rem;
+  padding: 0.875rem;
+}
+
+.spacing-compact .card {
+  border-radius: 0.625rem;
+}
+
+.spacing-compact .card,
+.spacing-compact .settings-grid .card,
+.spacing-compact .settings-summary-grid .card {
+  padding: 1rem !important;
 }
 
 .spacing-compact .card > div {
-  padding: 0.875rem !important;
+  padding: 0.75rem !important;
+}
+
+.spacing-compact .settings-grid,
+.spacing-compact .settings-form-grid {
+  gap: 0.875rem;
+}
+
+.spacing-compact .app-topbar {
+  height: 56px;
+}
+
+.spacing-compact .nav-item {
+  min-height: 38px;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.spacing-compact h1,
+.spacing-compact h2,
+.spacing-compact h3 {
+  margin-top: 0;
 }
 
 /* Enhanced focus indicator */

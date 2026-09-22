@@ -5,6 +5,7 @@
  */
 
 import { motion } from 'framer-motion';
+import { useEffect } from 'react';
 import toast from 'react-hot-toast';
 import {
   RiPaletteLine, RiLayoutLine,
@@ -25,7 +26,7 @@ const ThemeCard = ({ option, selected, onSelect }) => (
     id={`theme-option-${option.id}`}
     style={{
       display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-      padding: '1rem', borderRadius: '0.875rem', border: 'none', cursor: 'pointer', textAlign: 'left',
+      padding: '1rem', borderRadius: '0.875rem', cursor: 'pointer', textAlign: 'left',
       border: `2px solid ${selected ? 'var(--color-primary-500)' : 'var(--color-neutral-200)'}`,
       background: selected ? 'var(--color-primary-50)' : 'var(--color-neutral-50)',
       transition: 'border-color 0.2s, background 0.2s',
@@ -123,13 +124,38 @@ const RadioRow = ({ option, selected, onSelect, name }) => (
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const AppearanceSettingsForm = () => {
-  const { settings, updateField, updateFields, saveCategory, saving, isDirty, discardChanges } = useSettingsStore();
+  const { settings, updateField, saveCategory, saving, isDirty, discardChanges } = useSettingsStore();
   const setTheme = useAppStore((s) => s.setTheme);
+  const setSpacing = useAppStore((s) => s.setSpacing);
+  const setSidebarBehavior = useAppStore((s) => s.setSidebarBehavior);
   const appearance = settings.appearance;
+
+  useEffect(() => {
+    setTheme(appearance.theme);
+    setSpacing(appearance.spacing);
+    setSidebarBehavior(appearance.sidebarBehavior);
+  }, [
+    appearance.sidebarBehavior,
+    appearance.spacing,
+    appearance.theme,
+    setSidebarBehavior,
+    setSpacing,
+    setTheme,
+  ]);
 
   const handleThemeSelect = (themeId) => {
     updateField('appearance', 'theme', themeId);
-    setTheme(themeId); // immediately apply to DOM via AppLayout effect
+    setTheme(themeId);
+  };
+
+  const handleSpacingSelect = (spacing) => {
+    updateField('appearance', 'spacing', spacing);
+    setSpacing(spacing);
+  };
+
+  const handleSidebarBehaviorSelect = (sidebarBehavior) => {
+    updateField('appearance', 'sidebarBehavior', sidebarBehavior);
+    setSidebarBehavior(sidebarBehavior);
   };
 
   const handleSave = async () => {
@@ -207,7 +233,7 @@ const AppearanceSettingsForm = () => {
               name="spacing"
               option={{ id: mode.value, label: mode.label, description: mode.description }}
               selected={appearance.spacing === mode.value}
-              onSelect={(val) => updateField('appearance', 'spacing', val)}
+              onSelect={handleSpacingSelect}
             />
           ))}
         </div>
@@ -231,7 +257,7 @@ const AppearanceSettingsForm = () => {
               name="sidebar"
               option={{ id: b.id, label: b.label, description: b.description }}
               selected={appearance.sidebarBehavior === b.id}
-              onSelect={(val) => updateField('appearance', 'sidebarBehavior', val)}
+              onSelect={handleSidebarBehaviorSelect}
             />
           ))}
         </div>

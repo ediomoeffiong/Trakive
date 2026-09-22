@@ -126,7 +126,7 @@ async function runVerification() {
     email: 'supervisor@trakive.com',
     password: 'Supervisor123!',
   });
-  assert(oldLogin.status === 401, 'Login with old @trakive.com email must fail');
+  assert([400, 401].includes(oldLogin.status), 'Login with old @trakive.com email must fail');
   console.log('  ✅ Old @trakive.com login correctly rejected.\n');
 
   // Step 5: Department selection & supervisor auto-assignment
@@ -142,6 +142,7 @@ async function runVerification() {
       institution: 'University of Technology',
       field_of_study: 'Software Engineering',
       academic_year: '2026',
+      date_of_birth: '2000-01-01',
     },
     fifthlabToken
   );

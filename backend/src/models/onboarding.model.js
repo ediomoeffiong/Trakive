@@ -12,10 +12,11 @@ const OnboardingModel = {
     mime_type,
     category = 'general',
     is_private = false,
+    internship_record_id = null,
   }) {
     const sql = `
-      INSERT INTO documents (organization_id, uploader_id, owner_id, title, file_name, file_path, file_size, mime_type, category, is_private)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO documents (organization_id, uploader_id, owner_id, title, file_name, file_path, file_size, mime_type, category, is_private, internship_record_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *;
     `;
     const res = await query(sql, [
@@ -29,25 +30,39 @@ const OnboardingModel = {
       mime_type,
       category,
       is_private,
+      internship_record_id,
     ]);
     return res.rows[0];
   },
 
-  async findDocumentsByOwner(ownerId, category = null) {
+  async findDocumentsByOwner(ownerId, category = null, internshipRecordId = null) {
     let sql = `SELECT * FROM documents WHERE owner_id = $1 AND deleted_at IS NULL`;
     const params = [ownerId];
+    let idx = 2;
     if (category) {
-      sql += ` AND category = $2`;
+      sql += ` AND category = $${idx}`;
       params.push(category);
+      idx++;
+    }
+    if (internshipRecordId) {
+      sql += ` AND internship_record_id = $${idx}`;
+      params.push(internshipRecordId);
+      idx++;
     }
     sql += ` ORDER BY created_at DESC;`;
     const res = await query(sql, params);
     return res.rows;
   },
 
-  async findDocumentByOwnerAndCategory(ownerId, category) {
-    const sql = `SELECT * FROM documents WHERE owner_id = $1 AND category = $2 AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1;`;
-    const res = await query(sql, [ownerId, category]);
+  async findDocumentByOwnerAndCategory(ownerId, category, internshipRecordId = null) {
+    let sql = `SELECT * FROM documents WHERE owner_id = $1 AND category = $2 AND deleted_at IS NULL`;
+    const params = [ownerId, category];
+    if (internshipRecordId) {
+      sql += ` AND internship_record_id = $3`;
+      params.push(internshipRecordId);
+    }
+    sql += ` ORDER BY created_at DESC LIMIT 1;`;
+    const res = await query(sql, params);
     return res.rows[0] || null;
   },
 
@@ -93,7 +108,7 @@ const OnboardingModel = {
     return res.rows;
   },
 
-  async replaceDocumentFile(id, { file_name, file_path, file_size, mime_type, title }) {
+  async replaceDocumentFile(id, { file_name, file_path, file_size, mime_type, title, internship_record_id = null }) {
     const sql = `
       UPDATE documents
       SET file_name = $1,
@@ -101,6 +116,7 @@ const OnboardingModel = {
           file_size = $3,
           mime_type = $4,
           title = COALESCE($5, title),
+          internship_record_id = COALESCE($7, internship_record_id),
           review_status = 'pending',
           reviewed_at = NULL,
           reviewer_id = NULL,
@@ -109,7 +125,7 @@ const OnboardingModel = {
       WHERE id = $6
       RETURNING *;
     `;
-    const res = await query(sql, [file_name, file_path, file_size, mime_type, title, id]);
+    const res = await query(sql, [file_name, file_path, file_size, mime_type, title, id, internship_record_id]);
     return res.rows[0];
   },
 

@@ -21,6 +21,12 @@ const createUISlice = (set) => ({
 
   theme: 'light',
   setTheme: (theme) => set({ theme }),
+
+  spacing: 'comfortable',
+  setSpacing: (spacing) => set({ spacing }),
+
+  sidebarBehavior: 'full',
+  setSidebarBehavior: (sidebarBehavior) => set({ sidebarBehavior }),
 });
 
 // ── Auth Slice ────────────────────────────────────────────────────────────────
@@ -177,6 +183,8 @@ export const useAppStore = create(
         partialize: (state) => ({
           sidebarCollapsed: state.sidebarCollapsed,
           theme: state.theme,
+          spacing: state.spacing,
+          sidebarBehavior: state.sidebarBehavior,
           user: state.user,
           isAuthenticated: state.isAuthenticated && hasAuthTokens(),
         }),
@@ -199,5 +207,7 @@ export const useToggleSidebar = () => useAppStore((s) => s.toggleSidebar);
 export const useCurrentUser = () => useAppStore((s) => s.user);
 export const useIsAuthenticated = () => useAppStore((s) => s.isAuthenticated && hasAuthTokens());
 export const useTheme = () => useAppStore((s) => s.theme);
+export const useSpacing = () => useAppStore((s) => s.spacing);
+export const useSidebarBehavior = () => useAppStore((s) => s.sidebarBehavior);
 export const useAuthLoading = () => useAppStore((s) => s.isLoading);
 export const useAuthError = () => useAppStore((s) => s.error);

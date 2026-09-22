@@ -15,6 +15,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -44,6 +45,8 @@ import {
 
 import api from '../services/api';
 import { useAppStore } from '../store/useAppStore';
+import { useOnboardingStatus } from '../store';
+import { ROUTES } from '../constants';
 import { sanitizeDepartments } from '../utils/departments';
 
 const BRAND_BLUE = '#00b4d8';
@@ -112,8 +115,10 @@ const toDateInputValue = (value) => {
 };
 
 export default function OnboardingDashboard() {
+  const navigate = useNavigate();
   const user = useAppStore((state) => state.user);
   const updateUserMeta = useAppStore((state) => state.updateUserMeta);
+  const { isCompleted: isStoreCompleted, fetchStatus: fetchOnboardingStatus } = useOnboardingStatus();
 
   // 1. Detect Department Context
   const emailDomain = (user?.email || '').split('@')[1]?.toLowerCase() || '';
@@ -261,6 +266,7 @@ export default function OnboardingDashboard() {
         if (submittedCount === 3) {
           setCompletedSteps((prev) => ({ ...prev, required_docs: true }));
         }
+        fetchOnboardingStatus();
       } catch (err) {
         // Keep local draft if backend unavailable
         console.warn('Could not sync onboarding documents from API', err);
@@ -268,7 +274,7 @@ export default function OnboardingDashboard() {
     };
     syncDocuments();
     return () => { mounted = false; };
-  }, [user?.id]);
+  }, [user?.id, fetchOnboardingStatus]);
 
   // 3. Real Team Members State (Loaded dynamically from database)
   const [teamMembers, setTeamMembers] = useState([]);
@@ -732,6 +738,7 @@ export default function OnboardingDashboard() {
       setInfo((prev) => ({ ...prev, is_saved: true }));
       toast.success('Documents submitted for supervisor review!');
       setActiveCategory('welcome');
+      fetchOnboardingStatus();
     } catch (err) {
       const message = err?.response?.data?.message || err?.message || 'Failed to submit documents to supervisor.';
       toast.error(message);
@@ -751,7 +758,7 @@ export default function OnboardingDashboard() {
 
   const hasConfirmedItSetup = itSetupState.wifiConfirmed && itSetupState.securityGuideRead;
   const isItSetupComplete = hasConfirmedItSetup || completedSteps.it_setup;
-  const isOnboardingReady = approvedDocsCount === 3;
+  const isOnboardingReady = approvedDocsCount === 3 || isStoreCompleted;
 
   // Total Tasks and Journey calculations
   const totalTasks = 7;
@@ -871,6 +878,73 @@ export default function OnboardingDashboard() {
         </div>
       </div>
 
+      {/* ── Prominent Onboarding Completed & Approved Banner ────────────────────── */}
+      {isOnboardingReady && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+            color: '#ffffff',
+            borderRadius: '16px',
+            padding: '18px 24px',
+            marginBottom: '20px',
+            boxShadow: '0 8px 24px rgba(16, 185, 129, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '12px',
+              background: 'rgba(255,255,255,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px',
+              flexShrink: 0
+            }}>
+              🎉
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#ffffff' }}>
+                Onboarding Completed & Approved
+              </h3>
+              <p style={{ fontSize: '0.8125rem', margin: '3px 0 0 0', opacity: 0.95, color: '#ffffff' }}>
+                All requirements for this internship have been met and approved. Completed documents and details remain permanently accessible in your Profile.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => navigate(`${ROUTES.PROFILE}?tab=internship`)}
+            style={{
+              background: '#ffffff',
+              color: '#065f46',
+              border: 'none',
+              borderRadius: '10px',
+              padding: '10px 18px',
+              fontWeight: 700,
+              fontSize: '0.8125rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            View in Profile & Internship Details <RiArrowRightLine />
+          </button>
+        </motion.div>
+      )}
+
       {/* ── UP NEXT Banner Card ───────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -909,7 +983,13 @@ export default function OnboardingDashboard() {
         </div>
 
         <button
-          onClick={() => setActiveCategory(upNextItem.catId)}
+          onClick={() => {
+            if (isOnboardingReady) {
+              navigate(`${ROUTES.PROFILE}?tab=internship`);
+            } else {
+              setActiveCategory(upNextItem.catId);
+            }
+          }}
           className="onboarding-action-btn btn-on-accent"
           style={{
             background: '#ffffff',
@@ -927,7 +1007,7 @@ export default function OnboardingDashboard() {
             transition: 'all 0.2s ease'
           }}
         >
-          Continue <RiArrowRightLine />
+          {isOnboardingReady ? 'View Profile Records' : 'Continue'} <RiArrowRightLine />
         </button>
       </motion.div>
 
@@ -1445,23 +1525,29 @@ export default function OnboardingDashboard() {
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <label style={{ cursor: 'pointer', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
-                            Replace PDF
-                            <input
-                              type="file"
-                              hidden
-                              accept="application/pdf,.pdf"
-                              onChange={(e) => handleFileUpload(reqDoc.category, e.target.files[0])}
-                            />
-                          </label>
-                          <button
-                            onClick={() => handleRemoveDoc(reqDoc.category)}
-                            style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '8px', padding: '6px 10px', cursor: 'pointer' }}
-                          >
-                            <RiDeleteBinLine />
-                          </button>
-                        </div>
+                        {isApproved ? (
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '6px 12px', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+                            ✓ Approved & Verified
+                          </span>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <label style={{ cursor: 'pointer', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
+                              Replace PDF
+                              <input
+                                type="file"
+                                hidden
+                                accept="application/pdf,.pdf"
+                                onChange={(e) => handleFileUpload(reqDoc.category, e.target.files[0])}
+                              />
+                            </label>
+                            <button
+                              onClick={() => handleRemoveDoc(reqDoc.category)}
+                              style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '8px', padding: '6px 10px', cursor: 'pointer' }}
+                            >
+                              <RiDeleteBinLine />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div style={{ border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '20px', textAlign: 'center', background: '#fafafa' }}>

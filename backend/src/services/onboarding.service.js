@@ -656,7 +656,7 @@ const OnboardingService = {
     let mimeType = data.mime_type;
     let title = data.title;
 
-    if (!data.file) {
+    if (!data.file && (!fileName || !filePath)) {
       throw ApiError.badRequest('A PDF file upload is required for onboarding documents');
     }
 
@@ -683,7 +683,19 @@ const OnboardingService = {
       throw ApiError.badRequest('Document file metadata is required');
     }
 
-    const existingDoc = await OnboardingModel.findDocumentByOwnerAndCategory(requestingUser.id, category);
+    let targetInternshipRecordId = data.internship_record_id || null;
+    if (!targetInternshipRecordId) {
+      const activeRecord = await InternshipRecordModel.findActiveByUserId(requestingUser.id);
+      if (activeRecord) {
+        targetInternshipRecordId = activeRecord.id;
+      }
+    }
+
+    const existingDoc = await OnboardingModel.findDocumentByOwnerAndCategory(
+      requestingUser.id,
+      category,
+      targetInternshipRecordId
+    );
 
     let doc;
     if (existingDoc) {
@@ -706,6 +718,7 @@ const OnboardingService = {
         file_size: fileSize,
         mime_type: mimeType,
         title,
+        internship_record_id: targetInternshipRecordId,
       });
     } else {
       doc = await OnboardingModel.createDocument({
@@ -719,6 +732,7 @@ const OnboardingService = {
         mime_type: mimeType,
         category,
         is_private: true,
+        internship_record_id: targetInternshipRecordId,
       });
     }
 
@@ -760,8 +774,16 @@ const OnboardingService = {
     return doc;
   },
 
-  async trackDocuments(ownerId, requestingUser) {
-    const docs = await OnboardingModel.findDocumentsByOwner(ownerId);
+  async trackDocuments(ownerId, requestingUser, internshipRecordId = null) {
+    let targetRecord = null;
+    if (internshipRecordId) {
+      targetRecord = await InternshipRecordModel.findById(internshipRecordId);
+    }
+    if (!targetRecord) {
+      targetRecord = await InternshipRecordModel.findActiveByUserId(ownerId);
+    }
+    const targetRecordId = targetRecord ? targetRecord.id : null;
+    const docs = await OnboardingModel.findDocumentsByOwner(ownerId, null, targetRecordId);
 
     const REQUIRED_DOCS = [
       { category: 'resume', title: 'Resume / CV' },
@@ -789,6 +811,30 @@ const OnboardingService = {
 
     const approvedCount = checklist.filter((item) => item.review_status === 'approved').length;
     const totalRequired = REQUIRED_DOCS.length;
+    const submittedCount = checklist.filter((item) => item.submitted).length;
+    const rejectedItems = checklist.filter(
+      (item) => item.review_status === 'rejected' || item.review_status === 'resubmission_required'
+    );
+    const hasRejections = rejectedItems.length > 0;
+    const allSubmitted = checklist.every((item) => item.submitted);
+    const allApproved = approvedCount === totalRequired;
+
+    let status = 'not_started';
+    if (allApproved) {
+      status = 'completed';
+    } else if (hasRejections) {
+      status = 'action_required';
+    } else if (allSubmitted) {
+      status = 'pending';
+    } else if (submittedCount > 0) {
+      status = 'in_progress';
+    } else {
+      status = 'not_started';
+    }
+
+    const rejectionReason = hasRejections
+      ? rejectedItems.map((item) => `${item.title}: ${item.document?.review_notes || 'Action required'}`).join('; ')
+      : null;
 
     return {
       documents: docs,
@@ -796,8 +842,14 @@ const OnboardingService = {
       approved_count: approvedCount,
       total_required: totalRequired,
       progress_label: `${approvedCount}/${totalRequired} Approved`,
-      onboarding_ready: approvedCount === totalRequired,
-      all_required_submitted: checklist.every((item) => item.submitted),
+      onboarding_ready: allApproved,
+      all_required_submitted: allSubmitted,
+      status,
+      action_required: status === 'action_required' || status === 'in_progress' || status === 'not_started',
+      rejection_reason: rejectionReason,
+      internship_record_id: targetRecordId,
+      internship_number: targetRecord?.internship_number || 1,
+      internship_title: targetRecord?.title || 'Internship #1',
     };
   },
 

@@ -12,6 +12,7 @@
  */
 
 import { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProfileStore } from '../store/useProfileStore';
 import { useAppStore } from '../store/useAppStore';
@@ -91,10 +92,19 @@ const ProfilePage = () => {
   const role = profile?.role ?? user?.role ?? 'Intern';
   const isSupervisor = role === 'Supervisor';
 
+  const [searchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab');
+
   useEffect(() => {
     fetchAll(role);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (urlTab) {
+      setActiveTab(urlTab);
+    }
+  }, [urlTab, setActiveTab]);
 
   // ── Tab content renderer ──────────────────────────────────────────────────
 

@@ -77,6 +77,7 @@ const submitDocumentSchema = Joi.object({
     'submission',
     'general'
   ).required(),
+  internship_record_id: Joi.string().uuid().optional(),
 });
 
 const reviewDocumentSchema = Joi.object({

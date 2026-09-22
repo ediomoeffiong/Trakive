@@ -1,3 +1,4 @@
+const config = require('../config/env');
 const ApiError = require('../utils/apiError');
 const DocumentModel = require('../models/document.model');
 const ProfileModel = require('../models/profile.model');
@@ -121,9 +122,17 @@ const DocumentService = {
     if (!(await canAccessDocument(requestingUser, doc))) {
       throw ApiError.forbidden('You do not have access to this document');
     }
-    const url = await StorageService.createSignedUrl(doc.file_path);
+    let url = doc.file_path;
+    if (config.supabase.url && config.supabase.serviceRoleKey) {
+      try {
+        url = await StorageService.createSignedUrl(doc.file_path);
+      } catch (err) {
+        url = doc.file_path;
+      }
+    }
     return {
       url,
+      downloadUrl: url,
       fileName: doc.file_name,
       mimeType: doc.mime_type,
       expiresIn: Number(process.env.SUPABASE_SIGNED_URL_EXPIRES_IN || 300),

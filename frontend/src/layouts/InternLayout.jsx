@@ -19,8 +19,8 @@ const InternLayout = () => {
   const fetchNotifications = useNotificationStore((s) => s.fetchNotifications);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const openMobileSidebar = useCallback(() => setMobileOpen(true), []);
   const closeMobileSidebar = useCallback(() => setMobileOpen(false), []);
+  const toggleMobileSidebar = useCallback(() => setMobileOpen((v) => !v), []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -58,7 +58,7 @@ const InternLayout = () => {
           .filter(Boolean)
           .join(' ')}
       >
-        <Topbar onMobileMenuOpen={openMobileSidebar} />
+        <Topbar onMobileMenuToggle={toggleMobileSidebar} mobileOpen={mobileOpen} />
 
         <AnimatePresence mode="wait">
           <MainContent>

@@ -20,7 +20,7 @@ const submitOnboardingDetails = asyncHandler(async (req, res) => {
 
 const submitOnboardingDocument = asyncHandler(async (req, res) => {
   const result = await OnboardingService.submitOnboardingDocument(
-    { ...req.body, file: req.file },
+    { ...req.body, file: req.file, internship_record_id: req.body?.internship_record_id },
     req.user,
     req.ip,
     req.headers['user-agent']
@@ -34,7 +34,8 @@ const submitOnboardingDocument = asyncHandler(async (req, res) => {
 
 const getRequiredDocuments = asyncHandler(async (req, res) => {
   const ownerId = req.query.owner_id || req.user.id;
-  const result = await OnboardingService.trackDocuments(ownerId, req.user);
+  const internshipRecordId = req.query.internship_record_id || null;
+  const result = await OnboardingService.trackDocuments(ownerId, req.user, internshipRecordId);
   return sendSuccess(res, {
     message: 'Onboarding document tracking checklist retrieved',
     data: result,

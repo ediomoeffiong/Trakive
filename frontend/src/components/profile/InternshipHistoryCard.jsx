@@ -5,10 +5,26 @@
  * and final performance summary for completed internships.
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiCalendar, FiCheckCircle, FiAward, FiClock, FiPlusCircle, FiBarChart2, FiUserCheck } from 'react-icons/fi';
+import {
+  FiCalendar,
+  FiCheckCircle,
+  FiAward,
+  FiClock,
+  FiPlusCircle,
+  FiBarChart2,
+  FiUserCheck,
+  FiFileText,
+  FiDownload,
+  FiAlertCircle,
+  FiExternalLink,
+} from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import api from '../../services/api';
+import { useAppStore } from '../../store/useAppStore';
+import { ROUTES } from '../../constants';
 
 const formatDate = (str) => {
   if (!str) return '—';
@@ -19,6 +35,13 @@ const formatDate = (str) => {
   }
 };
 
+const formatBytes = (bytes) => {
+  if (!bytes) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 const InternshipHistoryCard = ({
   internships = [],
   activeRecordId,
@@ -26,14 +49,139 @@ const InternshipHistoryCard = ({
   onCreateNewRecord,
   isSupervisor = false,
 }) => {
-  const records = internships;
+  const navigate = useNavigate();
+  const user = useAppStore((s) => s.user);
 
-  const [selectedId, setSelectedId] = useState(activeRecordId || records[records.length - 1]?.id || records[0]?.id);
+  const [extraRecords, setExtraRecords] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let isMounted = true;
+    const fetchHistory = async () => {
+      setLoadingHistory(true);
+      try {
+        const res = await api.get(`/interns/${user.id}/history`);
+        const list = res?.data?.data?.internships || [];
+        if (isMounted && Array.isArray(list) && list.length > 0) {
+          setExtraRecords(list);
+        }
+      } catch {
+        // Fallback to prop internships
+      } finally {
+        if (isMounted) setLoadingHistory(false);
+      }
+    };
+    fetchHistory();
+    return () => { isMounted = false; };
+  }, [user?.id]);
+
+  // Combine prop internships and backend extraRecords
+  const records = useMemo(() => {
+    if (extraRecords.length > 0) {
+      return extraRecords.map((r, idx) => ({
+        ...r,
+        id: r.id,
+        internshipNumber: r.internship_number || idx + 1,
+        title: r.title || `Internship #${r.internship_number || idx + 1}`,
+        startDate: r.start_date || r.startDate,
+        endDate: r.end_date || r.endDate,
+        department: r.department_name || r.department,
+        supervisorName: [r.supervisor_first_name, r.supervisor_last_name].filter(Boolean).join(' ') || r.supervisor,
+        status: r.status,
+      }));
+    }
+    return internships;
+  }, [extraRecords, internships]);
+
+  const [selectedId, setSelectedId] = useState(
+    activeRecordId || records[records.length - 1]?.id || records[0]?.id
+  );
+
+  useEffect(() => {
+    if (!selectedId && records.length > 0) {
+      setSelectedId(records[records.length - 1]?.id || records[0]?.id);
+    }
+  }, [records, selectedId]);
+
   const [showModal, setShowModal] = useState(false);
   const [newStart, setNewStart] = useState('');
   const [newEnd, setNewEnd] = useState('');
 
   const selectedRecord = records.find((r) => r.id === selectedId) || records[0] || null;
+
+  // ── Onboarding documents & compliance for the selected internship record ──
+  const [onboardingData, setOnboardingData] = useState({
+    loading: false,
+    status: null,
+    approvedCount: 0,
+    totalRequired: 3,
+    checklist: [],
+    documents: [],
+    error: null,
+  });
+  const [downloadingDocId, setDownloadingDocId] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchOnboardingDocs = async () => {
+      setOnboardingData((prev) => ({ ...prev, loading: true, error: null }));
+      try {
+        const params = {};
+        if (selectedRecord?.id && selectedRecord.id !== 'current') {
+          params.internship_record_id = selectedRecord.id;
+        }
+        const res = await api.get('/onboarding/documents', { params });
+        const data = res?.data?.data || res?.data || {};
+        if (!isMounted) return;
+        setOnboardingData({
+          loading: false,
+          status: data.status || 'not_started',
+          approvedCount: data.approved_count ?? (data.checklist || []).filter((i) => i.review_status === 'approved').length,
+          totalRequired: data.total_required || 3,
+          checklist: data.checklist || [],
+          documents: data.documents || [],
+          error: null,
+        });
+      } catch (err) {
+        if (!isMounted) return;
+        setOnboardingData((prev) => ({
+          ...prev,
+          loading: false,
+          error: err?.response?.data?.message || 'Failed to load onboarding documents.',
+        }));
+      }
+    };
+
+    fetchOnboardingDocs();
+    return () => { isMounted = false; };
+  }, [selectedRecord?.id]);
+
+  const handleDownloadDocument = async (doc) => {
+    if (!doc?.id) return;
+    setDownloadingDocId(doc.id);
+    try {
+      const res = await api.get(`/documents/${doc.id}/download`);
+      const downloadUrl = res?.data?.data?.downloadUrl;
+      if (downloadUrl) {
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.download = doc.file_name || 'document.pdf';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        toast.success(`Opening ${doc.file_name}…`);
+      } else {
+        toast.error('Download URL unavailable.');
+      }
+    } catch (err) {
+      toast.error('Could not download document.');
+    } finally {
+      setDownloadingDocId(null);
+    }
+  };
 
   const handleStartNewInternship = (e) => {
     e.preventDefault();
@@ -253,6 +401,191 @@ const InternshipHistoryCard = ({
               )}
             </div>
           )}
+
+          {/* ── Onboarding Documents & Records Section ──────────────── */}
+          <div
+            style={{
+              marginTop: '1.25rem',
+              background: '#f8fafc',
+              border: '1px solid var(--color-neutral-200)',
+              borderRadius: '0.875rem',
+              padding: '1.25rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                <div style={{
+                  width: '34px', height: '34px', borderRadius: '8px',
+                  background: '#e0f2fe', color: '#0284c7', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem'
+                }}>
+                  <FiFileText />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '0.9375rem', fontWeight: 800, margin: 0, color: 'var(--color-neutral-900)' }}>
+                    Onboarding Documents & Compliance
+                  </h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--color-neutral-500)', margin: 0 }}>
+                    Submitted requirements and compliance verification for {selectedRecord.title || `Internship #${selectedRecord.internshipNumber}`}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '999px',
+                  background: onboardingData.status === 'completed' ? '#dcfce7'
+                    : onboardingData.status === 'action_required' ? '#fee2e2'
+                    : onboardingData.status === 'pending' ? '#fef3c7'
+                    : '#f3f4f6',
+                  color: onboardingData.status === 'completed' ? '#15803d'
+                    : onboardingData.status === 'action_required' ? '#b91c1c'
+                    : onboardingData.status === 'pending' ? '#b45309'
+                    : '#4b5563',
+                }}>
+                  {onboardingData.status === 'completed' ? '✓ Completed & Approved'
+                    : onboardingData.status === 'action_required' ? '⚠️ Action Required'
+                    : onboardingData.status === 'pending' ? '⏳ Under Review'
+                    : onboardingData.status === 'in_progress' ? 'In Progress'
+                    : 'Not Started'}
+                </span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-neutral-600)' }}>
+                  {onboardingData.approvedCount} / {onboardingData.totalRequired} Approved
+                </span>
+              </div>
+            </div>
+
+            {onboardingData.loading ? (
+              <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--color-neutral-500)', fontSize: '0.8125rem' }}>
+                Loading onboarding records for this period…
+              </div>
+            ) : onboardingData.checklist.length === 0 ? (
+              <div style={{ padding: '1.25rem', textAlign: 'center', background: '#ffffff', borderRadius: '0.625rem', border: '1px dashed var(--color-neutral-300)', color: 'var(--color-neutral-500)', fontSize: '0.8125rem' }}>
+                No onboarding checklist records found for this period.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                {onboardingData.checklist.map((item) => {
+                  const isApproved = item.review_status === 'approved';
+                  const isRejected = item.review_status === 'rejected' || item.review_status === 'resubmission_required';
+                  const isPending = item.review_status === 'pending';
+                  const isSubmitted = item.submitted && item.document;
+
+                  return (
+                    <div
+                      key={item.category}
+                      style={{
+                        background: '#ffffff',
+                        border: isApproved ? '1px solid #bbf7d0' : isRejected ? '1px solid #fecaca' : '1px solid var(--color-neutral-200)',
+                        borderRadius: '0.625rem',
+                        padding: '0.75rem 1rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', minWidth: 0 }}>
+                          <span style={{ fontSize: '1.3rem' }}>📄</span>
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>
+                              {item.title}
+                            </p>
+                            {isSubmitted ? (
+                              <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-neutral-500)' }}>
+                                {item.document.file_name} • {formatBytes(item.document.file_size)} • Uploaded {formatDate(item.document.created_at || item.document.uploaded_at)}
+                              </p>
+                            ) : (
+                              <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-neutral-400)' }}>
+                                No document uploaded for this period
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{
+                            fontSize: '0.6875rem',
+                            fontWeight: 700,
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '999px',
+                            background: isApproved ? '#dcfce7' : isRejected ? '#fee2e2' : isPending ? '#fef3c7' : '#f1f5f9',
+                            color: isApproved ? '#15803d' : isRejected ? '#dc2626' : isPending ? '#d97706' : '#64748b',
+                            textTransform: 'uppercase',
+                          }}>
+                            {item.review_status ? item.review_status.replace(/_/g, ' ') : 'Not Submitted'}
+                          </span>
+
+                          {isSubmitted && item.document?.id && (
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadDocument(item.document)}
+                              disabled={downloadingDocId === item.document.id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                background: '#f8fafc',
+                                border: '1px solid var(--color-neutral-300)',
+                                borderRadius: '0.375rem',
+                                padding: '0.25rem 0.6rem',
+                                fontSize: '0.72rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                color: 'var(--color-neutral-700)',
+                              }}
+                            >
+                              <FiDownload />
+                              {downloadingDocId === item.document.id ? 'Loading…' : 'View / Download'}
+                            </button>
+                          )}
+
+                          {!isSubmitted && (selectedRecord.status === 'active' || selectedRecord.status === 'onboarding') && (
+                            <button
+                              type="button"
+                              onClick={() => navigate(ROUTES.ONBOARDING)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                background: '#e0f2fe',
+                                border: '1px solid #bae6fd',
+                                borderRadius: '0.375rem',
+                                padding: '0.25rem 0.6rem',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                color: '#0369a1',
+                              }}
+                            >
+                              Upload in Onboarding →
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Supervisor notes if present */}
+                      {item.document?.review_notes && (
+                        <div style={{
+                          background: isRejected ? '#fff1f2' : '#f8fafc',
+                          borderLeft: `3px solid ${isRejected ? '#f43f5e' : '#0284c7'}`,
+                          padding: '0.4rem 0.75rem',
+                          borderRadius: '0 0.375rem 0.375rem 0',
+                          fontSize: '0.75rem',
+                          color: isRejected ? '#9f1239' : 'var(--color-neutral-700)',
+                        }}>
+                          <span style={{ fontWeight: 700 }}>Supervisor Review Note:</span> {item.document.review_notes}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </motion.div>}
       </AnimatePresence>
 

@@ -28,18 +28,9 @@ import {
   RiFolderLine,
   RiCalendarCheckLine,
 } from 'react-icons/ri';
+import { useMemo, useEffect } from 'react';
 import { ROUTES, APP_NAME } from '../../constants';
-import { useSidebarCollapsed, useToggleSidebar, useAppStore } from '../../store';
-
-// ── Navigation Configuration ──────────────────────────────────────────────────
-const NAV_ITEMS = [
-  { label: 'Dashboard',     icon: RiDashboardLine,         to: ROUTES.DASHBOARD },
-  { label: 'Attendance',    icon: RiCalendarCheckLine,     to: ROUTES.ATTENDANCE },
-  { label: 'Tasks',         icon: RiTaskLine,              to: ROUTES.TASKS },
-  { label: 'Projects',      icon: RiFolderLine,            to: ROUTES.PROJECTS },
-  { label: 'Onboarding',    icon: RiCheckboxMultipleLine,  to: ROUTES.ONBOARDING },
-  { label: 'Reviews',       icon: RiStarLine,              to: ROUTES.REVIEWS },
-];
+import { useSidebarCollapsed, useToggleSidebar, useAppStore, useOnboardingStatus } from '../../store';
 
 const BOTTOM_NAV = [
   { label: 'Settings', icon: RiSettings3Line, to: ROUTES.SETTINGS },
@@ -111,6 +102,8 @@ function Logo({ collapsed }) {
 // ── Nav Item ──────────────────────────────────────────────────────────────────
 function SidebarNavItem({ item, collapsed, onMobileClose }) {
   const Icon = item.icon;
+  const isDanger = item.badgeVariant === 'danger';
+  const isWarning = item.badgeVariant === 'warning';
 
   return (
     <NavLink
@@ -119,22 +112,72 @@ function SidebarNavItem({ item, collapsed, onMobileClose }) {
       className={({ isActive }) =>
         ['nav-item', isActive ? 'active' : ''].filter(Boolean).join(' ')
       }
-      title={collapsed ? item.label : undefined}
-      style={{ justifyContent: collapsed ? 'center' : undefined }}
+      title={collapsed ? (item.badge ? `${item.label} (${item.badge})` : item.label) : undefined}
+      style={{ justifyContent: collapsed ? 'center' : undefined, position: 'relative' }}
       onClick={onMobileClose}
     >
-      <Icon className="nav-icon" aria-hidden />
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon className="nav-icon" aria-hidden />
+        {collapsed && item.badge && (
+          <span
+            style={{
+              position: 'absolute',
+              top: '-3px',
+              right: '-3px',
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: isDanger ? '#ef4444' : isWarning ? '#f59e0b' : '#3b82f6',
+              boxShadow: '0 0 0 2px var(--color-surface, #ffffff)',
+            }}
+            aria-label={item.badge}
+          />
+        )}
+      </div>
       <AnimatePresence>
         {!collapsed && (
-          <motion.span
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: 'auto' }}
-            exit={{ opacity: 0, width: 0 }}
-            transition={{ duration: 0.18 }}
-            style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              minWidth: 0,
+              overflow: 'hidden',
+            }}
           >
-            {item.label}
-          </motion.span>
+            <motion.span
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: 'auto' }}
+              exit={{ opacity: 0, width: 0 }}
+              transition={{ duration: 0.18 }}
+              style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
+            >
+              {item.label}
+            </motion.span>
+            {item.badge && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.15 }}
+                style={{
+                  fontSize: '0.6875rem',
+                  fontWeight: 700,
+                  padding: '0.125rem 0.45rem',
+                  borderRadius: '999px',
+                  whiteSpace: 'nowrap',
+                  marginLeft: '0.375rem',
+                  flexShrink: 0,
+                  background: isDanger ? '#fee2e2' : isWarning ? '#fef3c7' : 'var(--color-neutral-100)',
+                  color: isDanger ? '#b91c1c' : isWarning ? '#b45309' : 'var(--color-neutral-700)',
+                  border: isDanger ? '1px solid #fecaca' : isWarning ? '1px solid #fde68a' : '1px solid var(--color-neutral-200)',
+                }}
+              >
+                {item.badge}
+              </motion.span>
+            )}
+          </div>
         )}
       </AnimatePresence>
     </NavLink>
@@ -180,6 +223,41 @@ const Sidebar = ({ mobileOpen = false, onMobileClose }) => {
   const toggleSidebar = useToggleSidebar();
   const navigate = useNavigate();
   const logout = useAppStore((s) => s.logout);
+  const user = useAppStore((s) => s.user);
+  const { shouldShowOnboarding, badgeText, badgeVariant, fetchStatus } = useOnboardingStatus();
+
+  useEffect(() => {
+    if (user?.role === 'Intern') {
+      fetchStatus();
+    }
+  }, [fetchStatus, user?.role]);
+
+  const navItems = useMemo(() => {
+    const items = [
+      { label: 'Dashboard',  icon: RiDashboardLine,     to: ROUTES.DASHBOARD },
+      { label: 'Attendance', icon: RiCalendarCheckLine, to: ROUTES.ATTENDANCE },
+      { label: 'Tasks',      icon: RiTaskLine,          to: ROUTES.TASKS },
+      { label: 'Projects',   icon: RiFolderLine,        to: ROUTES.PROJECTS },
+    ];
+
+    if (shouldShowOnboarding) {
+      items.push({
+        label: 'Onboarding',
+        icon: RiCheckboxMultipleLine,
+        to: ROUTES.ONBOARDING,
+        badge: badgeText,
+        badgeVariant,
+      });
+    }
+
+    items.push({
+      label: 'Reviews',
+      icon: RiStarLine,
+      to: ROUTES.REVIEWS,
+    });
+
+    return items;
+  }, [shouldShowOnboarding, badgeText, badgeVariant]);
 
   const handleLogout = async () => {
     try {
@@ -238,7 +316,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose }) => {
         >
           <SectionLabel label="Menu" collapsed={collapsed} />
 
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <SidebarNavItem key={item.to} item={item} collapsed={collapsed} onMobileClose={onMobileClose} />
           ))}
 
