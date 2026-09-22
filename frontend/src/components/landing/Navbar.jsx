@@ -109,7 +109,9 @@ const Navbar = () => {
         justifyContent: 'space-between',
         gap: '1.5rem',
       }}>
-        <Logo />
+        <div style={{ visibility: mobileOpen ? 'hidden' : 'visible', opacity: mobileOpen ? 0 : 1, transition: 'opacity 0.15s ease' }}>
+          <Logo />
+        </div>
 
         {/* Desktop nav links */}
         <nav

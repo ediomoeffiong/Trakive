@@ -297,7 +297,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose }) => {
         aria-label="Main navigation"
       >
         {/* Logo */}
-        <Logo collapsed={collapsed} />
+        {!mobileOpen && <Logo collapsed={collapsed} />}
 
         <div className="divider" style={{ margin: '0' }} />
 

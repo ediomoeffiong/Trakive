@@ -213,7 +213,7 @@ const DeptHeadSidebar = ({ mobileOpen = false, onMobileClose }) => {
           .join(' ')}
         aria-label="Department Head navigation"
       >
-        <Logo collapsed={collapsed} />
+        {!mobileOpen && <Logo collapsed={collapsed} />}
 
         <div className="divider" style={{ margin: '0' }} />
 

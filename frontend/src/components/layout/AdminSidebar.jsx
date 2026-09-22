@@ -214,7 +214,7 @@ const AdminSidebar = ({ mobileOpen = false, onMobileClose }) => {
           .join(' ')}
         aria-label="HR Admin navigation"
       >
-        <Logo collapsed={collapsed} />
+        {!mobileOpen && <Logo collapsed={collapsed} />}
 
         <div className="divider" style={{ margin: '0' }} />
 
