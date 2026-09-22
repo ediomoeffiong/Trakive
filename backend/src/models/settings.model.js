@@ -94,10 +94,14 @@ const SettingsModel = {
   async listActiveSessions(userId) {
     const result = await query(
       `SELECT id, token_hash, ip_address, user_agent, expires_at, created_at, last_seen_at, is_revoked, revoked_at
-       FROM refresh_tokens
-       WHERE user_id = $1
-         AND is_revoked = false
-         AND expires_at > NOW()
+       FROM (
+         SELECT DISTINCT ON (COALESCE(user_agent, id::text)) id, token_hash, ip_address, user_agent, expires_at, created_at, last_seen_at, is_revoked, revoked_at
+         FROM refresh_tokens
+         WHERE user_id = $1
+           AND is_revoked = false
+           AND expires_at > NOW()
+         ORDER BY COALESCE(user_agent, id::text), last_seen_at DESC, created_at DESC
+       ) active_devices
        ORDER BY last_seen_at DESC, created_at DESC
        LIMIT 3`,
       [userId],
@@ -107,7 +111,7 @@ const SettingsModel = {
 
   async countActiveSessions(userId) {
     const result = await query(
-      `SELECT COUNT(*)::int AS count
+      `SELECT COUNT(DISTINCT COALESCE(user_agent, id::text))::int AS count
        FROM refresh_tokens
        WHERE user_id = $1
          AND is_revoked = false

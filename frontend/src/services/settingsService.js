@@ -131,15 +131,43 @@ export const fetchSessions = async ({ page = 1, limit = 10 } = {}) => {
     }
   }
   await delay();
-  const storedCurrent = readLocal('current_sessions', _currentSessions);
+  const rawCurrent = readLocal('current_sessions', _currentSessions);
   const storedOther = readLocal('other_sessions', _otherSessions);
+
+  // Normalize current sessions to guarantee 1 isCurrent = true and max 3 active devices
+  let foundCurrent = false;
+  const normalizedCurrent = (rawCurrent || []).slice(0, 3).map((session, index) => {
+    const isThisCurrent = session.isCurrent || index === 0;
+    if (isThisCurrent && !foundCurrent) {
+      foundCurrent = true;
+      return {
+        ...session,
+        isCurrent: true,
+        status: 'active',
+        lastActive: new Date().toISOString(),
+      };
+    }
+    return {
+      ...session,
+      isCurrent: false,
+      status: 'active',
+    };
+  });
+
+  if (normalizedCurrent.length > 0 && !foundCurrent) {
+    normalizedCurrent[0].isCurrent = true;
+    normalizedCurrent[0].status = 'active';
+  }
+
+  writeLocal('current_sessions', normalizedCurrent);
+
   const total = storedOther.length;
   const totalPages = Math.ceil(total / limit) || 1;
   const start = (page - 1) * limit;
   const paginatedOther = storedOther.slice(start, start + limit);
 
   return {
-    currentSessions: clone(storedCurrent),
+    currentSessions: clone(normalizedCurrent),
     otherSessions: clone(paginatedOther),
     pagination: {
       page,

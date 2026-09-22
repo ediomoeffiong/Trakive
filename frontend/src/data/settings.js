@@ -21,19 +21,6 @@ export const TIMEZONES = [
   { value: 'UTC',                label: 'UTC (Coordinated Universal Time)' },
 ];
 
-/** Supported currencies (placeholder) */
-export const CURRENCIES = [
-  { value: 'NGN', label: 'Nigerian Naira (₦)', symbol: '₦' },
-  { value: 'USD', label: 'US Dollar ($)',       symbol: '$' },
-  { value: 'EUR', label: 'Euro (€)',            symbol: '€' },
-  { value: 'GBP', label: 'British Pound (£)',   symbol: '£' },
-  { value: 'GHS', label: 'Ghanaian Cedi (₵)',   symbol: '₵' },
-  { value: 'KES', label: 'Kenyan Shilling (KSh)',symbol: 'KSh' },
-  { value: 'ZAR', label: 'South African Rand (R)',symbol: 'R' },
-  { value: 'AED', label: 'UAE Dirham (AED)',    symbol: 'AED' },
-  { value: 'INR', label: 'Indian Rupee (₹)',    symbol: '₹' },
-];
-
 /** Date format options */
 export const DATE_FORMATS = [
   { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY',   example: '24/07/2026' },
@@ -118,6 +105,5 @@ export const defaultSettings = {
     dateFormat:  'DD/MM/YYYY',
     timeFormat:  '12h',
     timezone:    'Africa/Lagos',
-    currency:    'NGN',
   },
 };

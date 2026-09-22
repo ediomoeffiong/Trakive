@@ -5,14 +5,14 @@
 
 import toast from 'react-hot-toast';
 import {
-  RiTranslate2, RiCalendarLine, RiTimeLine, RiMapPin2Line, RiMoneyDollarCircleLine,
+  RiTranslate2, RiCalendarLine, RiTimeLine, RiMapPin2Line,
 } from 'react-icons/ri';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import UnsavedChangesBar   from './UnsavedChangesBar';
 import {
   LANGUAGES, formatDatePreview, formatTimePreview,
 } from '../../data/languages';
-import { TIMEZONES, DATE_FORMATS, TIME_FORMATS, CURRENCIES } from '../../data/settings';
+import { TIMEZONES, DATE_FORMATS, TIME_FORMATS } from '../../data/settings';
 
 // ── Styled select ─────────────────────────────────────────────────────────────
 const StyledSelect = ({ id, value, onChange, options, label, icon: Icon, hint }) => (
@@ -85,7 +85,6 @@ const LanguageRegionSettingsForm = () => {
 
   const datePreview = formatDatePreview(lang.dateFormat);
   const timePreview = formatTimePreview(lang.timeFormat);
-  const selectedCurrency = CURRENCIES.find((c) => c.value === lang.currency);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '5rem' }}>
@@ -209,43 +208,6 @@ const LanguageRegionSettingsForm = () => {
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Currency (placeholder) */}
-      <div className="card" style={{ padding: '1.75rem' }}>
-        <div style={{ marginBottom: '1.25rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-neutral-900)', margin: '0 0 0.25rem' }}>
-            Currency
-          </h3>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-neutral-500)', margin: 0 }}>
-            Used for expense reports and stipend display (placeholder — future feature)
-          </p>
-        </div>
-
-        <StyledSelect
-          id="currency-select"
-          label="Preferred Currency"
-          icon={RiMoneyDollarCircleLine}
-          value={lang.currency}
-          onChange={(v) => updateField('language', 'currency', v)}
-          options={CURRENCIES}
-        />
-
-        {selectedCurrency && (
-          <div style={{
-            marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.625rem',
-            padding: '0.625rem 0.875rem', borderRadius: '0.625rem',
-            background: 'var(--color-neutral-50)', border: '1px solid var(--color-neutral-100)',
-            width: 'fit-content',
-          }}>
-            <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>
-              {selectedCurrency.symbol}
-            </span>
-            <span style={{ fontSize: '0.875rem', color: 'var(--color-neutral-600)' }}>
-              {selectedCurrency.label}
-            </span>
-          </div>
-        )}
       </div>
 
       <UnsavedChangesBar

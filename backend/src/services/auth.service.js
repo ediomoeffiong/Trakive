@@ -250,17 +250,30 @@ const AuthService = {
       userAgent,
     });
 
-    // Enforce max 3 active concurrent device sessions
-    const activeSessionsRes = await query(
-      `SELECT COUNT(*)::int AS count
+    // Supersede any prior active session on this same client device
+    if (userAgent) {
+      await query(
+        `UPDATE refresh_tokens
+         SET is_revoked = true,
+             revoked_at = NOW()
+         WHERE user_id = $1
+           AND user_agent = $2
+           AND is_revoked = false`,
+        [userProfile.id, userAgent]
+      );
+    }
+
+    // Enforce max 3 distinct active concurrent device sessions
+    const activeDevicesRes = await query(
+      `SELECT COUNT(DISTINCT COALESCE(user_agent, id::text))::int AS count
        FROM refresh_tokens
        WHERE user_id = $1
          AND is_revoked = false
          AND expires_at > NOW()`,
       [userProfile.id]
     );
-    const activeSessionsCount = parseInt(activeSessionsRes.rows[0]?.count, 10) || 0;
-    if (activeSessionsCount >= 3) {
+    const activeDevicesCount = parseInt(activeDevicesRes.rows[0]?.count, 10) || 0;
+    if (activeDevicesCount >= 3) {
       throw ApiError.forbidden(
         'Maximum active device limit reached (3 devices). Please log out from one of your active devices before logging in.'
       );

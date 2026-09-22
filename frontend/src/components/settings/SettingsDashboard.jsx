@@ -68,7 +68,7 @@ const CATEGORIES = [
   {
     id:          'language',
     label:       'Language & Region',
-    description: 'Language, date format, timezone, and currency',
+    description: 'Language, date format, and timezone',
     icon:        RiTranslate2,
     color:       { bg: 'var(--color-primary-50)', text: 'var(--color-primary-700)' },
   },
