@@ -1126,8 +1126,8 @@ h1.app-topbar-heading {
 }
 
 .input-field:focus {
-  border-color: var(--color-primary-400);
-  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px rgb(0 180 216 / 0.18);
 }
 
 .input-field.error {
@@ -2985,12 +2985,10 @@ html.dark [style*="linear-gradient(135deg, rgb(240, 253, 250)"] h4 {
   }
 }
 
-/* ========== FORCE LOGIN CARD DARK IN NIGHT MODE - OVERRIDES EVERYTHING ========== */
-html.dark div .card.auth-card,
-body.dark div .card.auth-card {
-  background: rgba(30, 41, 59, 0.92) !important;
-  background-color: rgba(30, 41, 59, 0.92) !important;
-  background-image: none !important;
+/* ========== AUTH CARD STYLING ========== */
+html.dark .card.auth-card,
+body.dark .card.auth-card {
+  background: rgba(17, 24, 39, 0.92) !important;
   border: 1px solid rgba(51, 65, 85, 0.8) !important;
   border-radius: 1rem !important;
   color: #f8fafc !important;
@@ -2998,50 +2996,26 @@ body.dark div .card.auth-card {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
 }
 
-/* FORCE ALL TEXT INSIDE TO BE READABLE */
-html.dark div .card.auth-card *,
-body.dark div .card.auth-card * {
-  color: #f8fafc !important;
-}
-
-/* Subtext/labels - slightly dimmer */
-html.dark div .card.auth-card p,
-html.dark div .card.auth-card label,
-html.dark div .card.auth-card span {
-  color: #cbd5e1 !important;
-}
-
-/* INPUTS */
-html.dark div .card.auth-card input[type="email"],
-html.dark div .card.auth-card input[type="password"],
-html.dark div .card.auth-card input[type="text"] {
-  background: rgba(51, 65, 85, 0.7) !important;
-  border: 1px solid rgba(71, 85, 105, 1) !important;
+html.dark .card.auth-card input[type="email"],
+html.dark .card.auth-card input[type="password"],
+html.dark .card.auth-card input[type="text"] {
+  background: rgba(30, 41, 59, 0.7) !important;
+  border: 1px solid rgba(71, 85, 105, 0.8) !important;
   color: #ffffff !important;
 }
-html.dark div .card.auth-card input::placeholder {
+
+html.dark .card.auth-card input::placeholder {
   color: #94a3b8 !important;
-  opacity: 1 !important;
 }
 
-/* SIGN IN BUTTON */
-html.dark div .card.auth-card button[type="submit"] {
-  background: #00b4d8 !important;
+.card.auth-card button.btn-primary,
+.card.auth-card button[type="submit"] {
+  background: linear-gradient(135deg, #00b4d8 0%, #0096c7 100%) !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
-}
-html.dark div .card.auth-card button[type="submit"]:hover {
-  background: #0093b8 !important;
 }
 
-/* ========== LIGHT MODE: KEEP IT WHITE NO MATTER WHAT ========== */
-@media (prefers-color-scheme: light) {
-  div .card.auth-card {
-    background-color: rgba(255, 255, 255, 0.96) !important;
-    color: #0f172a !important;
-    border: 1px solid rgba(229, 231, 235, 1) !important;
-  }
-  div .card.auth-card * {
-    color: #0f172a !important;
-  }
+.card.auth-card button.btn-primary:hover:not(:disabled),
+.card.auth-card button[type="submit"]:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0096c7 0%, #0077b6 100%) !important;
+  box-shadow: 0 4px 16px rgba(0, 180, 216, 0.4) !important;
 }

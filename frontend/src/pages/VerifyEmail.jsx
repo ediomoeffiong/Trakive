@@ -66,10 +66,10 @@ const VerifyEmail = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 10px 25px rgb(37 99 235 / 0.1)',
+            boxShadow: '0 10px 25px rgba(0, 180, 216, 0.2)',
           }}
         >
-          <FiMail size={36} style={{ color: 'var(--color-primary-600)' }} />
+          <FiMail size={36} style={{ color: '#00b4d8' }} />
         </motion.div>
       </div>
 

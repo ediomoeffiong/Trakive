@@ -92,7 +92,7 @@ const ForgotPassword = () => {
           label="Work Email"
           type="email"
           placeholder="name@cwg-plc.com or name@thefifthlab.com"
-          leftAddon={<FiMail className="text-neutral-400" />}
+          leftAddon={<FiMail style={{ color: '#0096c7' }} />}
           error={errors.email?.message}
           disabled={authLoading}
           {...register('email', orgEmailRegisterOptions)}
@@ -103,17 +103,51 @@ const ForgotPassword = () => {
           size="lg"
           loading={authLoading}
           rightIcon={<FiSend />}
-          style={{ width: '100%', marginTop: '0.5rem' }}
+          style={{
+            width: '100%',
+            marginTop: '0.5rem',
+            background: 'linear-gradient(135deg, #00b4d8 0%, #0096c7 100%)',
+            border: 'none',
+            boxShadow: '0 4px 14px rgba(0, 180, 216, 0.35)',
+            color: '#ffffff',
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            padding: '0.75rem 1.5rem',
+            borderRadius: '0.625rem',
+          }}
         >
           Send Recovery Link
         </Button>
       </form>
 
-      <p className="text-center text-sm text-neutral-500 mt-6 mb-0">
-        Remembered your details?{' '}
+      <p
+        style={{
+          marginTop: '1.25rem',
+          marginBottom: 0,
+          textAlign: 'center',
+          fontSize: '0.875rem',
+          color: '#64748b',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.375rem',
+          flexWrap: 'wrap',
+        }}
+      >
+        <span>Remembered your details?</span>
         <Link
           to={ROUTES.LOGIN}
-          className="text-primary-600 hover:text-primary-700 font-semibold no-underline flex items-center justify-center gap-1 mt-1"
+          style={{
+            color: '#0096c7',
+            fontWeight: 700,
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+            transition: 'color 0.15s ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#0077b6')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = '#0096c7')}
           onClick={clearError}
         >
           <FiArrowLeft size={14} /> Back to Sign In

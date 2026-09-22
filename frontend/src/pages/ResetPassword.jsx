@@ -87,7 +87,7 @@ const ResetPassword = () => {
           label="New Password"
           type="password"
           placeholder="••••••••"
-          leftAddon={<FiLock className="text-neutral-400" />}
+          leftAddon={<FiLock style={{ color: '#0096c7' }} />}
           error={errors.password?.message}
           disabled={authLoading}
           {...register('password', passwordRegisterOptions)}
@@ -99,7 +99,7 @@ const ResetPassword = () => {
           label="Confirm Password"
           type="password"
           placeholder="••••••••"
-          leftAddon={<FiLock className="text-neutral-400" />}
+          leftAddon={<FiLock style={{ color: '#0096c7' }} />}
           error={errors.confirmPassword?.message}
           disabled={authLoading}
           {...register('confirmPassword', {
@@ -116,19 +116,48 @@ const ResetPassword = () => {
           size="lg"
           loading={authLoading}
           rightIcon={<FiCheck />}
-          style={{ width: '100%', marginTop: '0.75rem' }}
+          style={{
+            width: '100%',
+            marginTop: '0.75rem',
+            background: 'linear-gradient(135deg, #00b4d8 0%, #0096c7 100%)',
+            border: 'none',
+            boxShadow: '0 4px 14px rgba(0, 180, 216, 0.35)',
+            color: '#ffffff',
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            padding: '0.75rem 1.5rem',
+            borderRadius: '0.625rem',
+          }}
         >
           Reset Password
         </Button>
       </form>
 
-      <p className="text-center text-sm text-neutral-500 mt-6 mb-0">
+      <p
+        style={{
+          marginTop: '1.25rem',
+          marginBottom: 0,
+          textAlign: 'center',
+          fontSize: '0.875rem',
+          color: '#64748b',
+        }}
+      >
         <Link
           to={ROUTES.LOGIN}
-          className="text-neutral-500 hover:text-neutral-700 font-semibold no-underline flex items-center justify-center gap-2"
+          style={{
+            color: '#0096c7',
+            fontWeight: 700,
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+            transition: 'color 0.15s ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#0077b6')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = '#0096c7')}
           onClick={clearError}
         >
-          <FiArrowLeft /> Back to Login
+          <FiArrowLeft size={14} /> Back to Login
         </Link>
       </p>
     </AuthCard>
