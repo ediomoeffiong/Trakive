@@ -20,6 +20,7 @@ const API_V1_ROOTS = new Set([
   'conversations',
   'projects',
   'weekly-plans',
+  'settings',
   'test',
 ]);
 

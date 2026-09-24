@@ -17,6 +17,10 @@ import { mockInternPerformance } from '../data/internPerformance';
 import { normalizeDepartmentForPerson, normalizePersonRecord } from '../utils/people';
 import { getAccessToken } from '../utils/authSession';
 
+const logWarn = (...args) => {
+  if (!import.meta.env.PROD) logWarn(...args);
+};
+
 // ── Simulated network delay ──────────────────────────────────────────────────
 const DELAY_MS = 600;
 const delay = (ms = DELAY_MS) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -401,7 +405,7 @@ export const internManagementService = {
       ]);
       rawResult = enrichInternsWithLiveData(rawResult, extractItems(weeklyResponse), onboardingRecords);
     } catch (err) {
-      console.warn('Failed to fetch real interns from backend API:', err);
+      logWarn('Failed to fetch real interns from backend API:', err);
       rawResult = [];
     }
 
@@ -425,12 +429,12 @@ export const internManagementService = {
       const q = search.toLowerCase();
       result = result.filter(
         (i) =>
-          i.name.toLowerCase().includes(q) ||
-          i.email.toLowerCase().includes(q) ||
-          i.internId.toLowerCase().includes(q) ||
-          i.department.toLowerCase().includes(q) ||
-          i.role.toLowerCase().includes(q) ||
-          i.currentTask.toLowerCase().includes(q),
+          String(i.name || '').toLowerCase().includes(q) ||
+          String(i.email || '').toLowerCase().includes(q) ||
+          String(i.internId || '').toLowerCase().includes(q) ||
+          String(i.department || '').toLowerCase().includes(q) ||
+          String(i.role || '').toLowerCase().includes(q) ||
+          String(i.currentTask || '').toLowerCase().includes(q),
       );
     }
 
@@ -503,12 +507,12 @@ export const internManagementService = {
           );
           if (latestTask) profile.currentTask = latestTask.title;
         } catch (taskError) {
-          console.warn('Failed to load current intern task:', taskError);
+          logWarn('Failed to load current intern task:', taskError);
         }
         return { profile };
       }
     } catch (e) {
-      console.warn('Failed to fetch real intern profile from API:', e);
+      logWarn('Failed to fetch real intern profile from API:', e);
     }
 
     try {
@@ -526,7 +530,7 @@ export const internManagementService = {
         return { profile: found };
       }
     } catch (err) {
-      console.warn('Failed fallback intern resolution:', err);
+      logWarn('Failed fallback intern resolution:', err);
     }
 
     const fallbackProfile = buildProfile({
@@ -586,7 +590,7 @@ export const internManagementService = {
         },
       };
     } catch (e) {
-      console.warn('Failed to fetch real progress data:', e);
+      logWarn('Failed to fetch real progress data:', e);
       await delay(350);
       return { progress: mockInternProgress[internId] || null };
     }
@@ -608,7 +612,7 @@ export const internManagementService = {
         plans,
       };
     } catch (e) {
-      console.warn('Failed to fetch real intern tasks:', e);
+      logWarn('Failed to fetch real intern tasks:', e);
       return { tasks: [], plans: [] };
     }
   },
@@ -647,7 +651,7 @@ export const internManagementService = {
       });
       return { documents: docs.length ? docs : (mockInternDocuments[internId] || []) };
     } catch (e) {
-      console.warn('Failed to fetch real intern documents:', e);
+      logWarn('Failed to fetch real intern documents:', e);
       await delay(300);
       return { documents: mockInternDocuments[internId] || [] };
     }
@@ -697,7 +701,7 @@ export const internManagementService = {
         .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
       return { activities: activities.length ? activities : (mockInternActivity[internId] || []) };
     } catch (e) {
-      console.warn('Failed to fetch real intern activity:', e);
+      logWarn('Failed to fetch real intern activity:', e);
       await delay(400);
       return { activities: mockInternActivity[internId] || [] };
     }
@@ -746,7 +750,7 @@ export const internManagementService = {
         },
       };
     } catch (e) {
-      console.warn('Failed to fetch real performance data:', e);
+      logWarn('Failed to fetch real performance data:', e);
       await delay(350);
       return { performance: mockInternPerformance[internId] || null };
     }
@@ -763,7 +767,7 @@ export const internManagementService = {
         const notes = unwrapApiData(await api.get(`/interns/${internId}/notes`));
         return { notes: Array.isArray(notes) ? notes : [] };
       } catch (error) {
-        console.warn('Failed to fetch supervisor notes from API:', error);
+        logWarn('Failed to fetch supervisor notes from API:', error);
       }
     }
     await delay(300);
@@ -782,7 +786,7 @@ export const internManagementService = {
         const saved = unwrapApiData(await api.post(`/interns/${internId}/notes`, note));
         return { note: saved };
       } catch (error) {
-        console.warn('Failed to save supervisor note to API:', error);
+        logWarn('Failed to save supervisor note to API:', error);
       }
     }
     await delay(400);
@@ -826,7 +830,7 @@ export const internManagementService = {
         await api.delete(`/interns/${internId}/notes/${noteId}`);
         return { success: true };
       } catch (error) {
-        console.warn('Failed to delete supervisor note from API:', error);
+        logWarn('Failed to delete supervisor note from API:', error);
       }
     }
     await delay(300);
@@ -849,7 +853,7 @@ export const internManagementService = {
         const note = unwrapApiData(await api.patch(`/interns/${internId}/notes/${noteId}/pin`));
         return { note };
       } catch (error) {
-        console.warn('Failed to update supervisor note pin through API:', error);
+        logWarn('Failed to update supervisor note pin through API:', error);
       }
     }
     await delay(200);

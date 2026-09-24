@@ -262,14 +262,17 @@ export const notificationService = {
   getNotifications: async (role) => {
     if (hasRealBackendToken()) {
       try {
-        const list = listOf(await api.get('/notifications'));
-        if (Array.isArray(list)) {
-          const mapped = list.map((n) => mapApiNotification(n, role));
-          const settings = await settingsService.fetchSettings();
-          return applyNotificationPreferences(mapped, settings.notifications || {});
+        const res = await api.get('/notifications').catch(() => null);
+        if (res) {
+          const list = listOf(res);
+          if (Array.isArray(list)) {
+            const mapped = list.map((n) => mapApiNotification(n, role));
+            const settings = await settingsService.fetchSettings().catch(() => ({}));
+            return applyNotificationPreferences(mapped, settings?.notifications || {});
+          }
         }
-      } catch (err) {
-        throw new Error(err?.response?.data?.message || err?.message || 'Failed to load notifications');
+      } catch {
+        // Fall back to stored or mock notifications
       }
     }
     if (!MOCK_DATA_ENABLED) return [];
@@ -337,7 +340,7 @@ export const notificationService = {
    */
   getAnnouncements: async (role) => {
     if (hasRealBackendToken()) {
-      const notifications = await notificationService.getNotifications(role);
+      const notifications = await notificationService.getNotifications(role).catch(() => []);
       return notifications
         .filter((notification) =>
           ['announcement', 'dept_announcement', 'company_announcement'].includes(notification.category) ||
@@ -365,6 +368,7 @@ export const notificationService = {
       const isSupervisor = activeRole === 'Supervisor';
       const notificationsPromise = notificationService
         .getNotifications(activeRole)
+        .catch(() => [])
         .then((notifications) =>
           notifications
             .filter((notification) =>
@@ -429,8 +433,8 @@ export const notificationService = {
    */
   getPreferences: async (role) => {
     if (hasRealBackendToken()) {
-      const settings = await settingsService.fetchSettings();
-      return { ...defaultNotificationPreferences, ...(settings.notifications || {}) };
+      const settings = await settingsService.fetchSettings().catch(() => ({}));
+      return { ...defaultNotificationPreferences, ...(settings?.notifications || {}) };
     }
     await delay(200);
     const activeRole = getEffectiveRole(role);

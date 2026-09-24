@@ -291,7 +291,7 @@ const ReviewManagementPage = () => {
     let data = reviewHistory;
     if (historyFilters.internSearch) {
       const q = historyFilters.internSearch.toLowerCase();
-      data = data.filter((r) => r.internName.toLowerCase().includes(q));
+      data = data.filter((r) => String(r.internName || '').toLowerCase().includes(q));
     }
     if (historyFilters.department) data = data.filter((r) => r.internDepartment === historyFilters.department);
     if (historyFilters.decision) data = data.filter((r) => r.decision === historyFilters.decision);

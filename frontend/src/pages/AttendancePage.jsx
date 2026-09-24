@@ -43,7 +43,8 @@ const AttendancePage = () => {
       const res = await attendanceService.getHistory();
       setData(res);
     } catch (err) {
-      console.error('Failed to load attendance history', err);
+      if (!import.meta.env.PROD) console.error('Failed to load attendance history', err);
+      setData({ stats: {}, records: [], corrections: [] });
     } finally {
       setLoading(false);
       setRefreshing(false);

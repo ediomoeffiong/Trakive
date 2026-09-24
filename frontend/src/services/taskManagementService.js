@@ -12,6 +12,10 @@ import { mockUserDirectory } from '../data/users';
 import { getTaskTimeline } from '../data/taskTimeline';
 import api from './api';
 
+const logWarn = (...args) => {
+  if (!import.meta.env.PROD) logWarn(...args);
+};
+
 const LOCAL_TASKS_KEY = 'trakive_supervisor_tasks_local';
 const LOCAL_COMMENTS_KEY = 'trakive_supervisor_task_comments';
 
@@ -343,10 +347,10 @@ function applyFilters(tasks, filters = {}) {
     const q = filters.search.toLowerCase();
     result = result.filter(
       (t) =>
-        t.title.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q) ||
-        t.category.toLowerCase().includes(q) ||
-        t.tags?.some((tag) => tag.toLowerCase().includes(q))
+        String(t.title || '').toLowerCase().includes(q) ||
+        String(t.description || '').toLowerCase().includes(q) ||
+        String(t.category || '').toLowerCase().includes(q) ||
+        t.tags?.some((tag) => String(tag || '').toLowerCase().includes(q))
     );
   }
 
@@ -485,7 +489,7 @@ export const taskManagementService = {
         uploadedAt: new Date().toISOString(),
       };
     } catch (err) {
-      console.warn('Real document upload failed, using client attachment fallback:', err?.message);
+      logWarn('Real document upload failed, using client attachment fallback:', err?.message);
     }
 
     if (onProgress) onProgress(100);
@@ -514,7 +518,7 @@ export const taskManagementService = {
           return;
         }
       } catch (err) {
-        console.warn('Could not fetch signed download URL:', err);
+        logWarn('Could not fetch signed download URL:', err);
       }
     }
     if (attachment.url) {

@@ -44,8 +44,10 @@ const SupervisorLayout = () => {
     if (!user) return undefined;
     fetchNotifications(user.role);
     const intervalId = window.setInterval(() => {
-      fetchNotifications(user.role);
-    }, 8000);
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchNotifications(user.role);
+      }
+    }, 30000);
     return () => window.clearInterval(intervalId);
   }, [fetchNotifications, user]);
 

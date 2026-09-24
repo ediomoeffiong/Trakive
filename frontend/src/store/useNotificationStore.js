@@ -128,7 +128,7 @@ export const useNotificationStore = create((set, get) => ({
       });
       return created;
     } catch (err) {
-      console.error('Failed to dispatch notification:', err);
+      if (!import.meta.env.PROD) if (!import.meta.env.PROD) console.error('Failed to dispatch notification:', err);
     }
   },
 
@@ -305,9 +305,9 @@ export const useNotificationStore = create((set, get) => ({
       const q = searchQuery.toLowerCase();
       list = list.filter(
         (n) =>
-          n.title.toLowerCase().includes(q) ||
-          n.shortDescription.toLowerCase().includes(q) ||
-          n.message.toLowerCase().includes(q)
+          String(n.title || '').toLowerCase().includes(q) ||
+          String(n.shortDescription || '').toLowerCase().includes(q) ||
+          String(n.message || '').toLowerCase().includes(q)
       );
     }
 

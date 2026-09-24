@@ -194,7 +194,7 @@ export default function OnboardingDashboard() {
           }
         }
       } catch (err) {
-        console.warn('Failed to load departments for onboarding', err);
+        if (!import.meta.env.PROD) if (!import.meta.env.PROD) console.warn('Failed to load departments for onboarding', err);
         if (mounted) toast.error('Could not load departments. Refresh and try again.');
       } finally {
         if (mounted) setLoadingDepartments(false);
@@ -269,7 +269,7 @@ export default function OnboardingDashboard() {
         fetchOnboardingStatus();
       } catch (err) {
         // Keep local draft if backend unavailable
-        console.warn('Could not sync onboarding documents from API', err);
+        if (!import.meta.env.PROD) if (!import.meta.env.PROD) console.warn('Could not sync onboarding documents from API', err);
       }
     };
     syncDocuments();
@@ -686,7 +686,7 @@ export default function OnboardingDashboard() {
             end_date: info.end_date || undefined,
           });
         } catch (infoErr) {
-          console.warn('Could not refresh internship info before document submit', infoErr);
+          if (!import.meta.env.PROD) if (!import.meta.env.PROD) console.warn('Could not refresh internship info before document submit', infoErr);
         }
       }
 

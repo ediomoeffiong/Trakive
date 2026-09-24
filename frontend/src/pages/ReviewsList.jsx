@@ -135,7 +135,7 @@ export default function ReviewsList() {
     setLoadingCharts(true);
     analyticsService.getChartData()
       .then((data) => setChartData(data))
-      .catch((err) => console.error('Failed to load chart data:', err))
+      .catch((err) => { if (!import.meta.env.PROD) console.error('Failed to load chart data:', err); })
       .finally(() => setLoadingCharts(false));
   }, [fetchReviews, fetchPerformanceTrends]);
 

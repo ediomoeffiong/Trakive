@@ -122,12 +122,15 @@ const calcTrend = (current, previous, suffix = '%') => {
 };
 
 const fetchLiveDashboardMetrics = async (filters = {}) => {
-  const params = buildAnalyticsParams(filters);
-  const [dashboardRes, taskRes, performanceRes] = await Promise.all([
-    api.get('/analytics/dashboard', { params }),
-    api.get('/analytics/tasks', { params }).catch(() => null),
-    api.get('/analytics/performance', { params }).catch(() => null),
-  ]);
+  try {
+    const params = buildAnalyticsParams(filters);
+    const [dashboardRes, taskRes, performanceRes] = await Promise.all([
+      api.get('/analytics/dashboard', { params }).catch(() => null),
+      api.get('/analytics/tasks', { params }).catch(() => null),
+      api.get('/analytics/performance', { params }).catch(() => null),
+    ]);
+
+    if (!dashboardRes && !taskRes && !performanceRes) return null;
 
   const data = unwrap(dashboardRes);
   const tasks = unwrap(taskRes) || {};
@@ -263,14 +266,20 @@ const fetchLiveDashboardMetrics = async (filters = {}) => {
       supervisors: ['All Supervisors', user?.name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Supervisor'],
     },
   };
+  } catch {
+    return null;
+  }
 };
 
 const fetchLiveChartData = async (filters = {}) => {
-  const params = buildAnalyticsParams(filters);
-  const [dashboardRes, taskRes] = await Promise.all([
-    api.get('/analytics/dashboard', { params }),
-    api.get('/analytics/tasks', { params }).catch(() => null),
-  ]);
+  try {
+    const params = buildAnalyticsParams(filters);
+    const [dashboardRes, taskRes] = await Promise.all([
+      api.get('/analytics/dashboard', { params }).catch(() => null),
+      api.get('/analytics/tasks', { params }).catch(() => null),
+    ]);
+
+    if (!dashboardRes && !taskRes) return null;
 
   const data = unwrap(dashboardRes);
   const tasks = unwrap(taskRes) || {};
@@ -369,6 +378,9 @@ const fetchLiveChartData = async (filters = {}) => {
     skillMatrix,
     heatmapData,
   };
+  } catch {
+    return null;
+  }
 };
 
 // Helper for fetching stored items from localStorage

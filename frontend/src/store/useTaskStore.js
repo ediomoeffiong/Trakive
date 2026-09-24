@@ -190,9 +190,9 @@ export const getFilteredAndSortedTasks = (state) => {
     // Search
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase();
-      const matchTitle = task.title.toLowerCase().includes(query);
-      const matchDesc = task.description.toLowerCase().includes(query);
-      const matchCat = task.category.toLowerCase().includes(query);
+      const matchTitle = String(task.title || '').toLowerCase().includes(query);
+      const matchDesc = String(task.description || '').toLowerCase().includes(query);
+      const matchCat = String(task.category || '').toLowerCase().includes(query);
       if (!matchTitle && !matchDesc && !matchCat) return false;
     }
 
@@ -246,8 +246,8 @@ export const getFilteredAndSortedTasks = (state) => {
         valB = priorityWeight[b.priority] || 0;
         break;
       case 'alphabetical':
-        valA = a.title.toLowerCase();
-        valB = b.title.toLowerCase();
+        valA = String(a.title || '').toLowerCase();
+        valB = String(b.title || '').toLowerCase();
         break;
       case 'status':
         valA = statusWeight[a.status] || 0;

@@ -45,7 +45,7 @@ const saveLocalProjects = (projects) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
     window.dispatchEvent(new CustomEvent('trakive-projects-updated', { detail: projects }));
   } catch (e) {
-    console.error('Failed to save projects to localStorage', e);
+    if (!import.meta.env.PROD) if (!import.meta.env.PROD) console.error('Failed to save projects to localStorage', e);
   }
 };
 
@@ -72,12 +72,12 @@ export const projectService = {
       return await api.get('/projects', { params }).then((r) => r.data);
     } catch (err) {
       if (isNetworkError(err)) {
-        console.warn('Backend unavailable, using local project storage fallback.');
+        if (!import.meta.env.PROD) if (!import.meta.env.PROD) console.warn('Backend unavailable, using local project storage fallback.');
         let list = getLocalProjects();
         if (params.search) {
           const s = params.search.toLowerCase();
           list = list.filter(
-            (p) => p.title.toLowerCase().includes(s) || (p.description && p.description.toLowerCase().includes(s))
+            (p) => String(p.title || '').toLowerCase().includes(s) || (p.description && String(p.description).toLowerCase().includes(s))
           );
         }
         if (params.status && params.status !== '') {

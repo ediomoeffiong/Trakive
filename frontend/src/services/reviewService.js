@@ -5,6 +5,10 @@
  */
 
 import api from './api';
+
+const logWarn = (...args) => {
+  if (!import.meta.env.PROD) logWarn(...args);
+};
 import {
   mockSupervisorSubmissions,
   mockOnboardingApprovals,
@@ -81,7 +85,7 @@ export const reviewService = {
       const detail = response?.data?.data || response?.data;
       if (detail) return detail;
     } catch (e) {
-      console.warn('Backend API call for review detail failed', e);
+      logWarn('Backend API call for review detail failed', e);
     }
     throw new Error(`Review with ID "${reviewId}" not found.`);
   },
@@ -94,7 +98,7 @@ export const reviewService = {
       const response = await api.post(`/reviews/${reviewId}/self-assessment`, formData);
       return response?.data?.data || response?.data;
     } catch (e) {
-      console.warn('Backend API call for self-assessment failed', e);
+      logWarn('Backend API call for self-assessment failed', e);
       throw new Error(`Review with ID "${reviewId}" not found.`);
     }
   },
@@ -112,7 +116,7 @@ export const reviewService = {
         summary: data?.summary || null,
       };
     } catch (e) {
-      console.warn('Backend API call for review performance trends failed', e);
+      logWarn('Backend API call for review performance trends failed', e);
       return { trends: [], radarData: [], summary: null };
     }
   },
@@ -127,7 +131,7 @@ export const reviewService = {
       if (Array.isArray(data)) return data;
       if (Array.isArray(data?.items)) return data.items;
     } catch (e) {
-      console.warn('Backend API call for development goals failed', e);
+      logWarn('Backend API call for development goals failed', e);
     }
     return [];
   },
@@ -148,9 +152,9 @@ export const reviewService = {
       const q = search.toLowerCase();
       data = data.filter(
         (s) =>
-          s.internName.toLowerCase().includes(q) ||
-          s.taskTitle.toLowerCase().includes(q) ||
-          s.taskCategory.toLowerCase().includes(q)
+          String(s.internName || '').toLowerCase().includes(q) ||
+          String(s.taskTitle || '').toLowerCase().includes(q) ||
+          String(s.taskCategory || '').toLowerCase().includes(q)
       );
     }
     if (status !== 'all') data = data.filter((s) => s.status === status);
@@ -239,7 +243,7 @@ export const reviewService = {
         }));
       }
     } catch (e) {
-      console.warn('Backend API call for onboarding queue failed', e);
+      logWarn('Backend API call for onboarding queue failed', e);
     }
     return mockOnboardingApprovals || [];
   },

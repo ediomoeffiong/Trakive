@@ -47,21 +47,22 @@ const InternOverviewTable = ({ interns = [], isLoading = false }) => {
   const filteredInterns = useMemo(() => {
     return interns
       .filter((intern) => {
+        const q = String(search || '').toLowerCase();
         const matchesSearch =
-          intern.name.toLowerCase().includes(search.toLowerCase()) ||
-          intern.currentTask.toLowerCase().includes(search.toLowerCase()) ||
-          intern.email.toLowerCase().includes(search.toLowerCase());
+          String(intern.name || '').toLowerCase().includes(q) ||
+          String(intern.currentTask || '').toLowerCase().includes(q) ||
+          String(intern.email || '').toLowerCase().includes(q);
         const matchesDept = department === 'All' || intern.department === department;
         const matchesStatus = status === 'All' || intern.status === status;
         return matchesSearch && matchesDept && matchesStatus;
       })
       .sort((a, b) => {
-        let valA = a[sortField];
-        let valB = b[sortField];
+        let valA = a[sortField] ?? '';
+        let valB = b[sortField] ?? '';
 
-        if (typeof valA === 'string') {
-          valA = valA.toLowerCase();
-          valB = valB.toLowerCase();
+        if (typeof valA === 'string' || typeof valB === 'string') {
+          valA = String(valA).toLowerCase();
+          valB = String(valB).toLowerCase();
         }
 
         if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
@@ -216,7 +217,7 @@ const InternOverviewTable = ({ interns = [], isLoading = false }) => {
                 </tr>
               ) : (
                 paginatedInterns.map((intern) => {
-                  const statusStyle = STATUS_STYLING[intern.status] || STATUS_STYLING.Active;
+                  const statusStyle = STATUS_STYLING[intern.status] || STATUS_STYLING.Active || { bg: '#e0f2fe', text: '#0369a1' };
                   return (
                     <motion.tr
                       key={intern.id}
@@ -299,7 +300,7 @@ const InternOverviewTable = ({ interns = [], isLoading = false }) => {
                       </td>
 
                       <td style={{ padding: '1rem', fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>
-                        {intern.lastActivity}
+                        {intern.lastActive || intern.lastActivity || 'Recently'}
                       </td>
 
                       <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>

@@ -50,8 +50,20 @@ function SupervisorProjectWeeklySummary({ navigate }) {
       weeklyPlanService.supervisorView({ week_start: getMondayOfWeek(), limit: 100 }).catch(() => ({ data: [] })),
     ]).then(([projectsRes, weeklyRes]) => {
       if (cancelled) return;
-      const projects = projectsRes.data || [];
-      const plans = weeklyRes.data || [];
+      const projects = Array.isArray(projectsRes?.data?.data)
+        ? projectsRes.data.data
+        : Array.isArray(projectsRes?.data?.items)
+          ? projectsRes.data.items
+          : Array.isArray(projectsRes?.data)
+            ? projectsRes.data
+            : [];
+      const plans = Array.isArray(weeklyRes?.data?.data)
+        ? weeklyRes.data.data
+        : Array.isArray(weeklyRes?.data?.items)
+          ? weeklyRes.data.items
+          : Array.isArray(weeklyRes?.data)
+            ? weeklyRes.data
+            : [];
       setProjectCounts({
         total: projects.length,
         active: projects.filter((p) => p.status === 'active').length,
@@ -62,6 +74,8 @@ function SupervisorProjectWeeklySummary({ navigate }) {
         submitted: plans.filter((p) => p.status === 'submitted').length,
       });
       setLoading(false);
+    }).catch(() => {
+      if (!cancelled) setLoading(false);
     });
     return () => {
       cancelled = true;

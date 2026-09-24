@@ -1,5 +1,8 @@
 import api from './api';
 import { normalizeDepartmentForPerson, normalizePersonRecord } from '../utils/people';
+import { mockUsers } from '../data/mockUsers';
+
+const isUuid = (val) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
 const unwrapList = (res) => {
   const payload = res?.data?.data ?? res?.data ?? [];
@@ -9,11 +12,24 @@ const unwrapList = (res) => {
   return [];
 };
 
-const getApiErrorMessage = (err, fallback) =>
-  err?.response?.data?.message ||
-  err?.response?.data?.error ||
-  err?.message ||
-  fallback;
+const getFallbackMockInterns = () => {
+  try {
+    const customUsers = typeof localStorage !== 'undefined' ? JSON.parse(localStorage.getItem('trakive_custom_users') || '[]') : [];
+    const allUsers = [...mockUsers, ...customUsers];
+    return allUsers
+      .filter((u) => String(u.role || u.role_name || '').toLowerCase() === 'intern')
+      .map((u) => ({
+        ...u,
+        user_id: u.id,
+        first_name: u.first_name || (u.name ? u.name.split(' ')[0] : 'Intern'),
+        last_name: u.last_name || (u.name ? u.name.split(' ').slice(1).join(' ') : ''),
+        intern_status: u.status === 'Completed' ? 'completed' : (u.status === 'Pending Review' ? 'onboarding' : 'active'),
+        department_name: u.department || 'Engineering',
+      }));
+  } catch {
+    return [];
+  }
+};
 
 const mondayIso = (date = new Date()) => {
   const d = new Date(date);
@@ -59,14 +75,17 @@ export const supervisorService = {
   async fetchDashboard() {
     try {
       const [internsRes, queueRes, projectsRes, weeklyRes, tasksRes] = await Promise.all([
-        api.get('/interns', { params: { limit: 100 } }),
+        api.get('/interns', { params: { limit: 100 } }).catch(() => ({ data: {} })),
         api.get('/onboarding/supervisor/queue').catch(() => ({ data: {} })),
         api.get('/projects', { params: { limit: 100 } }).catch(() => ({ data: {} })),
         api.get('/weekly-plans', { params: { limit: 100 } }).catch(() => ({ data: {} })),
         api.get('/tasks', { params: { page: 1, limit: 100 } }).catch(() => ({ data: {} })),
       ]);
 
-      const internsData = unwrapList(internsRes);
+      let internsData = unwrapList(internsRes);
+      if (internsData.length === 0) {
+        internsData = getFallbackMockInterns();
+      }
       const queueData = unwrapList(queueRes);
       const projectsData = unwrapList(projectsRes);
       const weeklyData = unwrapList(weeklyRes);
@@ -95,51 +114,94 @@ export const supervisorService = {
           reviewsDue,
         },
       };
-    } catch (err) {
-      throw new Error(getApiErrorMessage(err, 'Failed to load supervisor dashboard'));
+    } catch {
+      const fallbackInterns = getFallbackMockInterns();
+      return {
+        kpis: [
+          { id: 'total-interns', label: 'Total Assigned Interns', value: String(fallbackInterns.length), trend: `${fallbackInterns.length} active`, trendType: 'positive', iconName: 'RiTeamLine', color: 'blue', description: 'Interns assigned to you', to: '/supervisor/interns' },
+          { id: 'active-projects', label: 'Active Projects', value: '0', trend: '0 total', trendType: 'positive', iconName: 'RiTaskLine', color: 'green', description: 'Projects currently in progress', to: '/supervisor/projects' },
+          { id: 'pending-reviews', label: 'Pending Task Reviews', value: '0', trend: 'Requires action', trendType: 'positive', iconName: 'RiCheckboxMultipleLine', color: 'amber', description: 'Onboarding and weekly reviews waiting', to: '/supervisor/reviews' },
+          { id: 'reviews-due', label: 'Reviews Due This Week', value: '0', trend: 'Weekly reports', trendType: 'positive', iconName: 'RiStarLine', color: 'purple', description: 'Submitted weekly reports to review', to: '/supervisor/weekly-review' },
+        ],
+        banner: {
+          internCount: fallbackInterns.length,
+          pendingReviews: 0,
+          reviewsDue: 0,
+        },
+      };
     }
   },
 
   async fetchInterns(params = {}) {
     try {
-      const res = await api.get('/interns', {
-        params: {
-          search: params.search || '',
-          department_id: params.department !== 'All' ? params.department : undefined,
-          status: params.status !== 'All' ? params.status : undefined,
-          limit: 100
+      const apiParams = { limit: 100 };
+      if (params.search) apiParams.search = params.search;
+      if (params.department && params.department !== 'All' && isUuid(params.department)) {
+        apiParams.department_id = params.department;
+      }
+      const validStatuses = ['active', 'onboarding', 'completed', 'terminated'];
+      if (params.status && params.status !== 'All') {
+        const lower = String(params.status).toLowerCase();
+        const mapped = lower === 'pending review' ? 'onboarding' : lower;
+        if (validStatuses.includes(mapped)) {
+          apiParams.status = mapped;
         }
-      });
-      const rawItems = res.data?.data?.items || res.data?.items || (Array.isArray(res.data?.data) ? res.data.data : []) || [];
+      }
 
-      const formattedInterns = rawItems.map((item) => {
-        const name = `${item.first_name || ''} ${item.last_name || ''}`.trim() || item.email;
+      const res = await api.get('/interns', { params: apiParams }).catch(() => null);
+      let rawItems = res?.data?.data?.items || res?.data?.items || (Array.isArray(res?.data?.data) ? res.data.data : []) || [];
+
+      if (rawItems.length === 0) {
+        rawItems = getFallbackMockInterns();
+      }
+
+      let formattedInterns = rawItems.map((item) => {
+        const name = `${item.first_name || ''} ${item.last_name || ''}`.trim() || item.name || item.email || 'Intern';
         return normalizePersonRecord({
           id: item.user_id || item.id,
           name,
-          email: item.email,
+          email: item.email || '',
           department: normalizeDepartmentForPerson({ ...item, name }, item.department_name || item.department || 'Engineering'),
           currentTask: item.current_task || (item.onboarding_ready ? 'Onboarding Complete' : 'Completing Onboarding'),
           performanceScore: item.performance_score || '4.8',
           onboardingProgress: item.onboarding_ready ? 100 : (item.onboarding_step ? item.onboarding_step * 33 : 33),
-          status: item.intern_status === 'active' ? 'Active' : (item.intern_status === 'onboarding' ? 'Pending Review' : 'Active'),
+          status: item.intern_status === 'active' ? 'Active' : (item.intern_status === 'onboarding' ? 'Pending Review' : (item.status || 'Active')),
           lastActive: item.updated_at ? new Date(item.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently',
           avatar: item.avatar_url || null,
         });
       });
 
+      if (params.search) {
+        const q = String(params.search).toLowerCase();
+        formattedInterns = formattedInterns.filter((i) =>
+          String(i.name || '').toLowerCase().includes(q) ||
+          String(i.email || '').toLowerCase().includes(q) ||
+          String(i.currentTask || '').toLowerCase().includes(q) ||
+          String(i.department || '').toLowerCase().includes(q)
+        );
+      }
+      if (params.department && params.department !== 'All') {
+        formattedInterns = formattedInterns.filter((i) => i.department === params.department);
+      }
+      if (params.status && params.status !== 'All') {
+        formattedInterns = formattedInterns.filter((i) => i.status === params.status);
+      }
+
       return {
         interns: formattedInterns,
         total: formattedInterns.length,
       };
-    } catch (err) {
-      throw new Error(getApiErrorMessage(err, 'Failed to load assigned interns'));
+    } catch {
+      return {
+        interns: [],
+        total: 0,
+      };
     }
   },
 
   async fetchAnalytics() {
     try {
-      const res = await api.get('/analytics/dashboard');
+      const res = await api.get('/analytics/dashboard').catch(() => ({ data: {} }));
       const data = res.data?.data || {};
       
       return {
@@ -160,7 +222,7 @@ export const supervisorService = {
 
   async fetchActivity() {
     try {
-      const res = await api.get('/tasks', { params: { page: 1, limit: 100, sort: 'updated_at:desc' } });
+      const res = await api.get('/tasks', { params: { page: 1, limit: 100, sort: 'updated_at:desc' } }).catch(() => ({ data: {} }));
       const tasks = unwrapList(res);
       const activities = [...tasks]
         .sort((a, b) => String(b.updated_at || b.updatedAt || b.created_at || '').localeCompare(String(a.updated_at || a.updatedAt || a.created_at || '')))
@@ -196,7 +258,7 @@ export const supervisorService = {
 
   async fetchDeadlines() {
     try {
-      const res = await api.get('/tasks', { params: { page: 1, limit: 100, sort: 'due_date:asc' } });
+      const res = await api.get('/tasks', { params: { page: 1, limit: 100, sort: 'due_date:asc' } }).catch(() => ({ data: {} }));
       const tasks = unwrapList(res);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -240,11 +302,14 @@ export const supervisorService = {
       ]);
 
       const queue = unwrapList(queueRes);
-      const interns = Array.isArray(internsRes.data?.data?.items)
+      let interns = Array.isArray(internsRes.data?.data?.items)
         ? internsRes.data.data.items
         : Array.isArray(internsRes.data?.items)
           ? internsRes.data.items
           : unwrapList(internsRes);
+      if (interns.length === 0) {
+        interns = getFallbackMockInterns();
+      }
       const weekly = unwrapList(weeklyRes);
       const tasks = unwrapList(tasksRes);
 
@@ -271,13 +336,13 @@ export const supervisorService = {
         .sort((a, b) => String(b.created_at || b.createdAt || '').localeCompare(String(a.created_at || a.createdAt || '')))
         .slice(0, 5)
         .map((i, idx) => {
-        const name = `${i.first_name || ''} ${i.last_name || ''}`.trim() || i.email;
+        const name = `${i.first_name || ''} ${i.last_name || ''}`.trim() || i.name || i.email || 'Intern';
         const internId = i.user_id || i.id;
         return normalizePersonRecord({
           id: internId || `intern-${idx}`,
           internId,
           name,
-          department: normalizeDepartmentForPerson({ ...i, name }, i.department_name || 'Department'),
+          department: normalizeDepartmentForPerson({ ...i, name }, i.department_name || i.department || 'Department'),
           assignedDate: i.created_at ? new Date(i.created_at).toLocaleDateString() : 'recently',
           assignedAt: i.created_at || new Date().toISOString(),
           avatar: i.avatar_url,
@@ -304,7 +369,7 @@ export const supervisorService = {
       const topIntern = [...interns]
         .sort((a, b) => Number(b.performance_score || 0) - Number(a.performance_score || 0))[0];
       const topName = topIntern
-        ? `${topIntern.first_name || ''} ${topIntern.last_name || ''}`.trim() || topIntern.email || '—'
+        ? `${topIntern.first_name || ''} ${topIntern.last_name || ''}`.trim() || topIntern.name || topIntern.email || '—'
         : '—';
 
       return {
