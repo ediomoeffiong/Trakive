@@ -199,8 +199,9 @@ const OverviewTab = ({ task }) => {
 
 const InternsTab = ({ task }) => {
   const INTERN_PROGRESS_COLORS = { reviewed: '#10b981', 'needs-revision': '#ef4444', submitted: '#3b82f6', 'in-progress': '#4f46e5', pending: '#f59e0b', 'not-started': '#94a3b8' };
+  const safeAssignedInterns = Array.isArray(task?.assignedInterns) ? task.assignedInterns.filter(Boolean) : [];
 
-  if (!task.assignedInterns || task.assignedInterns.length === 0) {
+  if (safeAssignedInterns.length === 0) {
     return (
       <div style={{ padding: '1.25rem 0.75rem', textAlign: 'center' }}>
         <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>No interns assigned</p>
@@ -213,18 +214,18 @@ const InternsTab = ({ task }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      {task.assignedInterns.map((intern) => (
+      {safeAssignedInterns.map((intern) => (
         <div key={intern.id} style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.875rem', background: '#fff', borderRadius: '0.875rem', border: '1px solid var(--color-neutral-200)' }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-            <Avatar name={intern.name} src={intern.avatar} size="md" />
+            <Avatar name={intern.name || 'Intern'} src={intern.avatar} size="md" />
           </div>
           <div style={{ flex: 1 }}>
-            <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>{intern.name}</p>
+            <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>{intern.name || 'Unnamed Intern'}</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
               <div style={{ flex: 1, maxWidth: '160px', height: '6px', background: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${intern.progress}%`, background: intern.progress >= 100 ? '#10b981' : '#4f46e5', borderRadius: '99px', transition: 'width 0.4s ease' }} />
+                <div style={{ height: '100%', width: `${intern.progress || 0}%`, background: (intern.progress || 0) >= 100 ? '#10b981' : '#4f46e5', borderRadius: '99px', transition: 'width 0.4s ease' }} />
               </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-neutral-500)' }}>{intern.progress}%</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-neutral-500)' }}>{intern.progress ?? 0}%</span>
             </div>
           </div>
           <span style={{ padding: '0.2rem 0.625rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: '#f1f5f9', color: INTERN_PROGRESS_COLORS[intern.submissionStatus] || '#64748b', border: `1px solid ${INTERN_PROGRESS_COLORS[intern.submissionStatus] || '#94a3b8'}30` }}>
@@ -238,7 +239,10 @@ const InternsTab = ({ task }) => {
 
 const SubmissionsTab = ({ taskId, submissions = [], isLoading }) => {
   if (isLoading) return <div style={{ padding: '1rem', color: 'var(--color-neutral-400)', fontSize: '0.875rem' }}>Loading submissions...</div>;
-  if (submissions.length === 0) {
+
+  const safeSubmissions = Array.isArray(submissions) ? submissions.filter(Boolean) : [];
+
+  if (safeSubmissions.length === 0) {
     return (
       <div style={{ padding: '1.25rem 0.75rem', textAlign: 'center' }}>
         <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>No submissions yet</p>
@@ -251,26 +255,32 @@ const SubmissionsTab = ({ taskId, submissions = [], isLoading }) => {
 
   const STATUS_COLORS = { submitted: '#3b82f6', reviewed: '#10b981', 'needs-revision': '#ef4444', late: '#f59e0b' };
 
+  const formatSubDate = (d) => {
+    if (!d) return '—';
+    const parsed = new Date(d);
+    return isNaN(parsed.getTime()) ? '—' : parsed.toLocaleDateString();
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-      {submissions.map((sub) => (
+      {safeSubmissions.map((sub) => (
         <div key={sub.id} style={{ background: '#fff', borderRadius: '0.875rem', padding: '1rem', border: '1px solid var(--color-neutral-200)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.625rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden' }}>
-                <Avatar name={sub.internName} src={sub.internAvatar} size="sm" />
+                <Avatar name={sub.internName || 'Intern'} src={sub.internAvatar} size="sm" />
               </div>
               <div>
-                <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>{sub.internName}</p>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>Attempt #{sub.attemptNumber} · {new Date(sub.submittedAt).toLocaleDateString()}</p>
+                <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>{sub.internName || 'Unnamed Intern'}</p>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>Attempt #{sub.attemptNumber || 1} · {formatSubDate(sub.submittedAt)}</p>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {sub.score !== null && (
+              {sub.score !== null && sub.score !== undefined && (
                 <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#4f46e5' }}>{sub.score}/100</span>
               )}
               <span style={{ padding: '0.2rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: `${STATUS_COLORS[sub.status] || '#94a3b8'}15`, color: STATUS_COLORS[sub.status] || '#94a3b8', border: `1px solid ${STATUS_COLORS[sub.status] || '#94a3b8'}30` }}>
-                {sub.status}
+                {sub.status || 'submitted'}
               </span>
             </div>
           </div>
@@ -283,11 +293,11 @@ const SubmissionsTab = ({ taskId, submissions = [], isLoading }) => {
               <p style={{ margin: 0, fontSize: '0.8125rem', color: '#166534', lineHeight: 1.5 }}>{sub.feedback}</p>
             </div>
           )}
-          {sub.links?.length > 0 && (
+          {Array.isArray(sub.links) && sub.links.length > 0 && (
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.625rem', flexWrap: 'wrap' }}>
               {sub.links.map((link, i) => (
-                <a key={i} href={link.url} style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: 600, textDecoration: 'none', background: '#eef2ff', padding: '0.2rem 0.5rem', borderRadius: '0.375rem' }}>
-                  🔗 {link.label}
+                <a key={i} href={link.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: 600, textDecoration: 'none', background: '#eef2ff', padding: '0.2rem 0.5rem', borderRadius: '0.375rem' }}>
+                  🔗 {link.label || 'Link'}
                 </a>
               ))}
             </div>
@@ -323,32 +333,40 @@ const CommentsTab = ({ taskId }) => {
     }
   };
 
-  if (loading.comments) {
+  if (loading?.comments) {
     return <div style={{ padding: '1rem', color: 'var(--color-neutral-400)', fontSize: '0.875rem' }}>Loading comments...</div>;
   }
 
+  const safeComments = Array.isArray(taskComments) ? taskComments.filter(Boolean) : [];
+
+  const formatCommentDate = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? '' : d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {taskComments.length === 0 ? (
+      {safeComments.length === 0 ? (
         <div style={{ padding: '1.5rem', textAlign: 'center', background: 'var(--color-neutral-50)', borderRadius: '0.875rem', border: '1px solid var(--color-neutral-200)' }}>
           <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>No comments yet</p>
           <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>Start a discussion with the assigned intern.</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {taskComments.map((comment) => (
+          {safeComments.map((comment) => (
             <div key={comment.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-              <Avatar name={comment.authorName} src={comment.avatar} size="sm" />
+              <Avatar name={comment.authorName || 'User'} src={comment.avatar} size="sm" />
               <div style={{ flex: 1, padding: '0.75rem 0.875rem', background: 'var(--color-neutral-50)', border: '1px solid var(--color-neutral-100)', borderRadius: '0 0.75rem 0.75rem 0.75rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.25rem' }}>
                   <div>
-                    <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>{comment.authorName}</span>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>{comment.authorName || 'Supervisor'}</span>
                     {comment.authorRole && (
                       <span style={{ marginLeft: '0.4rem', fontSize: '0.6875rem', color: 'var(--color-neutral-400)' }}>{comment.authorRole}</span>
                     )}
                   </div>
                   <span style={{ fontSize: '0.6875rem', color: 'var(--color-neutral-400)', whiteSpace: 'nowrap' }}>
-                    {new Date(comment.timestamp).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    {formatCommentDate(comment.timestamp)}
                   </span>
                 </div>
                 <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-700)', lineHeight: 1.55 }}>{comment.message}</p>
@@ -487,11 +505,11 @@ const TaskDetailsDrawer = ({
                       {statusStyle.label}
                     </span>
                     <span style={{ padding: '0.2rem 0.625rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: `${priorityColor}20`, color: priorityColor, border: `1px solid ${priorityColor}50` }}>
-                      {task.priority?.charAt(0).toUpperCase() + task.priority?.slice(1)} Priority
+                      {task.priority ? (task.priority.charAt(0).toUpperCase() + task.priority.slice(1)) : 'Medium'} Priority
                     </span>
                   </div>
                   <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', color: '#fff' }}>
-                    {task.title}
+                    {task.title || 'Untitled Task'}
                   </h2>
                 </div>
                 <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '0.5rem', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: '1.125rem', flexShrink: 0 }} aria-label="Close drawer">

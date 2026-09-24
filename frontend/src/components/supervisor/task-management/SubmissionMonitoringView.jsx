@@ -101,18 +101,27 @@ const StatusSummaryCard = ({ statusKey, count, total, onClick, isActive }) => {
 
 // ── Submission card ───────────────────────────────────────────────────────────
 const SubmissionCard = ({ submission }) => {
+  if (!submission) return null;
+
   const STATUS_COLORS = {
     submitted: '#3b82f6', reviewed: '#10b981', 'needs-revision': '#ef4444', late: '#f59e0b',
   };
   const statusColor = STATUS_COLORS[submission.status] || '#94a3b8';
 
   const handleReview = () => {
-    toast.success(`Opening review for ${submission.internName}...`);
+    toast.success(`Opening review for ${submission.internName || 'intern'}...`);
   };
+
+  const formatSafeDate = (dStr) => {
+    if (!dStr) return null;
+    const d = new Date(String(dStr).includes('T') ? dStr : dStr + 'T12:00:00');
+    return isNaN(d.getTime()) ? null : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
   const submittedLabel = submission.submittedAt
-    ? new Date(submission.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    ? (formatSafeDate(submission.submittedAt) || 'Submitted')
     : submission.dueDate
-      ? `Due ${new Date(submission.dueDate + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      ? `Due ${formatSafeDate(submission.dueDate) || submission.dueDate}`
       : 'No submission yet';
 
   return (
@@ -134,11 +143,11 @@ const SubmissionCard = ({ submission }) => {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-            <Avatar name={submission.internName} src={submission.internAvatar} size="md" />
+            <Avatar name={submission.internName || 'Intern'} src={submission.internAvatar} size="md" />
           </div>
           <div>
             <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>
-              {submission.internName}
+              {submission.internName || 'Unnamed Intern'}
             </p>
             <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
               {submission.attemptNumber > 0 ? `Attempt #${submission.attemptNumber}` : 'No attempt'} · {submittedLabel}
@@ -147,20 +156,20 @@ const SubmissionCard = ({ submission }) => {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-          {submission.score !== null && (
+          {submission.score !== null && submission.score !== undefined && (
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', fontWeight: 800, color: '#4f46e5' }}>
               <RiStarLine style={{ color: '#f59e0b' }} /> {submission.score}/100
             </span>
           )}
           <span style={{ padding: '0.2rem 0.625rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: `${statusColor}18`, color: statusColor, border: `1px solid ${statusColor}30`, textTransform: 'capitalize' }}>
-            {submission.status?.replace(/-/g, ' ')}
+            {submission.status?.replace(/-/g, ' ') || 'pending'}
           </span>
         </div>
       </div>
 
       {/* Task title */}
       <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#4f46e5', background: '#eef2ff', padding: '0.25rem 0.625rem', borderRadius: '0.375rem', display: 'inline-block', alignSelf: 'flex-start' }}>
-        {submission.taskTitle}
+        {submission.taskTitle || 'Task'}
       </p>
 
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -182,15 +191,17 @@ const SubmissionCard = ({ submission }) => {
       )}
 
       {/* Links */}
-      {submission.links?.length > 0 && (
+      {Array.isArray(submission.links) && submission.links.length > 0 && (
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {submission.links.map((link, i) => (
             <a
               key={i}
               href={link.url}
+              target="_blank"
+              rel="noreferrer"
               style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: 600, textDecoration: 'none', background: '#eef2ff', padding: '0.2rem 0.5rem', borderRadius: '0.375rem', border: '1px solid #c7d2fe' }}
             >
-              🔗 {link.label}
+              🔗 {link.label || 'Link'}
             </a>
           ))}
         </div>
@@ -201,7 +212,7 @@ const SubmissionCard = ({ submission }) => {
         <div style={{ background: '#f0fdf4', borderRadius: '0.625rem', padding: '0.75rem', border: '1px solid #bbf7d0' }}>
           <p style={{ margin: '0 0 0.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#15803d' }}>Your Feedback:</p>
           <p style={{ margin: 0, fontSize: '0.8125rem', color: '#166534', lineHeight: 1.5 }}>{submission.feedback}</p>
-          <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#4ade80' }}>by {submission.reviewedBy}</p>
+          {submission.reviewedBy && <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#4ade80' }}>by {submission.reviewedBy}</p>}
         </div>
       )}
 
@@ -240,28 +251,30 @@ const SubmissionMonitoringView = () => {
   const [activeFilter, setActiveFilter] = useState(null);
 
   useEffect(() => {
-    fetchSubmissions();
+    fetchSubmissions?.();
   }, [fetchSubmissions]);
 
+  const safeSubmissions = Array.isArray(submissions) ? submissions.filter(Boolean) : [];
+
   const statusCounts = {
-    submitted:        submissions.filter((s) => s.status === 'submitted').length,
-    pending:          submissions.filter((s) => s.status === 'pending').length,
-    late:             submissions.filter((s) => s.isLate || s.status === 'late').length,
-    'not-started':    submissions.filter((s) => s.status === 'not-started').length,
-    reviewed:         submissions.filter((s) => s.status === 'reviewed').length,
-    'needs-revision': submissions.filter((s) => s.status === 'needs-revision').length,
+    submitted:        safeSubmissions.filter((s) => s.status === 'submitted').length,
+    pending:          safeSubmissions.filter((s) => s.status === 'pending').length,
+    late:             safeSubmissions.filter((s) => s.isLate || s.status === 'late').length,
+    'not-started':    safeSubmissions.filter((s) => s.status === 'not-started').length,
+    reviewed:         safeSubmissions.filter((s) => s.status === 'reviewed').length,
+    'needs-revision': safeSubmissions.filter((s) => s.status === 'needs-revision').length,
   };
-  const total = submissions.length;
+  const total = safeSubmissions.length;
 
   const filtered = activeFilter
-    ? submissions.filter((s) => {
+    ? safeSubmissions.filter((s) => {
         if (activeFilter === 'needs-revision') return s.status === 'needs-revision';
-        if (activeFilter === 'late') return s.isLate;
+        if (activeFilter === 'late') return s.isLate || s.status === 'late';
         return s.status === activeFilter;
       })
-    : submissions;
+    : safeSubmissions;
 
-  if (loading.submissions) return <SubmissionMonitoringSkeleton />;
+  if (loading?.submissions) return <SubmissionMonitoringSkeleton />;
 
   return (
     <motion.div

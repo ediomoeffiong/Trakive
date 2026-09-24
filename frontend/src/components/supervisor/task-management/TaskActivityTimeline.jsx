@@ -44,7 +44,9 @@ const TaskActivityTimeline = ({ timeline = [], isLoading = false }) => {
     );
   }
 
-  if (!timeline || timeline.length === 0) {
+  const safeTimeline = Array.isArray(timeline) ? timeline.filter(Boolean) : [];
+
+  if (safeTimeline.length === 0) {
     return (
       <div style={{ padding: '1.25rem 0.5rem', textAlign: 'center' }}>
         <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>No timeline events yet</p>
@@ -72,7 +74,7 @@ const TaskActivityTimeline = ({ timeline = [], isLoading = false }) => {
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {timeline.map((event, index) => {
+        {safeTimeline.map((event, index) => {
           const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.updated;
           const Icon = config.icon;
 

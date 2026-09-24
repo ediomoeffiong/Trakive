@@ -189,28 +189,41 @@ const completionForStatus = (status, fallback = 0) => {
 };
 
 const normalizeTask = (raw = {}, avatarIndex = internAvatarIndex || {}) => {
+  if (!raw || typeof raw !== 'object') raw = {};
   const dueDate = toDateKey(raw.dueDate || raw.due_date);
   const assigneeName = raw.assigneeName || raw.assignee_name ||
     [raw.assignee_first_name, raw.assignee_last_name].filter(Boolean).join(' ') ||
     raw.internName || raw.intern_name || '';
   const assigneeEmail = raw.assigneeEmail || raw.assignee_email || raw.internEmail || '';
   const assigneeId = raw.assignee_id || raw.intern_id || raw.assigneeId || raw.id;
-  const assignedInterns = (Array.isArray(raw.assignedInterns)
+  const rawAssignedInterns = Array.isArray(raw.assignedInterns)
     ? raw.assignedInterns
-    : assigneeName
-      ? [{
-          id: assigneeId || 'intern',
-          name: assigneeName,
-          email: assigneeEmail,
-          initials: initialsFor(assigneeName),
-          avatar: raw.assignee_avatar || raw.assigneeAvatar || raw.avatar_url || raw.avatar,
-        }]
-      : []
-  ).map((intern) => {
-    const name = intern.name || intern.fullName || '';
+    : Array.isArray(raw.assigned_interns)
+      ? raw.assigned_interns
+      : assigneeName
+        ? [{
+            id: assigneeId || 'intern',
+            name: assigneeName,
+            email: assigneeEmail,
+            initials: initialsFor(assigneeName),
+            avatar: raw.assignee_avatar || raw.assigneeAvatar || raw.avatar_url || raw.avatar,
+          }]
+        : [];
+
+  const assignedInterns = rawAssignedInterns.filter(Boolean).map((intern) => {
+    if (typeof intern === 'string') {
+      return {
+        id: intern,
+        name: 'Intern',
+        email: '',
+        initials: 'IN',
+        avatar: lookupAvatar({ id: intern }, avatarIndex),
+      };
+    }
+    const name = intern.name || intern.fullName || [intern.first_name, intern.last_name].filter(Boolean).join(' ') || '';
     return {
       ...intern,
-      id: intern.id || intern.internId || intern.user_id || intern.assignee_id || intern.email || name,
+      id: intern.id || intern.internId || intern.user_id || intern.assignee_id || intern.email || name || 'intern',
       name,
       initials: intern.initials || initialsFor(name),
       avatar: lookupAvatar({
@@ -222,7 +235,11 @@ const normalizeTask = (raw = {}, avatarIndex = internAvatarIndex || {}) => {
   });
   const status = raw.status === 'draft' ? 'draft' : normalizeStatus(raw.status, dueDate);
   const completionPercentage = completionForStatus(status, raw.completionPercentage ?? raw.progress);
-  const objectives = raw.objectives || raw.learningObjectives || [];
+  const objectives = Array.isArray(raw.objectives)
+    ? raw.objectives
+    : Array.isArray(raw.learningObjectives)
+      ? raw.learningObjectives
+      : [];
   const attachments = Array.isArray(raw.attachments) ? raw.attachments : [];
 
   return {
@@ -241,11 +258,11 @@ const normalizeTask = (raw = {}, avatarIndex = internAvatarIndex || {}) => {
     submissionCount: Number(raw.submissionCount || raw.submission_count || (['pending-review', 'completed', 'needs-revision'].includes(status) ? 1 : 0)),
     completionPercentage,
     estimatedHours: Number(raw.estimatedHours || raw.estimated_hours || 4),
-    tags: raw.tags || [],
+    tags: Array.isArray(raw.tags) ? raw.tags : [],
     objectives,
     learningObjectives: objectives,
     submissionRequirements: raw.submissionRequirements || '',
-    rubric: raw.rubric || [],
+    rubric: Array.isArray(raw.rubric) ? raw.rubric : [],
     attachments,
     raw,
   };
@@ -295,14 +312,15 @@ const syncTaskStore = async () => {
 const isActiveTask = (task) => task.status !== 'archived' && task.status !== 'draft';
 const countBy = (items, predicate) => items.filter(predicate).length;
 
-const makeKpis = (tasks) => {
-  const active = tasks.filter((task) => task.status !== 'archived');
+const makeKpis = (tasks = []) => {
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const active = safeTasks.filter((task) => task?.status !== 'archived');
   const total = active.length;
   const pct = (count) => `${total ? Math.round((count / total) * 100) : 0}%`;
-  const completed = countBy(active, (task) => task.status === 'completed');
-  const inProgress = countBy(active, (task) => ['assigned', 'in-progress', 'needs-revision'].includes(task.status));
-  const pendingReview = countBy(active, (task) => task.status === 'pending-review');
-  const overdue = countBy(active, (task) => task.status === 'overdue');
+  const completed = countBy(active, (task) => task?.status === 'completed');
+  const inProgress = countBy(active, (task) => ['assigned', 'in-progress', 'needs-revision'].includes(task?.status));
+  const pendingReview = countBy(active, (task) => task?.status === 'pending-review');
+  const overdue = countBy(active, (task) => task?.status === 'overdue');
 
   return [
     { id: 'total', label: 'Total Tasks', value: total, trend: pct(total), trendType: 'neutral', color: 'blue', iconName: 'RiTaskLine', filterKey: 'all', description: `${active.filter(isActiveTask).length} active task(s)` },
@@ -313,40 +331,49 @@ const makeKpis = (tasks) => {
   ];
 };
 
-const makeRecentActivity = (tasks) =>
-  [...tasks]
-    .sort((a, b) => String(b.updatedAt || b.createdDate || '').localeCompare(String(a.updatedAt || a.createdDate || '')))
+const makeRecentActivity = (tasks = []) => {
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  return [...safeTasks]
+    .sort((a, b) => String(b?.updatedAt || b?.createdDate || '').localeCompare(String(a?.updatedAt || a?.createdDate || '')))
     .slice(0, 6)
-    .map((task) => ({
-      id: `activity-${task.id}`,
-      type: task.status === 'completed' ? 'completed' : task.status === 'pending-review' ? 'submission' : task.status === 'overdue' ? 'overdue' : 'assigned',
-      message: `${task.assignedInterns[0]?.name || 'An intern'} ${task.status === 'pending-review' ? 'submitted' : 'is assigned to'} "${task.title}"`,
-      timeAgo: task.updatedAt ? new Date(task.updatedAt).toLocaleDateString('en-GB') : task.createdDate || 'Recently',
-      internInitials: task.assignedInterns[0]?.initials,
-    }));
+    .map((task) => {
+      const firstIntern = (Array.isArray(task?.assignedInterns) ? task.assignedInterns[0] : null) || {};
+      const internName = firstIntern.name || 'An intern';
+      return {
+        id: `activity-${task?.id}`,
+        type: task?.status === 'completed' ? 'completed' : task?.status === 'pending-review' ? 'submission' : task?.status === 'overdue' ? 'overdue' : 'assigned',
+        message: `${internName} ${task?.status === 'pending-review' ? 'submitted' : 'is assigned to'} "${task?.title || 'Untitled task'}"`,
+        timeAgo: task?.updatedAt ? new Date(task.updatedAt).toLocaleDateString('en-GB') : task?.createdDate || 'Recently',
+        internInitials: firstIntern.initials || initialsFor(internName),
+      };
+    });
+};
 
-const makeUpcomingDeadlines = (tasks) => {
+const makeUpcomingDeadlines = (tasks = []) => {
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  return tasks
-    .filter((task) => task.dueDate && !['completed', 'archived'].includes(task.status))
+  return safeTasks
+    .filter((task) => task?.dueDate && !['completed', 'archived'].includes(task?.status))
     .map((task) => {
       const due = new Date(`${task.dueDate}T00:00:00`);
-      return { ...task, daysLeft: Math.ceil((due - today) / 86400000) };
+      const daysLeft = Number.isNaN(due.getTime()) ? 0 : Math.ceil((due - today) / 86400000);
+      return { ...task, daysLeft };
     })
     .sort((a, b) => a.daysLeft - b.daysLeft)
     .slice(0, 6)
     .map((task) => ({
       id: task.id,
-      taskTitle: task.title,
-      assignedCount: task.totalAssigned,
+      taskTitle: task.title || 'Untitled task',
+      assignedCount: task.totalAssigned || 0,
       dueDate: task.dueDate,
       daysLeft: task.daysLeft,
     }));
 };
 
-function applyFilters(tasks, filters = {}) {
-  let result = [...tasks];
+function applyFilters(tasks = [], filters = {}) {
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  let result = [...safeTasks];
 
   if (filters.search) {
     const q = filters.search.toLowerCase();
@@ -739,38 +766,40 @@ export const taskManagementService = {
   fetchSubmissions: async (taskId = null) => {
     const tasks = await syncTaskStore();
     await delay(120);
-    const derived = tasks
-      .filter((task) => task.status !== 'archived' && task.status !== 'draft')
-      .filter((task) => !taskId || task.id === taskId)
+    const safeTasks = Array.isArray(tasks) ? tasks : [];
+    const derived = safeTasks
+      .filter((task) => task?.status !== 'archived' && task?.status !== 'draft')
+      .filter((task) => !taskId || task?.id === taskId)
       .map((task) => {
-        const intern = task.assignedInterns[0] || {};
-        const submitted = ['pending-review', 'completed', 'needs-revision'].includes(task.status);
-        const isLate = task.status === 'overdue' || (submitted && task.dueDate && new Date(`${task.dueDate}T23:59:59`) < new Date());
+        const intern = (Array.isArray(task?.assignedInterns) ? task.assignedInterns[0] : null) || {};
+        const submitted = ['pending-review', 'completed', 'needs-revision'].includes(task?.status);
+        const due = task?.dueDate ? new Date(`${task.dueDate}T23:59:59`) : null;
+        const isLate = task?.status === 'overdue' || (submitted && due && !Number.isNaN(due.getTime()) && due < new Date());
         const status =
-          task.status === 'completed' ? 'reviewed'
-          : task.status === 'needs-revision' ? 'needs-revision'
-          : task.status === 'pending-review' ? 'submitted'
-          : task.status === 'overdue' ? 'late'
-          : ['assigned', 'in-progress'].includes(task.status) ? 'pending'
+          task?.status === 'completed' ? 'reviewed'
+          : task?.status === 'needs-revision' ? 'needs-revision'
+          : task?.status === 'pending-review' ? 'submitted'
+          : task?.status === 'overdue' ? 'late'
+          : ['assigned', 'in-progress'].includes(task?.status) ? 'pending'
           : 'not-started';
 
         return {
-          id: `sub-${task.id}`,
-          taskId: task.id,
-          taskTitle: task.title,
+          id: `sub-${task?.id}`,
+          taskId: task?.id,
+          taskTitle: task?.title || 'Untitled task',
           internName: intern.name || 'Unassigned intern',
           internInitials: intern.initials || 'IN',
           internAvatar: intern.avatar || null,
           status,
-          attemptNumber: submitted ? Math.max(1, Number(task.submissionCount || 1)) : 0,
-          submittedAt: submitted ? (task.updatedAt || task.createdDate || task.dueDate) : null,
-          dueDate: task.dueDate,
-          isLate,
-          score: task.status === 'completed' ? (task.completionPercentage || 100) : null,
-          progress: Number(task.completionPercentage || 0),
-          estimatedHours: task.estimatedHours,
-          assignedCount: task.totalAssigned || task.assignedInterns.length,
-          submissionNote: submitted ? (task.submissionRequirements || task.description) : '',
+          attemptNumber: submitted ? Math.max(1, Number(task?.submissionCount || 1)) : 0,
+          submittedAt: submitted ? (task?.updatedAt || task?.createdDate || task?.dueDate) : null,
+          dueDate: task?.dueDate || null,
+          isLate: Boolean(isLate),
+          score: task?.status === 'completed' ? (task?.completionPercentage || 100) : null,
+          progress: Number(task?.completionPercentage || 0),
+          estimatedHours: task?.estimatedHours || 4,
+          assignedCount: task?.totalAssigned || (Array.isArray(task?.assignedInterns) ? task.assignedInterns.length : 0),
+          submissionNote: submitted ? (task?.submissionRequirements || task?.description) : '',
           links: [],
           feedback: null,
           reviewedBy: null,

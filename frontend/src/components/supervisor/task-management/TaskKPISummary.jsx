@@ -43,6 +43,7 @@ const TREND_STYLES = {
 };
 
 const TaskKPICard = ({ card, index = 0, onClick }) => {
+  if (!card) return null;
   const Icon = ICON_MAP[card.iconName] || RiTaskLine;
   const theme = COLOR_THEMES[card.color] || COLOR_THEMES.blue;
   const trendStyle = TREND_STYLES[card.trendType] || TREND_STYLES.neutral;
@@ -102,37 +103,41 @@ const TaskKPICard = ({ card, index = 0, onClick }) => {
           <Icon />
         </div>
 
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.2rem',
-            padding: '0.2rem 0.5rem',
-            borderRadius: '9999px',
-            fontSize: '0.7125rem',
-            fontWeight: 600,
-            backgroundColor: trendStyle.bg,
-            color: trendStyle.color,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {card.trendType === 'positive' && <RiArrowUpLine style={{ fontSize: '0.75rem' }} />}
-          {card.trendType === 'urgent' && <RiArrowDownLine style={{ fontSize: '0.75rem' }} />}
-          {card.trend}
-        </span>
+        {card.trend && (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.2rem',
+              padding: '0.2rem 0.5rem',
+              borderRadius: '9999px',
+              fontSize: '0.7125rem',
+              fontWeight: 600,
+              backgroundColor: trendStyle.bg,
+              color: trendStyle.color,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {card.trendType === 'positive' && <RiArrowUpLine style={{ fontSize: '0.75rem' }} />}
+            {card.trendType === 'urgent' && <RiArrowDownLine style={{ fontSize: '0.75rem' }} />}
+            {card.trend}
+          </span>
+        )}
       </div>
 
       {/* Content */}
       <div>
         <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-500)' }}>
-          {card.label}
+          {card.label || 'Metric'}
         </p>
         <h2 style={{ margin: '0.2rem 0', fontSize: '1.875rem', fontWeight: 800, color: 'var(--color-neutral-900)', lineHeight: 1.1 }}>
-          {card.value}
+          {card.value ?? 0}
         </h2>
-        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)', lineHeight: 1.4 }}>
-          {card.description}
-        </p>
+        {card.description && (
+          <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)', lineHeight: 1.4 }}>
+            {card.description}
+          </p>
+        )}
       </div>
     </motion.div>
   );
@@ -140,6 +145,10 @@ const TaskKPICard = ({ card, index = 0, onClick }) => {
 
 const TaskKPISummary = ({ kpis = [], isLoading = false, onKPIClick }) => {
   if (isLoading) return <TaskKPISkeletonGrid />;
+
+  const safeKpis = Array.isArray(kpis) ? kpis.filter(Boolean) : [];
+
+  if (safeKpis.length === 0) return null;
 
   return (
     <div
@@ -150,9 +159,9 @@ const TaskKPISummary = ({ kpis = [], isLoading = false, onKPIClick }) => {
         width: '100%',
       }}
     >
-      {kpis.map((card, i) => (
+      {safeKpis.map((card, i) => (
         <TaskKPICard
-          key={card.id}
+          key={card.id || card.label || i}
           card={card}
           index={i}
           onClick={onKPIClick ? () => onKPIClick(card) : undefined}

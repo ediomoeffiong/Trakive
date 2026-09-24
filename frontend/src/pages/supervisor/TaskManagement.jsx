@@ -60,6 +60,7 @@ const TABS = [
 
 // ── Recent Activity mini-feed (for dashboard tab) ─────────────────────────────
 const ActivityFeed = ({ items = [] }) => {
+  const safeItems = Array.isArray(items) ? items : [];
   const TYPE_STYLES = {
     submission: { bg: '#f0f9ff', color: '#1e40af', dot: '#3b82f6' },
     revision:   { bg: '#fef3c7', color: '#92400e', dot: '#f59e0b' },
@@ -74,14 +75,14 @@ const ActivityFeed = ({ items = [] }) => {
         Recent Activity
       </h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {items.length === 0 ? (
+        {safeItems.length === 0 ? (
           <div style={{ padding: '1.25rem 0.5rem', textAlign: 'center' }}>
             <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>No recent activity</p>
             <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.45 }}>
               Intern submissions, assignments, and completed tasks will appear here.
             </p>
           </div>
-        ) : items.map((item) => {
+        ) : safeItems.map((item) => {
           const style = TYPE_STYLES[item.type] || TYPE_STYLES.assigned;
           return (
             <motion.div
@@ -117,7 +118,9 @@ const ActivityFeed = ({ items = [] }) => {
 
 // ── Upcoming Deadlines widget ─────────────────────────────────────────────────
 const UpcomingDeadlines = ({ deadlines = [] }) => {
+  const safeDeadlines = Array.isArray(deadlines) ? deadlines : [];
   const urgencyColor = (daysLeft) => {
+    if (typeof daysLeft !== 'number' || Number.isNaN(daysLeft)) return '#4f46e5';
     if (daysLeft <= 1) return '#ef4444';
     if (daysLeft <= 4) return '#f59e0b';
     return '#4f46e5';
@@ -129,14 +132,14 @@ const UpcomingDeadlines = ({ deadlines = [] }) => {
         Upcoming Deadlines
       </h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-        {deadlines.length === 0 ? (
+        {safeDeadlines.length === 0 ? (
           <div style={{ padding: '1.25rem 0.5rem', textAlign: 'center' }}>
             <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>No upcoming deadlines</p>
             <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.45 }}>
               Tasks with due dates will show here so you can follow up before they become overdue.
             </p>
           </div>
-        ) : deadlines.map((item) => (
+        ) : safeDeadlines.map((item) => (
           <div
             key={item.id}
             style={{
@@ -251,6 +254,7 @@ const TaskManagementPage = () => {
   useEffect(() => {
     loadDashboard();
     fetchTasks();
+    fetchSubmissions();
   }, []);
 
   useEffect(() => {
@@ -329,7 +333,7 @@ const TaskManagementPage = () => {
   };
 
   const handleWeeklyTaskClick = (weeklyTask, plan) => {
-    const catalog = allTasks?.length ? allTasks : tasks;
+    const catalog = Array.isArray(allTasks) && allTasks.length ? allTasks : (Array.isArray(tasks) ? tasks : []);
     const match = catalog.find((task) =>
       String(task.id) === String(weeklyTask.id) ||
       String(task.raw?.id) === String(weeklyTask.id) ||
@@ -356,8 +360,9 @@ const TaskManagementPage = () => {
     });
   };
 
-  const archivedTasks = (allTasks?.length ? allTasks : tasks).filter((task) => task.status === 'archived');
-  const draftTasks = (allTasks?.length ? allTasks : tasks).filter((task) => task.status === 'draft');
+  const taskCatalog = Array.isArray(allTasks) && allTasks.length ? allTasks : (Array.isArray(tasks) ? tasks : []);
+  const archivedTasks = taskCatalog.filter((task) => task?.status === 'archived');
+  const draftTasks = taskCatalog.filter((task) => task?.status === 'draft');
 
   const handleBulkAction = async (action) => {
     if (action === 'export') {
@@ -568,9 +573,9 @@ const TaskManagementPage = () => {
             >
               <Icon style={{ fontSize: '1rem' }} />
               {label}
-              {id === 'submissions' && submissions.filter((s) => s.status === 'submitted').length > 0 && (
+              {id === 'submissions' && Array.isArray(submissions) && submissions.filter((s) => s?.status === 'submitted').length > 0 && (
                 <span style={{ background: isActive ? 'rgba(255,255,255,0.25)' : '#fee2e2', color: isActive ? '#fff' : '#dc2626', borderRadius: '9999px', fontSize: '0.625rem', fontWeight: 800, padding: '0.1rem 0.4rem', minWidth: '18px', textAlign: 'center' }}>
-                  {submissions.filter((s) => s.status === 'submitted').length}
+                  {submissions.filter((s) => s?.status === 'submitted').length}
                 </span>
               )}
               {id === 'drafts' && draftTasks.length > 0 && (
@@ -617,7 +622,7 @@ const TaskManagementPage = () => {
                 </motion.button>
               </div>
               <TaskDirectoryTable
-                tasks={tasks.slice(0, 5)}
+                tasks={(Array.isArray(tasks) ? tasks : []).slice(0, 5)}
                 isLoading={loading.tasks}
                 selectedTaskIds={selectedTaskIds}
                 onToggleSelect={toggleSelectTask}
@@ -633,7 +638,7 @@ const TaskManagementPage = () => {
                 onSortChange={setSort}
                 currentPage={1}
                 totalPages={1}
-                totalTasks={Math.min(tasks.length, 5)}
+                totalTasks={Math.min((Array.isArray(tasks) ? tasks : []).length, 5)}
                 pageSize={5}
                 emptyType="no-tasks"
                 onCreateFirst={() => openCreateModal()}
@@ -843,7 +848,11 @@ const TaskManagementPage = () => {
                     ))}
                   </div>
                 ))
-              ) : templates.map((template) => (
+              ) : (Array.isArray(templates) ? templates.filter(Boolean) : []).length === 0 ? (
+                <div style={{ gridColumn: '1 / -1', padding: '3rem', textAlign: 'center', background: '#fff', borderRadius: '0.875rem', border: '1px solid var(--color-neutral-200)', color: 'var(--color-neutral-400)', fontSize: '0.875rem' }}>
+                  No templates available yet. Click "New Template" above to create one.
+                </div>
+              ) : (Array.isArray(templates) ? templates.filter(Boolean) : []).map((template) => (
                 <motion.div
                   key={template.id}
                   initial={{ opacity: 0, y: 8 }}
@@ -852,17 +861,17 @@ const TaskManagementPage = () => {
                   style={{ background: '#fff', borderRadius: '0.875rem', padding: '1.25rem', border: '1px solid var(--color-neutral-200)', display: 'flex', flexDirection: 'column', gap: '0.875rem', minHeight: '230px', height: '100%' }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', minHeight: '42px' }}>
-                    <h3 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: 1.3 }}>{template.name}</h3>
+                    <h3 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: 1.3 }}>{template.name || 'Untitled Template'}</h3>
                     <span style={{ padding: '0.2rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: '#eff2ff', color: '#4338ca', flexShrink: 0 }}>
-                      {template.category}
+                      {template.category || 'General'}
                     </span>
                   </div>
                   <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-500)', lineHeight: 1.6, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', minHeight: '62px' }}>
-                    {template.description}
+                    {template.description || 'No description provided.'}
                   </p>
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>~{template.estimatedHours}h</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>· Used {template.usageCount}×</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>~{template.estimatedHours || 0}h</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>· Used {template.usageCount || 0}×</span>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-neutral-100)', marginTop: 'auto' }}>
                     <motion.button
@@ -928,7 +937,7 @@ const TaskManagementPage = () => {
       <TaskDetailsDrawer
         isOpen={isDetailsDrawerOpen}
         task={selectedTask}
-        submissions={taskSubmissions.filter((s) => s.taskId === selectedTask?.id)}
+        submissions={(Array.isArray(taskSubmissions) ? taskSubmissions : []).filter((s) => s?.taskId === selectedTask?.id)}
         isLoadingSubmissions={loading.submissions}
         timeline={taskTimeline}
         isLoadingTimeline={loading.timeline}

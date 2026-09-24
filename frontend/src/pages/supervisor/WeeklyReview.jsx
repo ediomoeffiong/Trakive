@@ -130,6 +130,7 @@ function ReviewModal({ plan, onClose, onComplete }) {
 // ── Intern plan card ──────────────────────────────────────────────────────────
 function InternPlanCard({ plan, onReview, onTaskClick }) {
   const [expanded, setExpanded] = useState(false);
+  if (!plan) return null;
   const statusCfg = PLAN_STATUS_STYLES[plan.status] || PLAN_STATUS_STYLES.open;
   const stats = plan.stats || {};
   const tasks = Array.isArray(plan.tasks) ? plan.tasks : [];
@@ -203,7 +204,11 @@ function InternPlanCard({ plan, onReview, onTaskClick }) {
                   {tasks.map((t) => {
                     const src = SOURCE_STYLES[t.task_source] || SOURCE_STYLES.intern_created;
                     const eow = EOW_STYLES[t.end_of_week_status];
-                    const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—';
+                    const formatDate = (d) => {
+                      if (!d) return '—';
+                      const date = new Date(d);
+                      return isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                    };
                     return (
                       <tr
                         key={t.id}
@@ -252,8 +257,10 @@ export default function WeeklyReview({ onTaskClick }) {
         status: statusFilter || undefined,
         limit: 50,
       });
-      setPlans(res.data || []);
+      const data = res?.data?.plans || res?.data || [];
+      setPlans(Array.isArray(data) ? data : []);
     } catch {
+      setPlans([]);
       toast.error('Failed to load weekly plans');
     } finally {
       setLoading(false);
@@ -262,7 +269,8 @@ export default function WeeklyReview({ onTaskClick }) {
 
   useEffect(() => { fetchPlans(); }, [fetchPlans]);
 
-  const submitted = plans.filter((p) => p.status === 'submitted').length;
+  const safePlans = Array.isArray(plans) ? plans.filter(Boolean) : [];
+  const submitted = safePlans.filter((p) => p.status === 'submitted').length;
 
   return (
     <div style={{ width: '100%', maxWidth: '100%', margin: 0, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -358,7 +366,7 @@ export default function WeeklyReview({ onTaskClick }) {
             </Card>
           ))}
         </div>
-      ) : plans.length === 0 ? (
+      ) : safePlans.length === 0 ? (
         <Card style={{ width: '100%' }}>
           <EmptyState
             variant="wide"
@@ -368,7 +376,7 @@ export default function WeeklyReview({ onTaskClick }) {
           />
         </Card>
       ) : (
-        plans.map((plan) => (
+        safePlans.map((plan) => (
           <InternPlanCard key={plan.id} plan={plan} onReview={setReviewTarget} onTaskClick={onTaskClick} />
         ))
       )}

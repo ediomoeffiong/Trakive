@@ -37,10 +37,20 @@ const STATUS_BG = {
   overdue:          '#fecaca',
 };
 
+// Helper to safely parse YYYY-MM-DD into a Date without UTC timezone shifts
+const parseDateKey = (dateKey) => {
+  if (!dateKey) return null;
+  const parts = String(dateKey).split('-').map(Number);
+  if (parts.length < 3 || isNaN(parts[0]) || isNaN(parts[1]) || isNaN(parts[2])) return null;
+  const d = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+  return isNaN(d.getTime()) ? null : d;
+};
+
 // Build a flat date → tasks map from the tasks list
 const buildTaskMap = (tasks) => {
   const map = {};
-  (tasks || []).forEach((task) => {
+  (Array.isArray(tasks) ? tasks : []).forEach((task) => {
+    if (!task) return;
     const rawDue = task.dueDate || task.due_date;
     if (!rawDue) return;
     const dateKey = String(rawDue).slice(0, 10);
@@ -159,10 +169,13 @@ const DayCell = ({ day, month, year, isCurrentMonth, tasks = [], isToday, onDayC
   );
 };
 
-const AgendaView = ({ taskMap, year, month, onTaskClick }) => {
-  const entries = Object.entries(taskMap)
+const AgendaView = ({ taskMap = {}, year, month, onTaskClick }) => {
+  const safeTaskMap = taskMap && typeof taskMap === 'object' ? taskMap : {};
+  const entries = Object.entries(safeTaskMap)
     .filter(([dateKey]) => {
-      const [y, m] = dateKey.split('-').map(Number);
+      const parts = dateKey ? dateKey.split('-').map(Number) : [];
+      if (parts.length < 2) return false;
+      const [y, m] = parts;
       return y === year && m - 1 === month;
     })
     .sort(([a], [b]) => a.localeCompare(b));
@@ -177,55 +190,67 @@ const AgendaView = ({ taskMap, year, month, onTaskClick }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      {entries.map(([dateKey, tasks]) => (
-        <div key={dateKey} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-          <div style={{ minWidth: '70px', textAlign: 'right', flexShrink: 0 }}>
-            <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>
-              {new Date(dateKey + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-            </p>
-          </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-            {tasks.map((task) => (
-              <div
-                key={task.id}
-                onClick={() => onTaskClick?.(task)}
-                style={{
-                  padding: '0.625rem 0.875rem',
-                  background: '#fff',
-                  borderRadius: '0.625rem',
-                  border: '1px solid var(--color-neutral-200)',
-                  borderLeft: `3px solid ${PRIORITY_COLORS[task.priority] || '#94a3b8'}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.5rem',
-                  cursor: 'pointer',
-                }}
-              >
-                <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-neutral-800)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {task.title}
-                </p>
-                <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
-                  <span style={{ padding: '0.15rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: STATUS_BG[task.status] || '#f1f5f9', color: 'var(--color-neutral-600)' }}>
-                    {task.status?.replace(/-/g, ' ')}
-                  </span>
-                  <span style={{ padding: '0.15rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: `${PRIORITY_COLORS[task.priority] || '#94a3b8'}20`, color: PRIORITY_COLORS[task.priority] || '#94a3b8' }}>
-                    {task.priority}
-                  </span>
+      {entries.map(([dateKey, tasks]) => {
+        const parsedDate = parseDateKey(dateKey);
+        const dateLabel = parsedDate
+          ? parsedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+          : dateKey;
+        const safeTasks = Array.isArray(tasks) ? tasks.filter(Boolean) : [];
+
+        return (
+          <div key={dateKey} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+            <div style={{ minWidth: '70px', textAlign: 'right', flexShrink: 0 }}>
+              <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>
+                {dateLabel}
+              </p>
+            </div>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+              {safeTasks.map((task) => (
+                <div
+                  key={task.id}
+                  onClick={() => onTaskClick?.(task)}
+                  style={{
+                    padding: '0.625rem 0.875rem',
+                    background: '#fff',
+                    borderRadius: '0.625rem',
+                    border: '1px solid var(--color-neutral-200)',
+                    borderLeft: `3px solid ${PRIORITY_COLORS[task.priority] || '#94a3b8'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.5rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-neutral-800)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {task.title || 'Untitled Task'}
+                  </p>
+                  <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
+                    <span style={{ padding: '0.15rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: STATUS_BG[task.status] || '#f1f5f9', color: 'var(--color-neutral-600)' }}>
+                      {task.status?.replace(/-/g, ' ')}
+                    </span>
+                    <span style={{ padding: '0.15rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: `${PRIORITY_COLORS[task.priority] || '#94a3b8'}20`, color: PRIORITY_COLORS[task.priority] || '#94a3b8' }}>
+                      {task.priority}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
 
 // ── Selected Day Panel ────────────────────────────────────────────────────────
-const DayDetailPanel = ({ dateKey, tasks, onClose, onTaskClick }) => {
-  if (!tasks || tasks.length === 0) return null;
-  const date = new Date(dateKey + 'T12:00:00');
+const DayDetailPanel = ({ dateKey, tasks = [], onClose, onTaskClick }) => {
+  const safeTasks = Array.isArray(tasks) ? tasks.filter(Boolean) : [];
+  if (safeTasks.length === 0) return null;
+  const parsed = parseDateKey(dateKey);
+  const formattedDate = parsed
+    ? parsed.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+    : (dateKey || '');
 
   return (
     <motion.div
@@ -251,7 +276,7 @@ const DayDetailPanel = ({ dateKey, tasks, onClose, onTaskClick }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <RiCalendarLine style={{ color: '#4f46e5', fontSize: '1rem' }} />
           <h4 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-neutral-800)' }}>
-            {date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {formattedDate}
           </h4>
         </div>
         <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-neutral-400)', fontSize: '1rem', padding: 0, display: 'flex' }}>
@@ -259,10 +284,10 @@ const DayDetailPanel = ({ dateKey, tasks, onClose, onTaskClick }) => {
         </button>
       </div>
       <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)', fontWeight: 600 }}>
-        {tasks.length} task{tasks.length !== 1 ? 's' : ''} due
+        {safeTasks.length} task{safeTasks.length !== 1 ? 's' : ''} due
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        {tasks.map((task) => (
+        {safeTasks.map((task) => (
           <div
             key={task.id}
             onClick={() => onTaskClick?.(task)}
@@ -275,7 +300,7 @@ const DayDetailPanel = ({ dateKey, tasks, onClose, onTaskClick }) => {
               cursor: 'pointer',
             }}
           >
-            <p style={{ margin: '0 0 0.25rem', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-800)', lineHeight: 1.3 }}>{task.title}</p>
+            <p style={{ margin: '0 0 0.25rem', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-800)', lineHeight: 1.3 }}>{task.title || 'Untitled Task'}</p>
             <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
               <span style={{ padding: '0.1rem 0.375rem', borderRadius: '9999px', fontSize: '0.625rem', fontWeight: 700, background: STATUS_BG[task.status] || '#f1f5f9', color: 'var(--color-neutral-600)' }}>
                 {task.status?.replace(/-/g, ' ')}
@@ -303,9 +328,10 @@ const TaskCalendarView = ({ tasks: customTasks, loading: customLoading, onTaskCl
   const today = new Date();
   const todayKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
   
-  const calendarTasks = customTasks !== undefined
+  const rawTasks = customTasks !== undefined
     ? customTasks
     : (supervisorStore.allTasks?.length ? supervisorStore.allTasks : supervisorStore.tasks);
+  const calendarTasks = Array.isArray(rawTasks) ? rawTasks.filter(Boolean) : [];
 
   const isLoading = customLoading !== undefined
     ? customLoading
@@ -480,9 +506,16 @@ const TaskCalendarView = ({ tasks: customTasks, loading: customLoading, onTaskCl
         {/* Stats footer */}
         <div style={{ padding: '0.75rem 1.25rem', borderTop: '1px solid var(--color-neutral-100)', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
           {[
-            { label: 'Overdue', count: calendarTasks.filter((t) => t.status === 'overdue').length, color: '#ef4444' },
-            { label: 'Due this month', count: Object.entries(taskMap).filter(([dk]) => { const [y, m] = dk.split('-').map(Number); return y === currentYear && m - 1 === currentMonth; }).length, color: '#3b82f6' },
-            { label: 'Completed this month', count: calendarTasks.filter((t) => t.status === 'completed').length, color: '#10b981' },
+            { label: 'Overdue', count: calendarTasks.filter((t) => t?.status === 'overdue').length, color: '#ef4444' },
+            {
+              label: 'Due this month',
+              count: Object.entries(taskMap || {}).filter(([dk]) => {
+                const parts = dk.split('-').map(Number);
+                return parts.length >= 2 && parts[0] === currentYear && parts[1] - 1 === currentMonth;
+              }).length,
+              color: '#3b82f6',
+            },
+            { label: 'Completed this month', count: calendarTasks.filter((t) => t?.status === 'completed').length, color: '#10b981' },
           ].map(({ label, count, color }) => (
             <span key={label} style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
               <strong style={{ color, fontSize: '0.9375rem' }}>{count}</strong> {label}

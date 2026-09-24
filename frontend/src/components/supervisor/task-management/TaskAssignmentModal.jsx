@@ -25,56 +25,78 @@ const ASSIGN_MODES = [
 
 const COLORS = ['#4f46e5', '#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626'];
 
-const InternCard = ({ intern, isSelected, onToggle }) => (
-  <motion.div
-    whileHover={{ scale: 1.01 }}
-    whileTap={{ scale: 0.99 }}
-    onClick={() => onToggle(intern)}
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.75rem',
-      padding: '0.75rem 0.875rem',
-      borderRadius: '0.75rem',
-      border: isSelected ? '1.5px solid #00b4d8' : '1px solid var(--color-neutral-200)',
-      background: isSelected ? '#e6faff' : '#fff',
-      cursor: 'pointer',
-      transition: 'all 0.15s ease',
-    }}
-  >
-    <div
+const getInternInitials = (intern) => {
+  if (intern?.initials) return intern.initials;
+  if (!intern?.name) return '??';
+  return intern.name
+    .trim()
+    .split(/\s+/)
+    .map((n) => n[0])
+    .filter(Boolean)
+    .join('')
+    .toUpperCase() || '??';
+};
+
+const getInternColor = (id) => {
+  if (!id) return '#00b4d8';
+  const str = String(id);
+  const code = str.charCodeAt(str.length - 1) || 0;
+  return COLORS[Math.abs(code - 48) % COLORS.length] || '#00b4d8';
+};
+
+const InternCard = ({ intern, isSelected, onToggle }) => {
+  if (!intern) return null;
+  return (
+    <motion.div
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+      onClick={() => onToggle(intern)}
       style={{
-        width: '36px',
-        height: '36px',
-        borderRadius: '50%',
-        background: COLORS[Math.abs(intern.id?.charCodeAt(intern.id.length - 1) - 48) % COLORS.length] || '#00b4d8',
-        color: '#fff',
-        fontSize: '0.8125rem',
-        fontWeight: 700,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
+        gap: '0.75rem',
+        padding: '0.75rem 0.875rem',
+        borderRadius: '0.75rem',
+        border: isSelected ? '1.5px solid #00b4d8' : '1px solid var(--color-neutral-200)',
+        background: isSelected ? '#e6faff' : '#fff',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
       }}
     >
-      {intern.initials || intern.name?.split(' ').map((n) => n[0]).join('') || '??'}
-    </div>
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-neutral-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {intern.name}
-      </p>
-      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
-        {intern.department || intern.role || 'Intern'}
-      </p>
-    </div>
-    <div style={{ color: isSelected ? '#00b4d8' : '#cbd5e1', fontSize: '1.125rem', flexShrink: 0 }}>
-      {isSelected ? <RiCheckboxFill /> : <RiCheckboxBlankLine />}
-    </div>
-  </motion.div>
-);
+      <div
+        style={{
+          width: '36px',
+          height: '36px',
+          borderRadius: '50%',
+          background: getInternColor(intern.id),
+          color: '#fff',
+          fontSize: '0.8125rem',
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        {getInternInitials(intern)}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-neutral-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {intern.name || 'Unnamed Intern'}
+        </p>
+        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
+          {intern.department || intern.role || 'Intern'}
+        </p>
+      </div>
+      <div style={{ color: isSelected ? '#00b4d8' : '#cbd5e1', fontSize: '1.125rem', flexShrink: 0 }}>
+        {isSelected ? <RiCheckboxFill /> : <RiCheckboxBlankLine />}
+      </div>
+    </motion.div>
+  );
+};
 
 const AssignmentSummary = ({ task, selectedInterns, mode }) => {
-  const count = selectedInterns.length;
+  const count = Array.isArray(selectedInterns) ? selectedInterns.length : 0;
 
   return (
     <div
@@ -92,7 +114,7 @@ const AssignmentSummary = ({ task, selectedInterns, mode }) => {
         {task && (
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
             <span style={{ color: '#0077b6', fontWeight: 500 }}>Task:</span>
-            <span style={{ color: '#075985', fontWeight: 700, textAlign: 'right', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
+            <span style={{ color: '#075985', fontWeight: 700, textAlign: 'right', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title || 'Task'}</span>
           </div>
         )}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>

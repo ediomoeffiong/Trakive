@@ -60,7 +60,7 @@ const SelectFilter = ({ value, onChange, options, id }) => (
       minWidth: '130px',
     }}
   >
-    {options.map((opt) => (
+    {(Array.isArray(options) ? options : []).map((opt) => (
       <option key={opt.value} value={opt.value}>
         {opt.label}
       </option>
@@ -86,7 +86,8 @@ const TaskManagementFilters = ({
     ...TASK_CATEGORIES.map((c) => ({ value: c.value, label: c.label })),
   ];
 
-  const hasActiveFilters = activeFilterChips.length > 0 || search;
+  const safeChips = Array.isArray(activeFilterChips) ? activeFilterChips.filter(Boolean) : [];
+  const hasActiveFilters = safeChips.length > 0 || Boolean(search);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -178,7 +179,7 @@ const TaskManagementFilters = ({
         >
           <RiFilterLine />
           Filters
-          {activeFilterChips.length > 0 && (
+          {safeChips.length > 0 && (
             <span
               style={{
                 background: '#00b4d8',
@@ -294,7 +295,7 @@ const TaskManagementFilters = ({
 
       {/* ── Active Filter Chips ──────────────────────────────────────────── */}
       <AnimatePresence>
-        {activeFilterChips.length > 0 && (
+        {safeChips.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -304,7 +305,7 @@ const TaskManagementFilters = ({
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-neutral-500)' }}>
               Active filters:
             </span>
-            {activeFilterChips.map((chip) => (
+            {safeChips.map((chip) => (
               <motion.span
                 key={`${chip.key}-${chip.value}`}
                 initial={{ opacity: 0, scale: 0.85 }}

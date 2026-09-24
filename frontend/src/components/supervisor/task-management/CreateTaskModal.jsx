@@ -106,17 +106,20 @@ const SearchableInternSelector = ({
   const [search, setSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState('all');
 
+  const safeInterns = Array.isArray(interns) ? interns.filter(Boolean) : [];
+  const safeValue = Array.isArray(value) ? value.filter(Boolean) : [];
+
   const departments = useMemo(() => {
     const depts = new Set();
-    interns.forEach((i) => {
+    safeInterns.forEach((i) => {
       if (i.department) depts.add(i.department);
     });
     return ['all', ...Array.from(depts)];
-  }, [interns]);
+  }, [safeInterns]);
 
   const filteredInterns = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return interns.filter((intern) => {
+    return safeInterns.filter((intern) => {
       const matchSearch =
         !q ||
         intern.name?.toLowerCase().includes(q) ||
@@ -129,15 +132,15 @@ const SearchableInternSelector = ({
 
       return matchSearch && matchDept;
     });
-  }, [interns, search, selectedDept]);
+  }, [safeInterns, search, selectedDept]);
 
   const toggleIntern = (intern) => {
-    const exists = value.some((i) => i.id === intern.id);
+    const exists = safeValue.some((i) => i.id === intern.id);
     if (exists) {
-      onChange(value.filter((i) => i.id !== intern.id));
+      onChange(safeValue.filter((i) => i.id !== intern.id));
     } else {
       onChange([
-        ...value,
+        ...safeValue,
         {
           id: intern.id,
           name: intern.name,
@@ -147,7 +150,8 @@ const SearchableInternSelector = ({
           initials:
             intern.initials ||
             intern.name
-              ?.split(' ')
+              ?.split(/\s+/)
+              .filter(Boolean)
               .map((n) => n[0])
               .join('')
               .toUpperCase() ||
@@ -158,7 +162,7 @@ const SearchableInternSelector = ({
   };
 
   const handleSelectAllFiltered = () => {
-    const newItems = [...value];
+    const newItems = [...safeValue];
     filteredInterns.forEach((intern) => {
       if (!newItems.some((i) => i.id === intern.id)) {
         newItems.push({
@@ -170,7 +174,8 @@ const SearchableInternSelector = ({
           initials:
             intern.initials ||
             intern.name
-              ?.split(' ')
+              ?.split(/\s+/)
+              .filter(Boolean)
               .map((n) => n[0])
               .join('')
               .toUpperCase() ||
@@ -188,7 +193,7 @@ const SearchableInternSelector = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
       {/* Selected Interns Chips */}
-      {value.length > 0 && (
+      {safeValue.length > 0 && (
         <div
           style={{
             display: 'flex',
@@ -216,7 +221,7 @@ const SearchableInternSelector = ({
                 letterSpacing: '0.04em',
               }}
             >
-              Assigned Interns ({value.length})
+              Assigned Interns ({safeValue.length})
             </span>
             <button
               type="button"
@@ -244,7 +249,7 @@ const SearchableInternSelector = ({
               overflowY: 'auto',
             }}
           >
-            {value.map((intern) => (
+            {safeValue.map((intern) => (
               <span
                 key={intern.id}
                 style={{

@@ -47,16 +47,17 @@ const PRIORITY_STYLES = {
 
 // ── Intern Avatar Stack ───────────────────────────────────────────────────────
 const InternAvatarStack = ({ interns = [], max = 3 }) => {
-  const visible = interns.slice(0, max);
-  const extra = interns.length - max;
+  const safeInterns = Array.isArray(interns) ? interns.filter(Boolean) : [];
+  const visible = safeInterns.slice(0, max);
+  const extra = safeInterns.length - max;
   const COLORS = ['#4f46e5', '#7c3aed', '#0891b2', '#059669', '#d97706'];
 
   return (
     <div style={{ display: 'flex', alignItems: 'center' }}>
       {visible.map((intern, i) => (
         <div
-          key={intern.id}
-          title={intern.name}
+          key={intern?.id || i}
+          title={intern?.name || 'Intern'}
           style={{
             width: '26px',
             height: '26px',
@@ -69,7 +70,7 @@ const InternAvatarStack = ({ interns = [], max = 3 }) => {
             background: COLORS[i % COLORS.length],
           }}
         >
-          <Avatar name={intern.name} src={intern.avatar} size="xs" />
+          <Avatar name={intern?.name || 'Intern'} src={intern?.avatar} size="xs" />
         </div>
       ))}
       {extra > 0 && (
@@ -92,7 +93,7 @@ const InternAvatarStack = ({ interns = [], max = 3 }) => {
           +{extra}
         </div>
       )}
-      {interns.length === 0 && (
+      {safeInterns.length === 0 && (
         <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)', fontStyle: 'italic' }}>
           Unassigned
         </span>
@@ -246,6 +247,7 @@ const RowActions = ({ task, onView, onEdit, onDuplicate, onAssign, onArchive, on
 
 // ── Mobile Task Card ──────────────────────────────────────────────────────────
 const TaskCard = ({ task, isSelected, onToggleSelect, onView, onEdit, onDuplicate, onAssign, onArchive, onDelete }) => {
+  if (!task) return null;
   const statusStyle = STATUS_STYLES[task.status] || STATUS_STYLES.draft;
   const priorityStyle = PRIORITY_STYLES[task.priority] || PRIORITY_STYLES.medium;
 
@@ -278,10 +280,10 @@ const TaskCard = ({ task, isSelected, onToggleSelect, onView, onEdit, onDuplicat
           </button>
           <div>
             <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: 1.3 }}>
-              {task.title}
+              {task.title || 'Untitled Task'}
             </p>
             <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>
-              {task.category} • {task.department}
+              {task.category || 'General'} • {task.department || 'All'}
             </p>
           </div>
         </div>
@@ -305,9 +307,9 @@ const TaskCard = ({ task, isSelected, onToggleSelect, onView, onEdit, onDuplicat
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
         <InternAvatarStack interns={task.assignedInterns} />
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <MiniProgress value={task.completionPercentage} />
+          <MiniProgress value={task.completionPercentage || 0} />
           <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
-            Due {task.dueDate}
+            Due {task.dueDate || '—'}
           </span>
         </div>
       </div>
@@ -360,9 +362,12 @@ const TaskDirectoryTable = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const safeTasks = Array.isArray(tasks) ? tasks.filter(Boolean) : [];
+  const safeSelectedIds = Array.isArray(selectedTaskIds) ? selectedTaskIds : [];
+
   if (isLoading) return <TaskTableSkeleton rows={6} />;
 
-  if (tasks.length === 0) {
+  if (safeTasks.length === 0) {
     return (
       <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
         <TaskEmptyState type={emptyType} onCTA={onCreateFirst} />
@@ -370,8 +375,8 @@ const TaskDirectoryTable = ({
     );
   }
 
-  const isAllSelected = tasks.length > 0 && tasks.every((t) => selectedTaskIds.includes(t.id));
-  const isPartialSelected = tasks.some((t) => selectedTaskIds.includes(t.id)) && !isAllSelected;
+  const isAllSelected = safeTasks.length > 0 && safeTasks.every((t) => safeSelectedIds.includes(t.id));
+  const isPartialSelected = safeTasks.some((t) => safeSelectedIds.includes(t.id)) && !isAllSelected;
 
   const handleSort = (field) => {
     if (activeSort?.field === field) {
@@ -385,11 +390,11 @@ const TaskDirectoryTable = ({
   if (isMobileView) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {tasks.map((task) => (
+        {safeTasks.map((task) => (
           <TaskCard
             key={task.id}
             task={task}
-            isSelected={selectedTaskIds.includes(task.id)}
+            isSelected={safeSelectedIds.includes(task.id)}
             onToggleSelect={onToggleSelect}
             onView={onView}
             onEdit={onEdit}
@@ -467,10 +472,10 @@ const TaskDirectoryTable = ({
 
           <tbody>
             <AnimatePresence mode="popLayout">
-              {tasks.map((task, rowIdx) => {
+              {safeTasks.map((task, rowIdx) => {
                 const statusStyle = STATUS_STYLES[task.status] || STATUS_STYLES.draft;
                 const priorityStyle = PRIORITY_STYLES[task.priority] || PRIORITY_STYLES.medium;
-                const isSelected = selectedTaskIds.includes(task.id);
+                const isSelected = safeSelectedIds.includes(task.id);
 
                 return (
                   <motion.tr
@@ -503,10 +508,10 @@ const TaskDirectoryTable = ({
                     {/* Title */}
                     <td style={{ padding: '0.75rem 0.875rem', maxWidth: '260px' }}>
                       <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {task.title}
+                        {task.title || 'Untitled Task'}
                       </p>
                       <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
-                        {task.category}
+                        {task.category || 'General'}
                       </p>
                     </td>
 
@@ -533,19 +538,19 @@ const TaskDirectoryTable = ({
                     {/* Due date */}
                     <td style={{ padding: '0.75rem 0.875rem' }}>
                       <span style={{ fontSize: '0.8125rem', color: task.status === 'overdue' ? '#dc2626' : 'var(--color-neutral-600)', fontWeight: task.status === 'overdue' ? 700 : 400 }}>
-                        {task.dueDate}
+                        {task.dueDate || '—'}
                       </span>
                     </td>
 
                     {/* Progress */}
                     <td style={{ padding: '0.75rem 0.875rem' }}>
-                      <MiniProgress value={task.completionPercentage} />
+                      <MiniProgress value={task.completionPercentage || 0} />
                     </td>
 
                     {/* Submissions */}
                     <td style={{ padding: '0.75rem 0.875rem' }}>
                       <span style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-600)', fontWeight: 600 }}>
-                        {task.submissionCount}/{task.totalAssigned}
+                        {task.submissionCount || 0}/{task.totalAssigned || 0}
                       </span>
                     </td>
 

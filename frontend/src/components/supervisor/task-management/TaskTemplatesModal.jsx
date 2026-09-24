@@ -34,6 +34,7 @@ const getCategoryColor = (category) => {
 };
 
 const TemplateCard = ({ template, onUse, onDuplicate, onDelete, onPreview, isSelected }) => {
+  if (!template) return null;
   const diff = DIFFICULTY_STYLES[template.difficulty] || DIFFICULTY_STYLES.Intermediate;
   const catStyle = getCategoryColor(template.category);
 
@@ -61,10 +62,10 @@ const TemplateCard = ({ template, onUse, onDuplicate, onDelete, onPreview, isSel
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: '0 0 0.35rem', fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-neutral-900)', lineHeight: 1.3 }}>
-            {template.name}
+            {template.name || 'Untitled Template'}
           </p>
           <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-            {template.description}
+            {template.description || 'No description provided.'}
           </p>
         </div>
       </div>
@@ -72,10 +73,10 @@ const TemplateCard = ({ template, onUse, onDuplicate, onDelete, onPreview, isSel
       {/* Tags row */}
       <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
         <span style={{ padding: '0.15rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: catStyle.bg, color: catStyle.color, border: `1px solid ${catStyle.color}30` }}>
-          {template.category}
+          {template.category || 'General'}
         </span>
         <span style={{ padding: '0.15rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: diff.bg, color: diff.color, border: `1px solid ${diff.border}` }}>
-          {template.difficulty}
+          {template.difficulty || 'Intermediate'}
         </span>
       </div>
 
@@ -83,7 +84,7 @@ const TemplateCard = ({ template, onUse, onDuplicate, onDelete, onPreview, isSel
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
           <RiStarLine style={{ color: '#f59e0b' }} />
-          Used {template.usageCount} times
+          Used {template.usageCount || 0} times
         </span>
       </div>
 
@@ -141,6 +142,11 @@ const TemplatePreviewPanel = ({ template, onClose, onUse, isMobile = false }) =>
   if (!template) return null;
   const diff = DIFFICULTY_STYLES[template.difficulty] || DIFFICULTY_STYLES.Intermediate;
   const catStyle = getCategoryColor(template.category);
+  const objectives = Array.isArray(template.learningObjectives)
+    ? template.learningObjectives
+    : Array.isArray(template.objectives)
+      ? template.objectives
+      : [];
 
   return (
     <motion.div
@@ -170,19 +176,19 @@ const TemplatePreviewPanel = ({ template, onClose, onUse, isMobile = false }) =>
       </div>
 
       <div>
-        <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>{template.name}</h4>
+        <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>{template.name || 'Untitled Template'}</h4>
         <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', marginBottom: '0.625rem' }}>
-          <span style={{ padding: '0.15rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: catStyle.bg, color: catStyle.color }}>{template.category}</span>
-          <span style={{ padding: '0.15rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: diff.bg, color: diff.color }}>{template.difficulty}</span>
+          <span style={{ padding: '0.15rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: catStyle.bg, color: catStyle.color }}>{template.category || 'General'}</span>
+          <span style={{ padding: '0.15rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: diff.bg, color: diff.color }}>{template.difficulty || 'Intermediate'}</span>
         </div>
-        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-600)', lineHeight: 1.6 }}>{template.description}</p>
+        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-600)', lineHeight: 1.6 }}>{template.description || 'No description provided.'}</p>
       </div>
 
-      {(template.learningObjectives?.length > 0 || template.objectives?.length > 0) && (
+      {objectives.length > 0 && (
         <div>
           <p style={{ margin: '0 0 0.375rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-neutral-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Objectives & Deliverables</p>
           <ul style={{ margin: 0, paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            {(template.learningObjectives || template.objectives).map((obj, i) => (
+            {objectives.map((obj, i) => (
               <li key={i} style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-700)', lineHeight: 1.5 }}>{obj}</li>
             ))}
           </ul>
@@ -239,8 +245,10 @@ const TaskTemplatesModal = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const filtered = templates.filter((t) => {
-    const matchesSearch = !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.description?.toLowerCase().includes(search.toLowerCase());
+  const safeTemplates = Array.isArray(templates) ? templates.filter(Boolean) : [];
+
+  const filtered = safeTemplates.filter((t) => {
+    const matchesSearch = !search || t.name?.toLowerCase().includes(search.toLowerCase()) || t.description?.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || t.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
