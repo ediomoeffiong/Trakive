@@ -11,6 +11,8 @@ import { authService } from '../services';
 import { useNotificationStore } from './useNotificationStore';
 import { normalizePersonRecord } from '../utils/people';
 import { clearAuthTokens, hasAuthTokens, persistAuthTokens } from '../utils/authSession';
+import { formatUserFriendlyError, resetSessionExpiredFlag } from '../utils/errorHandling';
+import { resetApiSessionState } from '../services/api';
 
 // ── UI / Shell Slice ──────────────────────────────────────────────────────────
 const createUISlice = (set) => ({
@@ -78,6 +80,8 @@ const createAuthSlice = (set, get) => ({
         accessToken: response.token || user?.accessToken || user?.token,
         refreshToken: user?.refreshToken || response.refreshToken,
       });
+      resetSessionExpiredFlag();
+      resetApiSessionState();
       set({ user, isAuthenticated: hasAuthTokens(), isLoading: false });
 
       // Dispatch security notification
@@ -99,8 +103,9 @@ const createAuthSlice = (set, get) => ({
 
       return { ...response, user };
     } catch (err) {
-      set({ error: err.message, isLoading: false });
-      throw err;
+      const friendlyError = formatUserFriendlyError(err, 'Login failed. Please check your credentials and try again.');
+      set({ error: friendlyError, isLoading: false });
+      throw new Error(friendlyError);
     }
   },
 

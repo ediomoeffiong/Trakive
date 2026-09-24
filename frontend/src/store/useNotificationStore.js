@@ -117,18 +117,22 @@ export const useNotificationStore = create((set, get) => ({
     try {
       const created = await notificationService.createNotification(data, role);
       if (!created) return null;
-      set((state) => ({
-        notifications: [created, ...state.notifications],
-      }));
-      toast(created.title, {
-        icon: '🔔',
-        style: {
-          borderLeft: '4px solid #6366f1',
-        },
-      });
+      if (created) {
+        set((state) => ({
+          notifications: [created, ...state.notifications],
+        }));
+        if (created.title) {
+          toast(created.title, {
+            icon: '🔔',
+            style: {
+              borderLeft: '4px solid #6366f1',
+            },
+          });
+        }
+      }
       return created;
     } catch (err) {
-      if (!import.meta.env.PROD) if (!import.meta.env.PROD) console.error('Failed to dispatch notification:', err);
+      if (!import.meta.env.PROD) console.error('Failed to dispatch notification:', err);
     }
   },
 

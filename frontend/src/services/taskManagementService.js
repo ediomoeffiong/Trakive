@@ -13,7 +13,7 @@ import { getTaskTimeline } from '../data/taskTimeline';
 import api from './api';
 
 const logWarn = (...args) => {
-  if (!import.meta.env.PROD) logWarn(...args);
+  if (!import.meta.env.PROD) console.warn(...args);
 };
 
 const LOCAL_TASKS_KEY = 'trakive_supervisor_tasks_local';
@@ -25,8 +25,9 @@ const delay = (ms = DELAY_MS) => new Promise((resolve) => setTimeout(resolve, ms
 
 // ── In-memory mutable task store ─────────────────────────────────────────────
 let tasksStore = [];
-let templatesStore = JSON.parse(JSON.stringify(mockTaskTemplates))
-  .filter((template) => ['Weekly Progress Report', 'Bug Investigation & Fix'].includes(template.name));
+let templatesStore = (!import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true')
+  ? JSON.parse(JSON.stringify(mockTaskTemplates)).filter((template) => ['Weekly Progress Report', 'Bug Investigation & Fix'].includes(template.name))
+  : [];
 let nextId = 100;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -116,7 +117,9 @@ const buildInternAvatarIndex = async () => {
     if (name) internAvatarIndex[String(name).toLowerCase()] = internAvatarIndex[String(name).toLowerCase()] || avatar;
   };
 
-  mockUserDirectory.forEach((user) => indexAvatar(user.id, user.email, user.name, user.avatar));
+  if (!import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true') {
+    mockUserDirectory.forEach((user) => indexAvatar(user.id, user.email, user.name, user.avatar));
+  }
 
   try {
     const res = await api.get('/interns', { params: { limit: 100 } });
@@ -280,7 +283,9 @@ const syncTaskStore = async () => {
   }
 
   if (!apiSuccess && remoteTasks.length === 0) {
-    remoteTasks = [...mockSupervisorTasks, ...getStoredTasks()];
+    if (!import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true') {
+      remoteTasks = [...mockSupervisorTasks, ...getStoredTasks()];
+    }
   }
 
   tasksStore = mergeLocalTasks(remoteTasks).map((task) => normalizeTask(task, avatarIndex));
@@ -771,7 +776,7 @@ export const taskManagementService = {
           reviewedBy: null,
         };
       });
-    const extras = (mockTaskSubmissions || []).filter((item) => !taskId || item.taskId === taskId);
+    const extras = (!import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true' ? (mockTaskSubmissions || []) : []).filter((item) => !taskId || item.taskId === taskId);
     const byId = new Map(derived.map((item) => [item.id, item]));
     extras.forEach((item) => {
       if (!byId.has(item.id)) byId.set(item.id, item);
@@ -791,7 +796,7 @@ export const taskManagementService = {
   fetchTaskComments: async (taskId) => {
     await delay(80);
     const local = readLocalComments();
-    const seeded = mockTaskComments[taskId] || [];
+    const seeded = (!import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true') ? (mockTaskComments[taskId] || []) : [];
     const stored = local[taskId] || [];
     const byId = new Map();
     [...seeded, ...stored].forEach((comment) => byId.set(comment.id, comment));

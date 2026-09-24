@@ -3,10 +3,11 @@
  * @description Mock authentication service to simulate API requests with artificial latency.
  */
 
-import api from './api';
+import api, { resetApiSessionState } from './api';
 import { mockUsers, DEFAULT_MOCK_PASSWORD } from '../data/mockUsers';
 import { normalizeDepartmentForPerson, normalizePersonRecord } from '../utils/people';
 import { isOrganizationEmail, ORG_EMAIL_REQUIRED_MESSAGE } from '../utils/helpers';
+import { formatUserFriendlyError, resetSessionExpiredFlag } from '../utils/errorHandling';
 
 const MOCK_AUTH_ENABLED = !import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
 const CUSTOM_USERS_KEY = 'trakive_custom_users';
@@ -199,6 +200,9 @@ export const authService = {
 
       if (!safeUser?.id || !token) throw new Error('Invalid login response from server');
 
+      resetSessionExpiredFlag();
+      resetApiSessionState();
+
       return {
         user: safeUser,
         token,
@@ -206,8 +210,7 @@ export const authService = {
       };
     } catch (err) {
       if (!MOCK_AUTH_ENABLED) {
-        const backendMsg = err.response?.data?.message || err.response?.data?.error;
-        throw new Error(backendMsg || err.message || 'Login failed. Please try again.');
+        throw new Error(formatUserFriendlyError(err, 'Login failed. Please check your credentials and try again.'));
       }
 
       // If backend responded with explicit auth failure message
@@ -215,12 +218,16 @@ export const authService = {
       if (backendMsg) {
         const demoUser = getRegisteredUsers().find((u) => u.email.toLowerCase() === email.toLowerCase());
         if (demoUser && password === getExpectedMockPassword(demoUser)) {
+          resetSessionExpiredFlag();
+          resetApiSessionState();
           return getMockLogin(email, password);
         }
-        throw new Error(backendMsg);
+        throw new Error(formatUserFriendlyError(err, backendMsg));
       }
 
       // Fallback for offline/mock development
+      resetSessionExpiredFlag();
+      resetApiSessionState();
       return getMockLogin(email, password);
     }
   },
@@ -253,7 +260,7 @@ export const authService = {
       return result;
     } catch (err) {
       if (!MOCK_AUTH_ENABLED) {
-        throw new Error(getApiErrorMessage(err, 'Registration failed. Please try again.'));
+        throw new Error(formatUserFriendlyError(err, 'Registration failed. Please try again.'));
       }
     }
 
@@ -336,7 +343,7 @@ export const authService = {
       };
     } catch (err) {
       if (!MOCK_AUTH_ENABLED) {
-        throw new Error(getApiErrorMessage(err, 'Password reset request failed. Please try again.'));
+        throw new Error(formatUserFriendlyError(err, 'Password reset request failed. Please try again.'));
       }
     }
 
@@ -374,7 +381,7 @@ export const authService = {
         };
       } catch (err) {
         if (!MOCK_AUTH_ENABLED) {
-          throw new Error(getApiErrorMessage(err, 'Password reset failed. Please try again.'));
+          throw new Error(formatUserFriendlyError(err, 'Password reset failed. Please try again.'));
         }
       }
     } else if (!MOCK_AUTH_ENABLED) {

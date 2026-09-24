@@ -19,6 +19,7 @@ import api from './api';
 const departmentFilterOptions = ['All Departments', ...STANDARD_DEPARTMENTS.map((department) => department.name)];
 
 const isDemoUser = () => {
+  if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') return false;
   try {
     const user = useAppStore.getState()?.user;
     if (!user) return false;
@@ -395,6 +396,9 @@ const getStoredItems = (key) => {
 
 // Helper for retrieving all active tasks across mock and local storage
 const getAllTasks = () => {
+  if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+    return [];
+  }
   const map = new Map();
   if (Array.isArray(mockTasks)) {
     mockTasks.forEach((t) => map.set(t.id, t));
@@ -418,6 +422,9 @@ const getAllTasks = () => {
 
 // Helper for retrieving all active reviews across mock and local storage
 const getAllReviews = () => {
+  if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+    return [];
+  }
   const map = new Map();
   if (Array.isArray(mockReviews)) {
     mockReviews.forEach((r) => map.set(r.id, r));
@@ -434,6 +441,107 @@ const getAllReviews = () => {
   return Array.from(map.values());
 };
 
+const getEmptyDashboardMetrics = () => {
+  const user = useAppStore.getState()?.user;
+  return {
+    metrics: {
+      overallPerformanceScore: '0.0',
+      performanceScoreTrend: '+0%',
+      performanceScorePositive: true,
+      activeInterns: 0,
+      activeInternsTrend: '0',
+      activeInternsPositive: true,
+      completedTasks: 0,
+      completedTasksTrend: '+0%',
+      completedTasksPositive: true,
+      tasksInProgress: 0,
+      tasksInProgressTrend: '0',
+      tasksInProgressPositive: true,
+      pendingReviews: 0,
+      pendingReviewsTrend: '0',
+      pendingReviewsPositive: true,
+      completedReviews: 0,
+      completedReviewsTrend: '0%',
+      completedReviewsPositive: true,
+      onboardingCompletionRate: '0%',
+      onboardingCompletionTrend: '0%',
+      onboardingCompletionPositive: true,
+      averagePerformanceRating: '0.0',
+      averagePerformanceRatingTrend: '0',
+      averagePerformanceRatingPositive: true,
+      organizationHealthScore: '100/100',
+      organizationHealthTrend: 'Good',
+      organizationHealthPositive: true,
+    },
+    summaryCards: {
+      bestPerformingIntern: null,
+      mostImprovedIntern: null,
+      supervisorPerformance: null,
+      highestPerformingDept: null,
+      upcomingReviewDeadlines: [],
+      overdueTasks: [],
+    },
+    filterOptions: {
+      periods: ['Today', 'This Week', 'This Month', 'This Quarter', 'This Year', 'All Time'],
+      departments: departmentFilterOptions,
+      roles: ['All Roles', 'Intern', 'Supervisor', 'Admin'],
+      tracks: ['All Tracks'],
+      performanceBands: ['All Scores', '4.0 - 5.0 (Top)', '3.0 - 3.9 (Good)', '2.0 - 2.9 (Average)', '< 2.0 (Needs Support)'],
+      supervisors: ['All Supervisors', user?.name || 'Supervisor'],
+    },
+  };
+};
+
+const getEmptyChartData = () => {
+  const now = new Date();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const recentMonths = [];
+  for (let i = 6; i >= 0; i--) {
+    const mIdx = (now.getMonth() - i + 12) % 12;
+    recentMonths.push(monthNames[mIdx]);
+  }
+  return {
+    weeklyTrend: [],
+    monthlyTrend: recentMonths.map((m) => ({ month: m, performance: 0, completionRate: 0, satisfaction: 100 })),
+    deptTaskCompletion: [],
+    performanceComparison: [],
+    taskStatus: [
+      { name: 'Completed', value: 0, color: '#10b981' },
+      { name: 'In Progress', value: 0, color: '#3b82f6' },
+      { name: 'Pending Review', value: 0, color: '#f59e0b' },
+      { name: 'Overdue', value: 0, color: '#ef4444' },
+    ],
+    reviewStatus: [
+      { name: 'Completed', value: 0, color: '#10b981' },
+      { name: 'In Progress', value: 0, color: '#6366f1' },
+      { name: 'Pending Approval', value: 0, color: '#f59e0b' },
+      { name: 'Overdue', value: 0, color: '#ef4444' },
+    ],
+    onboardingCompletion: [
+      { name: 'Phase 1: Setup', value: 0, color: '#10b981' },
+      { name: 'Phase 2: Fundamentals', value: 0, color: '#3b82f6' },
+      { name: 'Phase 3: Core Tasks', value: 0, color: '#8b5cf6' },
+      { name: 'Phase 4: Final Capstone', value: 0, color: '#f59e0b' },
+    ],
+    productivityGrowth: recentMonths.map((m) => ({
+      month: m,
+      velocity: 0,
+      velocityBenchmark: 100,
+      commits: 0,
+    })),
+    skillMatrix: [
+      { subject: 'Communication', internScore: 0, deptAverage: 0, maxMark: 5.0 },
+      { subject: 'Technical Skills', internScore: 0, deptAverage: 0, maxMark: 5.0 },
+      { subject: 'Teamwork', internScore: 0, deptAverage: 0, maxMark: 5.0 },
+      { subject: 'Initiative', internScore: 0, deptAverage: 0, maxMark: 5.0 },
+      { subject: 'Quality of Work', internScore: 0, deptAverage: 0, maxMark: 5.0 },
+      { subject: 'Attendance', internScore: 0, deptAverage: 0, maxMark: 5.0 },
+      { subject: 'Punctuality', internScore: 0, deptAverage: 0, maxMark: 5.0 },
+    ],
+    heatmapData: [],
+  };
+};
+
 // Helper for simulating async API delay
 const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -445,6 +553,10 @@ export const analyticsService = {
   async getDashboardMetrics(filters = {}) {
     const live = await fetchLiveDashboardMetrics(filters);
     if (live) return live;
+
+    if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+      return getEmptyDashboardMetrics();
+    }
 
     await delay(300);
 
@@ -565,6 +677,10 @@ export const analyticsService = {
   async getChartData(filters = {}) {
     const live = await fetchLiveChartData(filters);
     if (live) return live;
+
+    if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+      return getEmptyChartData();
+    }
 
     await delay(350);
 

@@ -6,7 +6,8 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useIsAuthenticated, useCurrentUser } from '../../store';
 import { ROUTES, USER_ROLES } from '../../constants';
-import { hasAuthTokens } from '../../utils/authSession';
+import { hasAuthTokens, clearAuthTokens } from '../../utils/authSession';
+import { useAppStore } from '../../store/useAppStore';
 
 const ROLE_DEFAULT_ROUTES = {
   [USER_ROLES.INTERN]: ROUTES.DASHBOARD,
@@ -20,6 +21,8 @@ const RoleGuard = ({ allowedRoles = [] }) => {
   const user = useCurrentUser();
 
   if (!isAuthenticated || !hasAuthTokens()) {
+    clearAuthTokens();
+    try { useAppStore.getState()?.clearAuth?.(); } catch {}
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
 

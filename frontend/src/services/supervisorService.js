@@ -13,6 +13,9 @@ const unwrapList = (res) => {
 };
 
 const getFallbackMockInterns = () => {
+  if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+    return [];
+  }
   try {
     const customUsers = typeof localStorage !== 'undefined' ? JSON.parse(localStorage.getItem('trakive_custom_users') || '[]') : [];
     const allUsers = [...mockUsers, ...customUsers];

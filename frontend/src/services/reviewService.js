@@ -7,7 +7,7 @@
 import api from './api';
 
 const logWarn = (...args) => {
-  if (!import.meta.env.PROD) logWarn(...args);
+  if (!import.meta.env.PROD) console.warn(...args);
 };
 import {
   mockSupervisorSubmissions,
@@ -143,6 +143,34 @@ export const reviewService = {
    * @param {{ search?: string, status?: string, priority?: string, department?: string, sortBy?: string, sortDir?: string, page?: number, pageSize?: number }} params
    */
   fetchSubmissionsQueue: async (params = {}) => {
+    if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+      try {
+        const res = await api.get('/tasks', { params: { limit: 100 } });
+        const list = res?.data?.data?.items || res?.data?.items || (Array.isArray(res?.data?.data) ? res.data.data : []) || [];
+        const filtered = list.filter((t) => ['submitted', 'in-review', 'in_review', 'under-review', 'pending-review'].includes(String(t.status || '').toLowerCase().replace(/_/g, '-')));
+        const page = params.page || 1;
+        const pageSize = params.pageSize || 10;
+        const total = filtered.length;
+        const start = (page - 1) * pageSize;
+        return {
+          data: filtered.slice(start, start + pageSize),
+          total,
+          page,
+          pageSize,
+          totalPages: Math.ceil(total / pageSize) || (total ? 1 : 0),
+        };
+      } catch (e) {
+        logWarn('Failed to fetch real submission queue:', e);
+        return {
+          data: [],
+          total: 0,
+          page: 1,
+          pageSize: 10,
+          totalPages: 0,
+        };
+      }
+    }
+
     await delay(700);
     let data = JSON.parse(JSON.stringify(mockSupervisorSubmissions));
 
@@ -194,6 +222,17 @@ export const reviewService = {
    * Fetch a single submission by ID.
    */
   fetchSubmissionById: async (submissionId) => {
+    if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+      try {
+        const res = await api.get(`/tasks/${submissionId}`);
+        const task = res?.data?.data || res?.data;
+        if (task) return task;
+      } catch (e) {
+        logWarn('Failed to fetch real submission:', e);
+      }
+      throw new Error(`Submission "${submissionId}" not found.`);
+    }
+
     await delay(600);
     const sub = mockSupervisorSubmissions.find((s) => s.id === submissionId);
     if (!sub) throw new Error(`Submission "${submissionId}" not found.`);
@@ -244,6 +283,9 @@ export const reviewService = {
       }
     } catch (e) {
       logWarn('Backend API call for onboarding queue failed', e);
+    }
+    if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+      return [];
     }
     return mockOnboardingApprovals || [];
   },
@@ -314,6 +356,9 @@ export const reviewService = {
    * Fetch all upcoming and past scheduled reviews.
    */
   fetchScheduledReviews: async () => {
+    if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+      return getStoredScheduledReviews();
+    }
     await delay(600);
     return [
       ...getStoredScheduledReviews(),
@@ -326,6 +371,15 @@ export const reviewService = {
    * @param {{ internId?: string, department?: string, decision?: string, dateFrom?: string, dateTo?: string }} filters
    */
   fetchReviewHistory: async (filters = {}) => {
+    if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+      try {
+        const res = await api.get('/reviews');
+        const list = res?.data?.data?.items || res?.data?.items || (Array.isArray(res?.data?.data) ? res.data.data : []) || [];
+        return list;
+      } catch (e) {
+        return [];
+      }
+    }
     await delay(650);
     let data = JSON.parse(JSON.stringify(mockReviewHistory));
 
@@ -357,6 +411,23 @@ export const reviewService = {
    * Fetch review KPI summary for supervisor dashboard.
    */
   fetchReviewKPIs: async () => {
+    if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+      try {
+        const [tasksRes, queueRes] = await Promise.all([
+          api.get('/tasks', { params: { limit: 100 } }).catch(() => ({ data: {} })),
+          api.get('/onboarding/supervisor/queue').catch(() => ({ data: {} })),
+        ]);
+        const tasks = tasksRes?.data?.data?.items || tasksRes?.data?.items || (Array.isArray(tasksRes?.data?.data) ? tasksRes.data.data : []) || [];
+        const queue = Array.isArray(queueRes?.data?.data) ? queueRes.data.data : [];
+        const pending = tasks.filter((t) => ['submitted', 'in-review', 'in_review', 'under-review', 'pending-review'].includes(String(t.status || '').toLowerCase().replace(/_/g, '-'))).length + queue.length;
+        const approved = tasks.filter((t) => ['completed', 'reviewed', 'approved'].includes(String(t.status || '').toLowerCase())).length;
+        const needsRevision = tasks.filter((t) => ['needs-revision', 'rejected'].includes(String(t.status || '').toLowerCase())).length;
+        const overdue = tasks.filter((t) => String(t.status || '').toLowerCase() === 'overdue').length;
+        return { pending, approved, needsRevision, rejected: 0, reviewsDue: pending, overdue };
+      } catch {
+        return { pending: 0, approved: 0, needsRevision: 0, rejected: 0, reviewsDue: 0, overdue: 0 };
+      }
+    }
     await delay(500);
     const submissions = mockSupervisorSubmissions;
     const pending = submissions.filter((s) => s.status === 'pending-review').length;

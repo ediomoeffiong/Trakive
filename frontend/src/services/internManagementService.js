@@ -18,7 +18,7 @@ import { normalizeDepartmentForPerson, normalizePersonRecord } from '../utils/pe
 import { getAccessToken } from '../utils/authSession';
 
 const logWarn = (...args) => {
-  if (!import.meta.env.PROD) logWarn(...args);
+  if (!import.meta.env.PROD) console.warn(...args);
 };
 
 // ── Simulated network delay ──────────────────────────────────────────────────
@@ -410,13 +410,15 @@ export const internManagementService = {
     }
 
     if (rawResult.length === 0) {
-      const customUsers = safeParse(typeof localStorage !== 'undefined' ? localStorage.getItem('trakive_custom_users') : null, []);
-      const allUsers = [...mockUsers, ...customUsers];
-      const internUsers = allUsers.filter((u) => {
-        const role = String(u.role || u.role_name || '').toLowerCase();
-        return role === 'intern';
-      });
-      rawResult = internUsers.map((u) => buildProfile(u, u.id));
+      if (!import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true') {
+        const customUsers = safeParse(typeof localStorage !== 'undefined' ? localStorage.getItem('trakive_custom_users') : null, []);
+        const allUsers = [...mockUsers, ...customUsers];
+        const internUsers = allUsers.filter((u) => {
+          const role = String(u.role || u.role_name || '').toLowerCase();
+          return role === 'intern';
+        });
+        rawResult = internUsers.map((u) => buildProfile(u, u.id));
+      }
     }
 
     let result = rawResult;
@@ -518,7 +520,7 @@ export const internManagementService = {
     try {
       const { interns } = await this.fetchInternList();
       let found = interns.find((i) => String(i.id) === String(internId) || String(i.internId) === String(internId));
-      if (!found) {
+      if (!found && (!import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true')) {
         const customUsers = safeParse(typeof localStorage !== 'undefined' ? localStorage.getItem('trakive_custom_users') : null, []);
         const allUsers = [...mockUsers, ...customUsers];
         const match = allUsers.find((u) => String(u.id) === String(internId));
@@ -531,6 +533,10 @@ export const internManagementService = {
       }
     } catch (err) {
       logWarn('Failed fallback intern resolution:', err);
+    }
+
+    if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+      throw new Error(`Intern profile "${internId}" not found.`);
     }
 
     const fallbackProfile = buildProfile({
@@ -591,6 +597,9 @@ export const internManagementService = {
       };
     } catch (e) {
       logWarn('Failed to fetch real progress data:', e);
+      if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+        return { progress: null };
+      }
       await delay(350);
       return { progress: mockInternProgress[internId] || null };
     }
@@ -649,9 +658,15 @@ export const internManagementService = {
             : (item.status ? 'Pending Review' : 'Missing'),
         };
       });
+      if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+        return { documents: docs };
+      }
       return { documents: docs.length ? docs : (mockInternDocuments[internId] || []) };
     } catch (e) {
       logWarn('Failed to fetch real intern documents:', e);
+      if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+        return { documents: [] };
+      }
       await delay(300);
       return { documents: mockInternDocuments[internId] || [] };
     }
@@ -699,9 +714,15 @@ export const internManagementService = {
 
       const activities = [...taskEvents, ...reviewEvents, ...onboardingEvents]
         .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+      if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+        return { activities };
+      }
       return { activities: activities.length ? activities : (mockInternActivity[internId] || []) };
     } catch (e) {
       logWarn('Failed to fetch real intern activity:', e);
+      if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+        return { activities: [] };
+      }
       await delay(400);
       return { activities: mockInternActivity[internId] || [] };
     }
@@ -751,6 +772,9 @@ export const internManagementService = {
       };
     } catch (e) {
       logWarn('Failed to fetch real performance data:', e);
+      if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+        return { performance: null };
+      }
       await delay(350);
       return { performance: mockInternPerformance[internId] || null };
     }
@@ -769,6 +793,9 @@ export const internManagementService = {
       } catch (error) {
         logWarn('Failed to fetch supervisor notes from API:', error);
       }
+    }
+    if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+      return { notes: [] };
     }
     await delay(300);
     return { notes: notesStore[internId] || [] };

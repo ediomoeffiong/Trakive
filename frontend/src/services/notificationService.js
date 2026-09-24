@@ -312,8 +312,6 @@ export const notificationService = {
       priority: data.priority || 'normal',
     };
 
-    if (!MOCK_DATA_ENABLED) return null;
-
     // Synchronously read current storage to prevent async race condition during login
     const key = getUserNotifKey(activeRole);
     const saved = localStorage.getItem(key);
@@ -324,7 +322,7 @@ export const notificationService = {
       } catch {
         existing = [];
       }
-    } else {
+    } else if (MOCK_DATA_ENABLED) {
       existing = activeRole === 'Supervisor' ? [...mockSupervisorNotifications] : [...mockNotifications];
     }
 

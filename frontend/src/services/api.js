@@ -1,12 +1,19 @@
 /**
  * @file api.js
- * @description Centralised Axios instance with interceptors for Trakive.
- * All service modules should import from this file, not directly from axios.
+ * @description Centralised Axios instance with intelligent token refreshing,
+ * proactive JWT expiry interception, and graceful session expiry handling for Trakive.
  */
 
 import axios from 'axios';
 import { API_BASE_URL } from '../constants';
-import { getAccessToken, getRefreshToken, persistTokenPairInStore } from '../utils/authSession';
+import {
+  getAccessToken,
+  getRefreshToken,
+  persistTokenPairInStore,
+  isTokenExpired,
+  isRealBackendToken,
+} from '../utils/authSession';
+import { handleSessionExpired, formatUserFriendlyError } from '../utils/errorHandling';
 
 const joinUrl = (base, path) => {
   if (!path) return base;
@@ -16,10 +23,43 @@ const joinUrl = (base, path) => {
   return `${cleanBase}/${cleanPath}`;
 };
 
+let refreshPromise = null;
+let isSessionExpired = false;
+
+export const resetApiSessionState = () => {
+  isSessionExpired = false;
+  refreshPromise = null;
+};
+
+const getOrRefreshToken = (refreshToken) => {
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(
+        joinUrl(API_BASE_URL, '/auth/refresh'),
+        { refreshToken },
+        { timeout: 10000, headers: { 'Content-Type': 'application/json' } }
+      )
+      .then((response) => {
+        const tokens = response.data?.data?.tokens || response.data?.tokens;
+        if (!tokens?.accessToken) {
+          throw new Error('Invalid token response from refresh');
+        }
+        persistTokenPairInStore(tokens);
+        return tokens.accessToken;
+      })
+      .catch((err) => {
+        isSessionExpired = true;
+        handleSessionExpired();
+        throw err;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+};
+
 const api = axios.create({
-  // Requests are resolved to absolute URLs in the interceptor below. Keeping
-  // baseURL empty avoids production bundles or Axios URL merging from dropping
-  // the `/api/v1` prefix when a service passes paths like `/projects`.
   baseURL: undefined,
   timeout: 15000,
   headers: {
@@ -29,11 +69,47 @@ const api = axios.create({
 
 // ── Request Interceptor ──────────────────────────────────────────────────────
 api.interceptors.request.use(
-  (config) => {
-    const token = getAccessToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    // If the session has already expired, avoid making further authenticated network calls
+    if (isSessionExpired) {
+      return Promise.reject(new Error('Your session has expired. Please log in again to continue.'));
     }
+
+    const isAuthEndpoint =
+      config.url?.includes('/auth/login') ||
+      config.url?.includes('/auth/register') ||
+      config.url?.includes('/auth/refresh') ||
+      config.url?.includes('/auth/forgot-password') ||
+      config.url?.includes('/auth/reset-password');
+
+    let token = getAccessToken();
+
+    // Proactively check if access token is expired before sending request
+    if (!isAuthEndpoint && token && isTokenExpired(token)) {
+      const refreshToken = getRefreshToken();
+      if (isRealBackendToken(refreshToken) && !isTokenExpired(refreshToken, 0)) {
+        try {
+          token = await getOrRefreshToken(refreshToken);
+        } catch {
+          return Promise.reject(new Error('Your session has expired. Please log in again to continue.'));
+        }
+      } else {
+        isSessionExpired = true;
+        handleSessionExpired();
+        return Promise.reject(new Error('Your session has expired. Please log in again to continue.'));
+      }
+    }
+
+    if (token) {
+      // In production or when communicating with remote backend, do not send mock tokens
+      const isRemote = /^https?:\/\//i.test(config.url || '') && !config.url?.includes('localhost');
+      if (token.startsWith('mock-') && isRemote) {
+        // Skip attaching mock token to remote backends
+      } else {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+
     if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
       if (typeof config.headers?.delete === 'function') {
         config.headers.delete('Content-Type');
@@ -42,59 +118,65 @@ api.interceptors.request.use(
         delete config.headers['content-type'];
       }
     }
+
     if (config.url && !/^https?:\/\//i.test(config.url)) {
       config.url = joinUrl(config.baseURL || API_BASE_URL, config.url);
       config.baseURL = undefined;
     }
+
     return config;
   },
   (error) => Promise.reject(error),
 );
-
-let refreshPromise = null;
 
 // ── Response Interceptor ─────────────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    const message = error.response?.data?.message || '';
-    const shouldRefresh =
-      error.response?.status === 401 &&
-      !originalRequest?._retry &&
-      !originalRequest?.url?.includes('/auth/login') &&
-      !originalRequest?.url?.includes('/auth/refresh') &&
-      /expired/i.test(message);
+    const status = error.response?.status;
+    const url = originalRequest?.url || '';
 
-    if (!shouldRefresh) {
+    // Handle 401 Unauthorized
+    if (status === 401) {
+      // 1. If login failed with 401, return sanitized error without logging out
+      if (url.includes('/auth/login')) {
+        error.message = formatUserFriendlyError(error, 'Invalid email or password. Please try again.');
+        return Promise.reject(error);
+      }
+
+      // 2. If refresh request itself failed with 401 or request already retried: session is dead
+      if (url.includes('/auth/refresh') || originalRequest?._retry) {
+        isSessionExpired = true;
+        handleSessionExpired();
+        error.message = 'Your session has expired. Please log in again to continue.';
+        return Promise.reject(error);
+      }
+
+      // 3. Attempt token refresh if a real refresh token is available
+      const refreshToken = getRefreshToken();
+      if (isRealBackendToken(refreshToken) && !isTokenExpired(refreshToken, 0)) {
+        originalRequest._retry = true;
+        try {
+          const newAccessToken = await getOrRefreshToken(refreshToken);
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          return api(originalRequest);
+        } catch {
+          error.message = 'Your session has expired. Please log in again to continue.';
+          return Promise.reject(error);
+        }
+      }
+
+      // No viable refresh token available; log out cleanly
+      isSessionExpired = true;
+      handleSessionExpired();
+      error.message = 'Your session has expired. Please log in again to continue.';
       return Promise.reject(error);
     }
 
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) {
-      return Promise.reject(error);
-    }
-
-    originalRequest._retry = true;
-
-    try {
-      refreshPromise =
-        refreshPromise ||
-        api.post('/auth/refresh', { refreshToken }).then((response) => {
-          const tokens = response.data?.data?.tokens || response.data?.tokens;
-          persistTokenPairInStore(tokens || {});
-          return tokens;
-        }).finally(() => {
-          refreshPromise = null;
-        });
-
-      const tokens = await refreshPromise;
-      if (!tokens?.accessToken) return Promise.reject(error);
-      originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
-      return api(originalRequest);
-    } catch (refreshError) {
-      return Promise.reject(refreshError);
-    }
+    // Sanitize any other error message
+    error.message = formatUserFriendlyError(error);
+    return Promise.reject(error);
   },
 );
 
