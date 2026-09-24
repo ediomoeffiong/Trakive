@@ -4,7 +4,7 @@
  * duplicate, edit, delete, and instantiate task templates into active assignments.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
