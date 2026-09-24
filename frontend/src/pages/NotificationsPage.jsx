@@ -470,8 +470,9 @@ const NotificationsPage = () => {
   const unreadCount = getUnreadCount();
 
   useEffect(() => {
+    if (!user?.id) return;
     fetchAll(user?.role);
-  }, [user?.role]); // eslint-disable-line
+  }, [fetchAll, user?.id, user?.role]);
 
   const handleMarkAll = async () => {
     await markAllAsRead(user?.role);

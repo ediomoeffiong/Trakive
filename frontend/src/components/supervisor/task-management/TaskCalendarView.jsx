@@ -233,7 +233,8 @@ const DayDetailPanel = ({ dateKey, tasks, onClose, onTaskClick }) => {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 16 }}
       style={{
-        width: '260px',
+        width: '100%',
+        maxWidth: '320px',
         flexShrink: 0,
         background: '#fff',
         borderRadius: '0.875rem',
@@ -243,7 +244,7 @@ const DayDetailPanel = ({ dateKey, tasks, onClose, onTaskClick }) => {
         display: 'flex',
         flexDirection: 'column',
         gap: '0.75rem',
-        alignSelf: 'flex-start',
+        alignSelf: 'stretch',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -311,6 +312,15 @@ const TaskCalendarView = ({ tasks: customTasks, loading: customLoading, onTaskCl
     : (supervisorStore.loading?.tasks ?? false);
 
   const handleTaskClick = customOnTaskClick || supervisorStore.openDetailsDrawer;
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     if (!customTasks && !calendarTasks.length && supervisorStore.fetchTasks) {
@@ -415,11 +425,11 @@ const TaskCalendarView = ({ tasks: customTasks, loading: customLoading, onTaskCl
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', flexDirection: isMobile ? 'column' : 'row' }}>
           {/* Calendar grid or agenda */}
-          <div style={{ flex: 1, padding: '1rem' }}>
+          <div style={{ flex: 1, padding: isMobile ? '0.75rem' : '1rem', overflowX: isMobile ? 'auto' : 'visible' }}>
             {viewMode === 'month' ? (
-              <>
+              <div style={{ minWidth: isMobile ? '580px' : 'auto' }}>
                 {/* Weekday headers */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.375rem', marginBottom: '0.375rem' }}>
                   {WEEKDAYS.map((d) => (
@@ -451,7 +461,7 @@ const TaskCalendarView = ({ tasks: customTasks, loading: customLoading, onTaskCl
                     );
                   })}
                 </div>
-              </>
+              </div>
             ) : (
               <AgendaView taskMap={taskMap} year={currentYear} month={currentMonth} onTaskClick={handleTaskClick} />
             )}
@@ -460,7 +470,7 @@ const TaskCalendarView = ({ tasks: customTasks, loading: customLoading, onTaskCl
           {/* Day detail side panel */}
           <AnimatePresence>
             {selectedDate && selectedDateTasks.length > 0 && (
-              <div style={{ padding: '1rem 1rem 1rem 0' }}>
+              <div style={{ padding: isMobile ? '0 1rem 1rem 1rem' : '1rem 1rem 1rem 0', width: isMobile ? '100%' : 'auto' }}>
                 <DayDetailPanel dateKey={selectedDate} tasks={selectedDateTasks} onClose={() => setSelectedDate(null)} onTaskClick={handleTaskClick} />
               </div>
             )}

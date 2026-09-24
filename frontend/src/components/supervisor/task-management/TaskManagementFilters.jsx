@@ -129,9 +129,9 @@ const TaskManagementFilters = ({
 
         {/* Quick status pills */}
         <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
-          {['all', 'active', 'pending-review', 'overdue', 'completed'].map((status) => {
+          {['all', 'active', 'draft', 'pending-review', 'overdue', 'completed'].map((status) => {
             const isActive = (filters.status || 'all') === status;
-            const labels = { all: 'All', active: 'Active', 'pending-review': 'Review', overdue: 'Overdue', completed: 'Done' };
+            const labels = { all: 'All', active: 'Active', draft: 'Drafts', 'pending-review': 'Review', overdue: 'Overdue', completed: 'Done' };
             return (
               <motion.button
                 key={status}

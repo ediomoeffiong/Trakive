@@ -77,9 +77,6 @@ const TemplateCard = ({ template, onUse, onDuplicate, onDelete, onPreview, isSel
         <span style={{ padding: '0.15rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 700, background: diff.bg, color: diff.color, border: `1px solid ${diff.border}` }}>
           {template.difficulty}
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.15rem 0.5rem', borderRadius: '9999px', fontSize: '0.6875rem', fontWeight: 600, background: '#f1f5f9', color: '#475569' }}>
-          <RiTimeLine /> {template.estimatedHours}h
-        </span>
       </div>
 
       {/* Meta */}
@@ -140,26 +137,29 @@ const TemplateCard = ({ template, onUse, onDuplicate, onDelete, onPreview, isSel
   );
 };
 
-const TemplatePreviewPanel = ({ template, onClose, onUse }) => {
+const TemplatePreviewPanel = ({ template, onClose, onUse, isMobile = false }) => {
   if (!template) return null;
   const diff = DIFFICULTY_STYLES[template.difficulty] || DIFFICULTY_STYLES.Intermediate;
   const catStyle = getCategoryColor(template.category);
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
+      initial={{ opacity: 0, x: isMobile ? 0 : 20, y: isMobile ? 20 : 0 }}
+      animate={{ opacity: 1, x: 0, y: 0 }}
+      exit={{ opacity: 0, x: isMobile ? 0 : 20, y: isMobile ? 20 : 0 }}
       style={{
-        width: '280px',
+        width: isMobile ? '100%' : '280px',
+        maxHeight: isMobile ? '300px' : 'none',
         flexShrink: 0,
         background: 'var(--color-neutral-50)',
-        borderLeft: '1px solid var(--color-neutral-200)',
+        borderLeft: isMobile ? 'none' : '1px solid var(--color-neutral-200)',
+        borderTop: isMobile ? '1px solid var(--color-neutral-200)' : 'none',
         padding: '1.25rem',
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
         gap: '1rem',
+        boxSizing: 'border-box',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -178,11 +178,11 @@ const TemplatePreviewPanel = ({ template, onClose, onUse }) => {
         <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-600)', lineHeight: 1.6 }}>{template.description}</p>
       </div>
 
-      {template.learningObjectives?.length > 0 && (
+      {(template.learningObjectives?.length > 0 || template.objectives?.length > 0) && (
         <div>
-          <p style={{ margin: '0 0 0.375rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-neutral-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Learning Objectives</p>
+          <p style={{ margin: '0 0 0.375rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-neutral-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Objectives & Deliverables</p>
           <ul style={{ margin: 0, paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            {template.learningObjectives.map((obj, i) => (
+            {(template.learningObjectives || template.objectives).map((obj, i) => (
               <li key={i} style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-700)', lineHeight: 1.5 }}>{obj}</li>
             ))}
           </ul>
@@ -201,7 +201,7 @@ const TemplatePreviewPanel = ({ template, onClose, onUse }) => {
       )}
 
       <div style={{ display: 'flex', gap: '0.375rem', marginTop: 'auto', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>~{template.estimatedHours}h · Used {template.usageCount}×</span>
+        <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>Used {template.usageCount || 0}×</span>
       </div>
 
       <motion.button
@@ -229,6 +229,15 @@ const TaskTemplatesModal = ({
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [previewTemplate, setPreviewTemplate] = useState(null);
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 768 : false));
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const filtered = templates.filter((t) => {
     const matchesSearch = !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.description?.toLowerCase().includes(search.toLowerCase());
@@ -360,9 +369,9 @@ const TaskTemplatesModal = ({
             </div>
 
             {/* Body */}
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', flex: 1, overflow: 'hidden' }}>
               {/* Grid */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '1rem' : '1.25rem 1.5rem' }}>
                 {isLoading ? (
                   <TemplatesGridSkeleton />
                 ) : filtered.length === 0 ? (
@@ -395,6 +404,7 @@ const TaskTemplatesModal = ({
                     template={previewTemplate}
                     onClose={() => setPreviewTemplate(null)}
                     onUse={handleUse}
+                    isMobile={isMobile}
                   />
                 )}
               </AnimatePresence>

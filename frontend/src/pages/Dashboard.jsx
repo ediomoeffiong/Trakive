@@ -263,6 +263,8 @@ const Dashboard = () => {
     loadingNotifications,
     loadingProgress,
     loadingCharts,
+    error,
+    loadedForUserId,
     fetchAllDashboardData,
     markNotificationRead
   } = useDashboardStore();
@@ -279,11 +281,41 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!user?.id) return;
-    fetchAllDashboardData();
+    fetchAllDashboardData(user.id);
     if (user?.role === 'Intern') {
       fetchOnboardingStatus();
     }
   }, [user?.id, user?.role, fetchAllDashboardData, fetchOnboardingStatus]);
+
+  if (error && user?.id && loadedForUserId !== user.id) {
+    return (
+      <div className="dashboard-page">
+        <Card style={{ padding: '1.5rem', textAlign: 'center' }}>
+          <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--color-neutral-900)' }}>
+            We could not load your dashboard.
+          </h3>
+          <p style={{ margin: '0.5rem 0 1rem', color: 'var(--color-neutral-500)', fontSize: '0.875rem' }}>
+            {error}
+          </p>
+          <Button onClick={() => fetchAllDashboardData(user.id)}>
+            Retry
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!user?.id || loadedForUserId !== user.id) {
+    return (
+      <div className="dashboard-page">
+        <StatsSkeleton />
+        <div className="dashboard-charts-row">
+          <ChartSkeleton />
+          <ChartSkeleton />
+        </div>
+      </div>
+    );
+  }
 
   // Greeting helper
   const getGreeting = () => {

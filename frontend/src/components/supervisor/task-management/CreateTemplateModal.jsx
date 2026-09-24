@@ -40,11 +40,9 @@ const CreateTemplateModal = ({ isOpen, onClose, onSubmit, isLoading }) => {
       description: '',
       category: 'Engineering',
       department: 'All Departments',
-      estimatedHours: 4,
       defaultPriority: 'medium',
-      defaultInstructions: '',
       submissionRequirements: '',
-      tags: '',
+      objectives: '',
     },
   });
 
@@ -55,23 +53,32 @@ const CreateTemplateModal = ({ isOpen, onClose, onSubmit, isLoading }) => {
         description: '',
         category: 'Engineering',
         department: 'All Departments',
-        estimatedHours: 4,
         defaultPriority: 'medium',
-        defaultInstructions: '',
         submissionRequirements: '',
-        tags: '',
+        objectives: '',
       });
     }
   }, [isOpen, reset]);
 
   const submit = async (data) => {
     try {
+      const objectivesList = data.objectives
+        ? data.objectives
+            .split('\n')
+            .map((item) => item.trim())
+            .filter(Boolean)
+        : [];
       await onSubmit({
-        ...data,
-        estimatedHours: Number(data.estimatedHours) || 1,
-        tags: data.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
-        learningObjectives: [],
+        name: data.name,
+        description: data.description,
+        category: data.category,
+        department: data.department,
+        defaultPriority: data.defaultPriority,
+        submissionRequirements: data.submissionRequirements,
+        objectives: objectivesList,
+        learningObjectives: objectivesList,
         rubric: [],
+        tags: [],
       });
       toast.success('Template created.');
       onClose();
@@ -142,7 +149,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSubmit, isLoading }) => {
                   <textarea {...register('description', { required: 'Description is required' })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} placeholder="What should this template help supervisors assign?" />
                 </Field>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                   <Field label="Category">
                     <select {...register('category')} style={inputStyle}>
                       {TASK_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}
@@ -154,12 +161,6 @@ const CreateTemplateModal = ({ isOpen, onClose, onSubmit, isLoading }) => {
                       {STANDARD_DEPARTMENTS.map((department) => <option key={department.name} value={department.name}>{department.name}</option>)}
                     </select>
                   </Field>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem' }}>
-                  <Field label="Estimated Hours">
-                    <input type="number" min={1} max={200} {...register('estimatedHours')} style={inputStyle} />
-                  </Field>
                   <Field label="Default Priority">
                     <select {...register('defaultPriority')} style={inputStyle}>
                       {['urgent', 'high', 'medium', 'low'].map((priority) => <option key={priority} value={priority}>{priority.charAt(0).toUpperCase() + priority.slice(1)}</option>)}
@@ -167,16 +168,12 @@ const CreateTemplateModal = ({ isOpen, onClose, onSubmit, isLoading }) => {
                   </Field>
                 </div>
 
-                <Field label="Default Instructions">
-                  <textarea {...register('defaultInstructions')} rows={4} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Steps, acceptance criteria, or working notes..." />
+                <Field label="Objectives & Deliverables">
+                  <textarea {...register('objectives')} rows={3} style={{ ...inputStyle, resize: 'vertical' }} placeholder="One item per line (e.g. Deliverable 1, Acceptance criterion 2)..." />
                 </Field>
 
                 <Field label="Submission Requirements">
-                  <textarea {...register('submissionRequirements')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="What should interns submit?" />
-                </Field>
-
-                <Field label="Tags">
-                  <input {...register('tags')} style={inputStyle} placeholder="Comma-separated tags" />
+                  <textarea {...register('submissionRequirements')} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="What should interns submit? (e.g. Pull request link, Figma preview, report)" />
                 </Field>
               </div>
 

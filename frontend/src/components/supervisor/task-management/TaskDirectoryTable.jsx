@@ -4,7 +4,7 @@
  * priority/status badges, progress bars, assigned intern avatars, and responsive card layout.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -352,12 +352,12 @@ const TaskDirectoryTable = ({
 }) => {
   const [isMobileView, setIsMobileView] = useState(false);
 
-  // Proper responsive effect
-  useMemo(() => {
-    if (typeof window !== 'undefined') {
-      const handleResize = () => setIsMobileView(window.innerWidth < 768);
-      handleResize();
-    }
+  // Responsive resize effect
+  useEffect(() => {
+    const handleResize = () => setIsMobileView(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   if (isLoading) return <TaskTableSkeleton rows={6} />;

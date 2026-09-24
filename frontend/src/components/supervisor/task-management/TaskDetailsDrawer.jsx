@@ -28,6 +28,7 @@ import {
 import TaskActivityTimeline from './TaskActivityTimeline';
 import { TaskDetailsSkeleton } from './TaskSkeletonLoaders';
 import { useSupervisorTaskStore } from '../../../store/useSupervisorTaskStore';
+import { taskManagementService } from '../../../services/taskManagementService';
 import { Avatar } from '../../ui';
 
 const STATUS_STYLES = {
@@ -54,99 +55,147 @@ const TABS = [
 ];
 
 // ── Sub-sections ──────────────────────────────────────────────────────────────
-const OverviewTab = ({ task }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-    {/* Description */}
-    <div>
-      <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>Description</h4>
-      <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-600)', lineHeight: 1.7 }}>{task.description}</p>
-    </div>
+const OverviewTab = ({ task }) => {
+  const objectives = task.objectives?.length
+    ? task.objectives
+    : task.learningObjectives?.length
+    ? task.learningObjectives
+    : [];
 
-    {/* Instructions */}
-    {task.instructions && (
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Description */}
       <div>
-        <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>Instructions</h4>
-        <div style={{ background: 'var(--color-neutral-50)', borderRadius: '0.75rem', padding: '1rem', border: '1px solid var(--color-neutral-200)' }}>
-          <pre style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-700)', lineHeight: 1.7, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
-            {task.instructions}
-          </pre>
-        </div>
-      </div>
-    )}
-
-    {/* Tags */}
-    {task.tags?.length > 0 && (
-      <div>
-        <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <RiPriceTag3Line style={{ color: '#6366f1' }} /> Tags
+        <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>
+          Description
         </h4>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
-          {task.tags.map((tag) => (
-            <span key={tag} style={{ padding: '0.2rem 0.625rem', borderRadius: '9999px', background: '#eef2ff', color: '#4338ca', fontSize: '0.75rem', fontWeight: 600, border: '1px solid #c7d2fe' }}>
-              {tag}
-            </span>
-          ))}
-        </div>
+        <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-600)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+          {task.description || 'No description provided.'}
+        </p>
       </div>
-    )}
 
-    {/* Submission requirements */}
-    {task.submissionRequirements && (
-      <div>
-        <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>Submission Requirements</h4>
-        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-600)', lineHeight: 1.6 }}>{task.submissionRequirements}</p>
-      </div>
-    )}
-
-    {/* Rubric */}
-    {task.rubric?.length > 0 && (
-      <div>
-        <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <RiStarLine style={{ color: '#f59e0b' }} /> Rubric
-        </h4>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {task.rubric.map((item, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '0.625rem 0.875rem', background: '#fff', borderRadius: '0.625rem', border: '1px solid var(--color-neutral-200)', gap: '0.75rem' }}>
-              <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>{item.criterion}</p>
-                {item.description && <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.4 }}>{item.description}</p>}
+      {/* Objectives & Deliverables */}
+      {objectives.length > 0 && (
+        <div>
+          <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>
+            Objectives & Key Deliverables
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {objectives.map((obj, i) => (
+              <div
+                key={i}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.625rem',
+                  padding: '0.5rem 0.75rem',
+                  background: '#f8fafc',
+                  borderRadius: '0.5rem',
+                  border: '1px solid var(--color-neutral-200)',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    color: '#00b4d8',
+                    minWidth: '1.25rem',
+                    marginTop: '0.1rem',
+                  }}
+                >
+                  {i + 1}.
+                </span>
+                <span style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-700)', lineHeight: 1.5 }}>
+                  {obj}
+                </span>
               </div>
-              <span style={{ padding: '0.2rem 0.625rem', borderRadius: '9999px', background: '#fef3c7', color: '#b45309', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                {item.maxScore} pts
-              </span>
-            </div>
-          ))}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0.25rem 0' }}>
-            <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>
-              Total: {task.rubric.reduce((sum, r) => sum + (r.maxScore || 0), 0)} points
-            </span>
+            ))}
           </div>
         </div>
-      </div>
-    )}
+      )}
 
-    {/* Attachments */}
-    {task.attachments?.length > 0 && (
-      <div>
-        <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>Attachments</h4>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-          {task.attachments.map((att) => (
-            <div key={att.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.625rem 0.875rem', background: 'var(--color-neutral-50)', borderRadius: '0.625rem', border: '1px solid var(--color-neutral-200)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <RiFileTextLine style={{ color: '#6366f1' }} />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-700)' }}>{att.name}</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>{att.size}</span>
-              </div>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#00b4d8', display: 'flex' }} title="Download">
-                <RiDownloadLine />
-              </button>
-            </div>
-          ))}
+      {/* Submission requirements */}
+      {task.submissionRequirements && (
+        <div>
+          <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>
+            Submission Requirements
+          </h4>
+          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-600)', lineHeight: 1.6 }}>
+            {task.submissionRequirements}
+          </p>
         </div>
-      </div>
-    )}
-  </div>
-);
+      )}
+
+      {/* Attachments */}
+      {task.attachments?.length > 0 && (
+        <div>
+          <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-800)' }}>
+            Attachments & Reference Files ({task.attachments.length})
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+            {task.attachments.map((att, i) => (
+              <div
+                key={att.id || i}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.625rem 0.875rem',
+                  background: 'var(--color-neutral-50)',
+                  borderRadius: '0.625rem',
+                  border: '1px solid var(--color-neutral-200)',
+                  gap: '0.5rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                  <RiFileTextLine style={{ color: '#00b4d8', fontSize: '1.125rem', flexShrink: 0 }} />
+                  <span
+                    style={{
+                      fontSize: '0.8125rem',
+                      fontWeight: 600,
+                      color: 'var(--color-neutral-800)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {att.name}
+                  </span>
+                  {att.size && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)', flexShrink: 0 }}>
+                      ({att.size})
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => taskManagementService.downloadAttachment(att)}
+                  style={{
+                    background: '#e0f7fc',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    padding: '0.35rem 0.625rem',
+                    cursor: 'pointer',
+                    color: '#007791',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}
+                  title="Open or download file"
+                >
+                  <RiDownloadLine /> Open
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const InternsTab = ({ task }) => {
   const INTERN_PROGRESS_COLORS = { reviewed: '#10b981', 'needs-revision': '#ef4444', submitted: '#3b82f6', 'in-progress': '#4f46e5', pending: '#f59e0b', 'not-started': '#94a3b8' };
@@ -411,7 +460,7 @@ const TaskDetailsDrawer = ({
               right: 0,
               bottom: 0,
               zIndex: 10000,
-              width: 'min(560px, 95vw)',
+              width: 'min(560px, 100vw)',
               background: '#fff',
               boxShadow: '-8px 0 48px rgba(0,0,0,0.16)',
               display: 'flex',
@@ -453,13 +502,10 @@ const TaskDetailsDrawer = ({
               {/* Quick meta */}
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.75rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <RiCalendarLine /> Due {task.dueDate}
-                </span>
-                <span style={{ fontSize: '0.75rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <RiTimeLine /> {task.estimatedHours}h estimated
+                  <RiCalendarLine /> Due {task.dueDate || 'No due date'}
                 </span>
                 <span style={{ fontSize: '0.75rem', color: '#fff' }}>
-                  {task.assignedInterns?.length || 0} intern(s) · {task.submissionCount} submission(s)
+                  {task.assignedInterns?.length || 0} intern(s) assigned · {task.submissionCount || 0} submission(s)
                 </span>
               </div>
 

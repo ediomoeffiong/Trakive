@@ -13,7 +13,7 @@ import {
   RiSearchLine, RiMegaphoneLine, RiAlarmLine,
 } from 'react-icons/ri';
 
-import { useNotificationStore } from '../../store';
+import { useAppStore, useNotificationStore } from '../../store';
 import {
   NotificationGroup,
   NotificationSearch,
@@ -446,12 +446,14 @@ const SupervisorNotificationsPage = () => {
   const getUnreadCount = useNotificationStore((s) => s.getUnreadCount);
   const setPreferencesOpen = useNotificationStore((s) => s.setPreferencesOpen);
   const preferencesOpen = useNotificationStore((s) => s.preferencesOpen);
+  const user = useAppStore((s) => s.user);
 
   const unreadCount = getUnreadCount();
 
   useEffect(() => {
+    if (!user?.id) return;
     fetchAll('Supervisor');
-  }, []); // eslint-disable-line
+  }, [fetchAll, user?.id]);
 
   const handleMarkAll = async () => {
     await markAllAsRead('Supervisor');

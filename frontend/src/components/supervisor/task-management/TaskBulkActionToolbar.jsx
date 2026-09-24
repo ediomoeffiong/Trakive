@@ -48,20 +48,22 @@ const TaskBulkActionToolbar = ({
           transition={{ type: 'spring', stiffness: 380, damping: 30 }}
           style={{
             position: 'fixed',
-            bottom: '2rem',
+            bottom: '1.25rem',
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 100,
             background: 'linear-gradient(135deg, #1e293b 0%, #1e1b4b 100%)',
             borderRadius: '1rem',
-            padding: '0.875rem 1.5rem',
+            padding: '0.75rem 1.125rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.75rem',
+            gap: '0.625rem',
             boxShadow: '0 16px 48px rgba(30, 27, 75, 0.4)',
-            flexWrap: 'wrap',
-            maxWidth: '90vw',
-            border: '1px solid rgba(99, 102, 241, 0.3)',
+            flexWrap: 'nowrap',
+            overflowX: 'auto',
+            maxWidth: 'min(92vw, 780px)',
+            border: '1px solid rgba(0, 180, 216, 0.3)',
+            WebkitOverflowScrolling: 'touch',
           }}
           role="toolbar"
           aria-label="Bulk action toolbar"

@@ -16,6 +16,7 @@ export const useNotificationStore = create((set, get) => ({
   announcements: [],
   reminders: [],
   preferences: null,
+  loadedRole: null,
 
   // Filters
   filters: {
@@ -45,17 +46,28 @@ export const useNotificationStore = create((set, get) => ({
   // ── Data Fetching ──────────────────────────────────────────────────────────
 
   fetchNotifications: async (role) => {
-    set({ loadingNotifications: true, error: null });
+    const nextRole = role || 'current';
+    set((state) => ({
+      loadingNotifications: true,
+      notifications: state.loadedRole === nextRole ? state.notifications : [],
+      selectedNotification: state.loadedRole === nextRole ? state.selectedNotification : null,
+      error: null,
+    }));
     try {
       const notifications = await notificationService.getNotifications(role);
-      set({ notifications, loadingNotifications: false });
+      set({ notifications, loadingNotifications: false, loadedRole: nextRole });
     } catch (err) {
       set({ error: err.message, loadingNotifications: false });
     }
   },
 
   fetchAnnouncements: async (role) => {
-    set({ loadingAnnouncements: true, error: null });
+    const nextRole = role || 'current';
+    set((state) => ({
+      loadingAnnouncements: true,
+      announcements: state.loadedRole === nextRole ? state.announcements : [],
+      error: null,
+    }));
     try {
       const announcements = await notificationService.getAnnouncements(role);
       set({ announcements, loadingAnnouncements: false });
@@ -65,7 +77,12 @@ export const useNotificationStore = create((set, get) => ({
   },
 
   fetchReminders: async (role) => {
-    set({ loadingReminders: true, error: null });
+    const nextRole = role || 'current';
+    set((state) => ({
+      loadingReminders: true,
+      reminders: state.loadedRole === nextRole ? state.reminders : [],
+      error: null,
+    }));
     try {
       const reminders = await notificationService.getReminders(role);
       set({ reminders, loadingReminders: false });
@@ -99,6 +116,7 @@ export const useNotificationStore = create((set, get) => ({
   addNotification: async (data, role) => {
     try {
       const created = await notificationService.createNotification(data, role);
+      if (!created) return null;
       set((state) => ({
         notifications: [created, ...state.notifications],
       }));

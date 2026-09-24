@@ -36,15 +36,20 @@ function getMondayOfWeek(date = new Date()) {
 }
 
 function SupervisorProjectWeeklySummary({ navigate }) {
+  const user = useCurrentUser();
   const [projectCounts, setProjectCounts] = useState({ total: 0, pending: 0, active: 0 });
   const [weeklyCount, setWeeklyCount] = useState({ total: 0, submitted: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user?.id) return undefined;
+    let cancelled = false;
+    setLoading(true);
     Promise.all([
       projectService.listProjects({ limit: 100 }).catch(() => ({ data: [] })),
       weeklyPlanService.supervisorView({ week_start: getMondayOfWeek(), limit: 100 }).catch(() => ({ data: [] })),
     ]).then(([projectsRes, weeklyRes]) => {
+      if (cancelled) return;
       const projects = projectsRes.data || [];
       const plans = weeklyRes.data || [];
       setProjectCounts({
@@ -58,7 +63,10 @@ function SupervisorProjectWeeklySummary({ navigate }) {
       });
       setLoading(false);
     });
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   if (loading) {
     return (
@@ -154,14 +162,47 @@ const SupervisorDashboardPage = () => {
     deadlines,
     widgets,
     isLoading,
+    error,
+    loadedForUserId,
     loadSupervisorDashboard,
   } = useSupervisorStore();
 
   useEffect(() => {
-    loadSupervisorDashboard();
-  }, []);
+    if (!user?.id) return;
+    loadSupervisorDashboard(user.id);
+  }, [user?.id, loadSupervisorDashboard]);
 
-  if (isLoading && kpis.length === 0) {
+  if (error && user?.id && loadedForUserId !== user.id) {
+    return (
+      <div style={{ padding: '1.5rem 0' }}>
+        <Card style={{ padding: '1.5rem', textAlign: 'center' }}>
+          <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--color-neutral-900)' }}>
+            We could not load your supervisor dashboard.
+          </h3>
+          <p style={{ margin: '0.5rem 0 1rem', color: 'var(--color-neutral-500)', fontSize: '0.875rem' }}>
+            {error}
+          </p>
+          <button
+            type="button"
+            onClick={() => loadSupervisorDashboard(user.id)}
+            style={{
+              border: 'none',
+              borderRadius: '0.5rem',
+              background: 'var(--color-primary-600)',
+              color: '#fff',
+              cursor: 'pointer',
+              fontWeight: 700,
+              padding: '0.65rem 1rem',
+            }}
+          >
+            Retry
+          </button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!user?.id || loadedForUserId !== user.id || (isLoading && kpis.length === 0)) {
     return (
       <div style={{ padding: '1.5rem 0' }}>
         <DashboardSkeleton />

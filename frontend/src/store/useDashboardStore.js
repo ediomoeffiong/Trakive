@@ -14,6 +14,7 @@ export const useDashboardStore = create((set, get) => ({
   progress: null,
   chartData: null,
   reviewSummary: null,
+  loadedForUserId: null,
 
   // Loading states
   loadingStats: false,
@@ -87,7 +88,8 @@ export const useDashboardStore = create((set, get) => ({
     }
   },
 
-  fetchAllDashboardData: async () => {
+  fetchAllDashboardData: async (userId) => {
+    if (!userId) return;
     set({
       loadingStats: true,
       loadingTasks: true,
@@ -107,6 +109,7 @@ export const useDashboardStore = create((set, get) => ({
         progress: snapshot.progress,
         chartData: snapshot.chartData,
         reviewSummary: snapshot.reviewSummary || null,
+        loadedForUserId: userId,
         loadingStats: false,
         loadingTasks: false,
         loadingActivities: false,

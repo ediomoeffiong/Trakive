@@ -167,11 +167,6 @@ const SubmissionCard = ({ submission }) => {
         <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-neutral-600)', background: 'var(--color-neutral-100)', padding: '0.2rem 0.5rem', borderRadius: '9999px' }}>
           {submission.progress ?? 0}% complete
         </span>
-        {submission.estimatedHours != null && (
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-neutral-500)', background: 'var(--color-neutral-50)', padding: '0.2rem 0.5rem', borderRadius: '9999px', border: '1px solid var(--color-neutral-200)' }}>
-            {submission.estimatedHours}h estimated
-          </span>
-        )}
         {submission.assignedCount != null && (
           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-neutral-500)', background: 'var(--color-neutral-50)', padding: '0.2rem 0.5rem', borderRadius: '9999px', border: '1px solid var(--color-neutral-200)' }}>
             {submission.assignedCount} assigned

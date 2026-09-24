@@ -19,6 +19,7 @@ import {
   RiRefreshLine,
   RiCalendarCheckLine,
   RiArchiveLine,
+  RiDraftLine,
 } from 'react-icons/ri';
 
 import { useSupervisorTaskStore } from '../../store/useSupervisorTaskStore';
@@ -49,6 +50,7 @@ const pageVariants = {
 const TABS = [
   { id: 'dashboard',   label: 'Overview',  icon: RiDashboardLine },
   { id: 'directory',   label: 'Board',     icon: RiListCheck },
+  { id: 'drafts',      label: 'Drafts',    icon: RiDraftLine },
   { id: 'submissions', label: 'Submitted', icon: RiFileUploadLine },
   { id: 'weekly',      label: 'Weekly',    icon: RiCalendarCheckLine },
   { id: 'calendar',    label: 'Calendar',  icon: RiCalendarEventLine },
@@ -280,7 +282,7 @@ const TaskManagementPage = () => {
   }, [queryString]);
 
   useEffect(() => {
-    if (activeTab === 'directory' || activeTab === 'calendar' || activeTab === 'archived') fetchTasks();
+    if (activeTab === 'directory' || activeTab === 'calendar' || activeTab === 'archived' || activeTab === 'drafts') fetchTasks();
     if (activeTab === 'submissions') fetchSubmissions();
     if (activeTab === 'templates') fetchTemplates();
   }, [activeTab]);
@@ -355,6 +357,7 @@ const TaskManagementPage = () => {
   };
 
   const archivedTasks = (allTasks?.length ? allTasks : tasks).filter((task) => task.status === 'archived');
+  const draftTasks = (allTasks?.length ? allTasks : tasks).filter((task) => task.status === 'draft');
 
   const handleBulkAction = async (action) => {
     if (action === 'export') {
@@ -384,16 +387,12 @@ const TaskManagementPage = () => {
   const handleUseTemplate = (template) => {
     openCreateModal({
       title: template.name,
-      description: template.description,
-      instructions: template.defaultInstructions,
+      description: template.description || template.defaultInstructions,
       category: template.category,
-      estimatedHours: template.estimatedHours,
       department: template.department,
       priority: template.defaultPriority,
-      learningObjectives: template.learningObjectives,
+      objectives: template.learningObjectives || template.objectives || [],
       submissionRequirements: template.submissionRequirements,
-      rubric: template.rubric,
-      tags: template.tags,
       status: 'assigned',
     });
   };
@@ -439,7 +438,7 @@ const TaskManagementPage = () => {
                 justifyContent: 'center',
                 color: '#fff',
                 fontSize: '1.25rem',
-                boxShadow: '0 4px 16px rgba(79,70,229,0.3)',
+                boxShadow: '0 4px 16px rgba(0, 180, 216, 0.3)',
               }}
             >
               <RiListCheck />
@@ -501,7 +500,7 @@ const TaskManagementPage = () => {
           </motion.button>
 
           <motion.button
-            whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(37,99,235,0.35)' }}
+            whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(0, 180, 216, 0.35)' }}
             whileTap={{ scale: 0.97 }}
             onClick={() => openCreateModal()}
             style={{
@@ -572,6 +571,11 @@ const TaskManagementPage = () => {
               {id === 'submissions' && submissions.filter((s) => s.status === 'submitted').length > 0 && (
                 <span style={{ background: isActive ? 'rgba(255,255,255,0.25)' : '#fee2e2', color: isActive ? '#fff' : '#dc2626', borderRadius: '9999px', fontSize: '0.625rem', fontWeight: 800, padding: '0.1rem 0.4rem', minWidth: '18px', textAlign: 'center' }}>
                   {submissions.filter((s) => s.status === 'submitted').length}
+                </span>
+              )}
+              {id === 'drafts' && draftTasks.length > 0 && (
+                <span style={{ background: isActive ? 'rgba(255,255,255,0.25)' : '#fef3c7', color: isActive ? '#fff' : '#b45309', borderRadius: '9999px', fontSize: '0.625rem', fontWeight: 800, padding: '0.1rem 0.45rem', minWidth: '18px', textAlign: 'center' }}>
+                  {draftTasks.length}
                 </span>
               )}
             </motion.button>
@@ -678,6 +682,82 @@ const TaskManagementPage = () => {
               pageSize={pageSize}
               onPageChange={setPage}
               emptyType={Object.values(filters).some((v) => v && v !== 'all' && v !== '') ? 'no-results' : 'no-tasks'}
+              onCreateFirst={() => openCreateModal()}
+            />
+          </motion.div>
+        )}
+
+        {/* ── DRAFTS ────────────────────────────────────────────────────────── */}
+        {activeTab === 'drafts' && (
+          <motion.div key="drafts" variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.75rem',
+                padding: '1rem 1.25rem',
+                background: '#fffbeb',
+                borderRadius: '1rem',
+                border: '1px solid #fde68a',
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <RiDraftLine style={{ color: '#d97706', fontSize: '1.25rem' }} />
+                  <h2 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800, color: '#92400e' }}>
+                    Draft Tasks ({draftTasks.length})
+                  </h2>
+                </div>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: '#b45309' }}>
+                  Tasks saved as drafts are unpublished and not visible to interns yet. Click "Edit" to finalize details and assign them, or publish directly.
+                </p>
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => openCreateModal()}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.75rem',
+                  border: 'none',
+                  background: '#d97706',
+                  color: '#fff',
+                  fontSize: '0.8125rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(217,119,6,0.25)',
+                }}
+              >
+                <RiAddCircleLine /> New Task
+              </motion.button>
+            </div>
+
+            <TaskDirectoryTable
+              tasks={draftTasks}
+              isLoading={loading.tasks}
+              selectedTaskIds={selectedTaskIds}
+              onToggleSelect={toggleSelectTask}
+              onSelectAll={selectAllTasks}
+              onClearSelection={clearSelection}
+              onView={handleViewTask}
+              onEdit={handleEditTask}
+              onDuplicate={handleDuplicateTask}
+              onAssign={handleAssignTask}
+              onArchive={handleArchiveTask}
+              onDelete={handleDeleteTask}
+              activeSort={activeSort}
+              onSortChange={setSort}
+              currentPage={1}
+              totalPages={1}
+              totalTasks={draftTasks.length}
+              pageSize={Math.max(draftTasks.length, 1)}
+              emptyType="no-drafts"
               onCreateFirst={() => openCreateModal()}
             />
           </motion.div>

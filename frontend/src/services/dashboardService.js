@@ -241,6 +241,7 @@ const percentTrend = (current, previous) => {
 };
 
 let snapshotPromise = null;
+let snapshotPromiseUserId = null;
 
 const loadDashboardSnapshot = async () => {
   const user = useAppStore.getState()?.user;
@@ -430,9 +431,12 @@ const loadDashboardSnapshot = async () => {
 
 export const dashboardService = {
   getDashboard: async () => {
-    if (!snapshotPromise) {
+    const userId = useAppStore.getState()?.user?.id || null;
+    if (!snapshotPromise || snapshotPromiseUserId !== userId) {
+      snapshotPromiseUserId = userId;
       snapshotPromise = loadDashboardSnapshot().finally(() => {
         snapshotPromise = null;
+        snapshotPromiseUserId = null;
       });
     }
     return snapshotPromise;

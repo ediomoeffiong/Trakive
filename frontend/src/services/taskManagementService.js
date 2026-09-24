@@ -213,8 +213,10 @@ const normalizeTask = (raw = {}, avatarIndex = internAvatarIndex || {}) => {
       }, avatarIndex),
     };
   });
-  const status = normalizeStatus(raw.status, dueDate);
+  const status = raw.status === 'draft' ? 'draft' : normalizeStatus(raw.status, dueDate);
   const completionPercentage = completionForStatus(status, raw.completionPercentage ?? raw.progress);
+  const objectives = raw.objectives || raw.learningObjectives || [];
+  const attachments = Array.isArray(raw.attachments) ? raw.attachments : [];
 
   return {
     id: String(raw.id || raw.task_id || `task-${Math.random().toString(36).slice(2)}`),
@@ -233,9 +235,11 @@ const normalizeTask = (raw = {}, avatarIndex = internAvatarIndex || {}) => {
     completionPercentage,
     estimatedHours: Number(raw.estimatedHours || raw.estimated_hours || 4),
     tags: raw.tags || [],
-    learningObjectives: raw.learningObjectives || [],
+    objectives,
+    learningObjectives: objectives,
     submissionRequirements: raw.submissionRequirements || '',
     rubric: raw.rubric || [],
+    attachments,
     raw,
   };
 };
@@ -440,23 +444,115 @@ export const taskManagementService = {
   },
 
   /**
+   * Upload a task attachment using the real document service.
+   * @param {File} file
+   * @param {function} onProgress
+   */
+  uploadTaskAttachment: async (file, onProgress) => {
+    const formatSize = (bytes) => {
+      if (!bytes) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+    };
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'Task Attachment');
+      formData.append('title', file.name);
+      formData.append('category', 'general');
+
+      const response = await api.post('/documents/upload', formData, {
+        onUploadProgress: (event) => {
+          if (!event.total || !onProgress) return;
+          onProgress(Math.round((event.loaded / event.total) * 100));
+        },
+      });
+
+      const uploaded = response.data?.data || response.data;
+      if (onProgress) onProgress(100);
+
+      return {
+        id: uploaded?.id || `att-${Date.now()}`,
+        name: uploaded?.name || uploaded?.displayName || file.name,
+        size: formatSize(file.size),
+        rawSize: file.size,
+        type: file.type || 'application/octet-stream',
+        url: uploaded?.filePath ? `/api/v1/documents/${uploaded.id}/download` : null,
+        documentId: uploaded?.id || null,
+        uploadedAt: new Date().toISOString(),
+      };
+    } catch (err) {
+      console.warn('Real document upload failed, using client attachment fallback:', err?.message);
+    }
+
+    if (onProgress) onProgress(100);
+    return {
+      id: `att-local-${Date.now()}`,
+      name: file.name,
+      size: formatSize(file.size),
+      rawSize: file.size,
+      type: file.type || 'application/octet-stream',
+      url: typeof URL !== 'undefined' ? URL.createObjectURL(file) : null,
+      uploadedAt: new Date().toISOString(),
+    };
+  },
+
+  /**
+   * Download or open a task attachment.
+   * @param {object} attachment
+   */
+  downloadAttachment: async (attachment) => {
+    if (attachment.documentId) {
+      try {
+        const res = await api.get(`/documents/${attachment.documentId}/download`);
+        const downloadUrl = res.data?.data?.downloadUrl || res.data?.downloadUrl;
+        if (downloadUrl) {
+          window.open(downloadUrl, '_blank');
+          return;
+        }
+      } catch (err) {
+        console.warn('Could not fetch signed download URL:', err);
+      }
+    }
+    if (attachment.url) {
+      window.open(attachment.url, '_blank');
+    }
+  },
+
+  /**
    * Create a new task.
    * @param {object} taskData
    */
   createTask: async (taskData) => {
+    const isDraft = taskData.status === 'draft';
+    const targetStatus = isDraft ? 'draft' : 'assigned';
+
     try {
       const response = await api.post('/tasks', {
         title: taskData.title,
         description: taskData.description,
         priority: taskData.priority,
-        status: taskData.status || 'todo',
+        status: isDraft ? 'todo' : 'todo',
         due_date: taskData.dueDate || taskData.due_date,
         assignee_id: taskData.assignee_id || (taskData.assignedInterns && taskData.assignedInterns[0]?.id),
       });
       const created = response.data?.data || response.data;
       if (created) {
-        const norm = normalizeTask(created);
+        const norm = normalizeTask({
+          ...taskData,
+          ...created,
+          status: targetStatus,
+          assignedInterns: taskData.assignedInterns?.length
+            ? taskData.assignedInterns
+            : (created.assignee_id ? [{ id: created.assignee_id, name: created.assignee_name || created.assignee_first_name }] : []),
+          attachments: taskData.attachments || [],
+          objectives: taskData.objectives || taskData.learningObjectives || [],
+        });
         tasksStore = [norm, ...tasksStore];
+        upsertLocalTask(norm);
         return { task: norm };
       }
     } catch {
@@ -466,10 +562,13 @@ export const taskManagementService = {
     const newTask = normalizeTask({
       id: `task-${String(++nextId).padStart(3, '0')}`,
       ...taskData,
+      status: targetStatus,
       createdDate: new Date().toISOString().split('T')[0],
       submissionCount: 0,
       completionPercentage: 0,
       assignedInterns: taskData.assignedInterns || [],
+      attachments: taskData.attachments || [],
+      objectives: taskData.objectives || taskData.learningObjectives || [],
     });
     tasksStore = [newTask, ...tasksStore];
     upsertLocalTask(newTask);
@@ -487,14 +586,24 @@ export const taskManagementService = {
         title: updateData.title,
         description: updateData.description,
         priority: updateData.priority,
-        status: updateData.status,
+        status: updateData.status === 'assigned' ? 'todo' : updateData.status,
         due_date: updateData.dueDate || updateData.due_date,
       });
       const updated = response.data?.data || response.data;
       if (updated) {
-        const norm = normalizeTask(updated);
+        const existing = tasksStore.find((t) => String(t.id) === String(taskId)) || {};
+        const norm = normalizeTask({
+          ...existing,
+          ...updateData,
+          ...updated,
+          status: updateData.status || existing.status,
+          attachments: updateData.attachments || existing.attachments || [],
+          objectives: updateData.objectives || updateData.learningObjectives || existing.objectives || [],
+          assignedInterns: updateData.assignedInterns || existing.assignedInterns || [],
+        });
         const index = tasksStore.findIndex((t) => String(t.id) === String(taskId));
         if (index !== -1) tasksStore[index] = norm;
+        upsertLocalTask(norm);
         return { task: norm };
       }
     } catch {

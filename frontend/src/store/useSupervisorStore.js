@@ -40,6 +40,7 @@ export const useSupervisorStore = create(
       isLoading: false,
       isTableLoading: false,
       error: null,
+      loadedForUserId: null,
 
       // ── Actions ─────────────────────────────────────────────────────────────────
       setSearchTerm: (term) => {
@@ -83,7 +84,8 @@ export const useSupervisorStore = create(
       /**
        * Load complete supervisor dashboard data concurrently
        */
-      loadSupervisorDashboard: async () => {
+      loadSupervisorDashboard: async (userId) => {
+        if (!userId) return;
         set({ isLoading: true, error: null });
         try {
           const [
@@ -115,6 +117,7 @@ export const useSupervisorStore = create(
             deadlines: deadlinesRes.deadlines,
             widgets: widgetsRes,
             isLoading: false,
+            loadedForUserId: userId,
           });
         } catch (err) {
           set({ error: err.message || 'Failed to load supervisor dashboard', isLoading: false });

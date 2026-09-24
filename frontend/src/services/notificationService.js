@@ -23,11 +23,10 @@ import { settingsService } from './settingsService';
 /** Artificial network delay */
 const delay = (ms = 500) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// In-memory state
-let _internNotifications = [];
-let _supervisorNotifications = [];
 let _preferences = { ...defaultNotificationPreferences };
 let _supervisorPreferences = { ...defaultSupervisorPreferences };
+
+const MOCK_DATA_ENABLED = !import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
 
 const hasRealBackendToken = () => {
   const token = getAccessToken();
@@ -36,33 +35,174 @@ const hasRealBackendToken = () => {
 
 const dataOf = (response) => response?.data?.data ?? response?.data;
 
-const typeToCategory = (type = '') => {
+const listOf = (response) => {
+  const payload = dataOf(response);
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+};
+
+const typeToCategory = (type = '', title = '') => {
   const normalized = String(type || '').toLowerCase();
+  const normalizedTitle = String(title || '').toLowerCase();
+  if (normalizedTitle.includes('announcement')) return 'announcement';
+  if (normalizedTitle.includes('reminder') || normalizedTitle.includes('deadline') || normalizedTitle.includes('overdue')) return 'reminder';
   if (normalized === 'task') return 'task_assigned';
   if (normalized === 'weekly') return 'weekly_summary';
   if (normalized.startsWith('onboarding')) return 'onboarding';
   if (normalized === 'project') return 'task_updated';
   if (normalized === 'attendance' || normalized === 'leave') return 'reminder';
-  if (normalized === 'message') return 'announcement';
+  if (normalized === 'message' || normalized === 'announcement') return 'announcement';
   return 'system_update';
+};
+
+const normalizeActionRoute = (linkUrl, role, type) => {
+  const isSupervisor = getEffectiveRole(role) === 'Supervisor';
+  if (!linkUrl) return isSupervisor ? '/supervisor/dashboard' : '/dashboard';
+  if (/^https?:\/\//i.test(linkUrl)) return linkUrl;
+  if (linkUrl.startsWith('/dashboard') || linkUrl.startsWith('/supervisor')) return linkUrl;
+
+  if (linkUrl.startsWith('/tasks')) {
+    return isSupervisor ? '/supervisor/tasks' : linkUrl.replace(/^\/tasks/, '/dashboard/tasks');
+  }
+  if (linkUrl.startsWith('/projects')) {
+    return isSupervisor ? linkUrl.replace(/^\/projects/, '/supervisor/projects') : linkUrl.replace(/^\/projects/, '/dashboard/projects');
+  }
+  if (linkUrl.startsWith('/weekly')) {
+    return isSupervisor ? '/supervisor/tasks' : '/dashboard/tasks';
+  }
+  if (linkUrl.startsWith('/onboarding')) {
+    return isSupervisor ? '/supervisor/onboarding' : '/dashboard/onboarding';
+  }
+  if (type === 'task') return isSupervisor ? '/supervisor/tasks' : '/dashboard/tasks';
+  return isSupervisor ? '/supervisor/dashboard' : '/dashboard';
+};
+
+const relativeTime = (value) => {
+  if (!value) return 'Recently';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Recently';
+  const mins = Math.floor((Date.now() - date.getTime()) / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 };
 
 const mapApiNotification = (n, role) => ({
   id: n.id,
-  category: typeToCategory(n.type),
-  title: n.title,
-  shortDescription: n.message,
-  message: n.message,
-  timestamp: n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now',
+  category: typeToCategory(n.type, n.title),
+  title: n.title || 'Notification',
+  shortDescription: n.message || '',
+  message: n.message || '',
+  timestamp: relativeTime(n.created_at),
   date: n.created_at || new Date().toISOString(),
   isRead: Boolean(n.is_read),
   isArchived: Boolean(n.archived_at),
   actionLabel: n.link_url ? 'View Details' : undefined,
-  actionRoute: n.link_url || (role === 'Supervisor' ? '/supervisor/dashboard' : '/dashboard'),
+  actionRoute: normalizeActionRoute(n.link_url, role, n.type),
   linkUrl: n.link_url,
   priority: 'normal',
   type: n.type,
 });
+
+const formatDate = (value) => {
+  if (!value) return 'Recently';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Recently';
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+const toDateKey = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+};
+
+const daysUntil = (value) => {
+  const key = toDateKey(value);
+  if (!key) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(`${key}T00:00:00`);
+  if (Number.isNaN(due.getTime())) return null;
+  return Math.ceil((due.getTime() - today.getTime()) / 86400000);
+};
+
+const dueDateLabel = (value) => {
+  const days = daysUntil(value);
+  if (days === null) return '';
+  if (days < 0) return `Overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'}`;
+  if (days === 0) return 'Due today';
+  if (days === 1) return 'Due tomorrow';
+  return `Due in ${days} days`;
+};
+
+const urgencyForDueDate = (value) => {
+  const days = daysUntil(value);
+  if (days === null) return 'normal';
+  if (days < 0) return 'overdue';
+  if (days <= 1) return 'critical';
+  if (days <= 7) return 'warning';
+  return 'normal';
+};
+
+const mapAnnouncementFromNotification = (notification) => ({
+  id: notification.id,
+  title: notification.title,
+  author: { name: 'Trakive', role: 'System Announcement' },
+  displayDate: formatDate(notification.date),
+  priority: notification.priority === 'high' ? 'important' : 'general',
+  type: 'general',
+  preview: notification.shortDescription || notification.message,
+  body: notification.message,
+  tags: [notification.type || notification.category].filter(Boolean),
+});
+
+const mapReminderFromNotification = (notification, role) => ({
+  id: notification.id,
+  type: notification.category === 'onboarding' ? 'onboarding' : notification.type === 'weekly' ? 'review' : 'deadline',
+  title: notification.title,
+  description: notification.message || notification.shortDescription,
+  dueDateLabel: notification.title?.toLowerCase().includes('overdue') ? 'Overdue' : notification.timestamp,
+  urgency: notification.title?.toLowerCase().includes('overdue') ? 'overdue' : 'warning',
+  actionLabel: notification.actionLabel || 'Open',
+  actionRoute: notification.actionRoute || (getEffectiveRole(role) === 'Supervisor' ? '/supervisor/dashboard' : '/dashboard'),
+  progress: null,
+});
+
+const mapTaskReminder = (task, role) => {
+  const isSupervisor = getEffectiveRole(role) === 'Supervisor';
+  const due = task.due_date || task.dueDate;
+  const title = task.title || 'Untitled task';
+  const assignee = task.assignee_name || [task.assignee_first_name, task.assignee_last_name].filter(Boolean).join(' ');
+  return {
+    id: `task-${task.id}`,
+    type: 'deadline',
+    title: isSupervisor && assignee ? `${assignee}: ${title}` : title,
+    description: isSupervisor
+      ? `Task needs attention${assignee ? ` from ${assignee}` : ''}.`
+      : 'This task needs your attention.',
+    dueDateLabel: dueDateLabel(due),
+    urgency: urgencyForDueDate(due),
+    actionLabel: isSupervisor ? 'Review Tasks' : 'View Task',
+    actionRoute: isSupervisor ? '/supervisor/tasks' : `/dashboard/tasks/${task.id}`,
+    progress: task.progress ?? null,
+  };
+};
+
+const getMondayOfWeek = (date = new Date()) => {
+  const d = new Date(date);
+  const day = d.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setUTCDate(d.getUTCDate() + diff);
+  return d.toISOString().split('T')[0];
+};
 
 const preferenceKeyForCategory = (category) => {
   if (category === 'task_assigned' || category === 'task_updated') return 'taskNotifications';
@@ -122,16 +262,17 @@ export const notificationService = {
   getNotifications: async (role) => {
     if (hasRealBackendToken()) {
       try {
-        const list = dataOf(await api.get('/notifications'));
+        const list = listOf(await api.get('/notifications'));
         if (Array.isArray(list)) {
           const mapped = list.map((n) => mapApiNotification(n, role));
           const settings = await settingsService.fetchSettings();
           return applyNotificationPreferences(mapped, settings.notifications || {});
         }
-      } catch {
-        // Fall back to durable local notifications when the API is unavailable.
+      } catch (err) {
+        throw new Error(err?.response?.data?.message || err?.message || 'Failed to load notifications');
       }
     }
+    if (!MOCK_DATA_ENABLED) return [];
     const activeRole = getEffectiveRole(role);
     const key = getUserNotifKey(activeRole);
     const saved = localStorage.getItem(key);
@@ -168,6 +309,8 @@ export const notificationService = {
       priority: data.priority || 'normal',
     };
 
+    if (!MOCK_DATA_ENABLED) return null;
+
     // Synchronously read current storage to prevent async race condition during login
     const key = getUserNotifKey(activeRole);
     const saved = localStorage.getItem(key);
@@ -193,6 +336,16 @@ export const notificationService = {
    * @returns {Promise<Array>}
    */
   getAnnouncements: async (role) => {
+    if (hasRealBackendToken()) {
+      const notifications = await notificationService.getNotifications(role);
+      return notifications
+        .filter((notification) =>
+          ['announcement', 'dept_announcement', 'company_announcement'].includes(notification.category) ||
+          String(notification.type || '').toLowerCase() === 'message'
+        )
+        .map(mapAnnouncementFromNotification);
+    }
+    if (!MOCK_DATA_ENABLED) return [];
     await delay(250);
     const activeRole = getEffectiveRole(role);
     if (activeRole === 'Supervisor') {
@@ -207,6 +360,60 @@ export const notificationService = {
    * @returns {Promise<Array>}
    */
   getReminders: async (role) => {
+    if (hasRealBackendToken()) {
+      const activeRole = getEffectiveRole(role);
+      const isSupervisor = activeRole === 'Supervisor';
+      const notificationsPromise = notificationService
+        .getNotifications(activeRole)
+        .then((notifications) =>
+          notifications
+            .filter((notification) =>
+              ['reminder', 'reminder_due_today', 'weekly_summary', 'onboarding'].includes(notification.category) ||
+              /deadline|overdue|reminder|due/i.test(`${notification.title} ${notification.message}`)
+            )
+            .map((notification) => mapReminderFromNotification(notification, activeRole))
+        );
+
+      const tasksPromise = api
+        .get('/tasks', { params: { page: 1, limit: 100, sort: 'due_date:asc' } })
+        .then((response) => listOf(response))
+        .catch(() => []);
+
+      const weeklyPromise = isSupervisor
+        ? api.get('/weekly-plans', { params: { week_start: getMondayOfWeek(), limit: 100 } }).then((response) => listOf(response)).catch(() => [])
+        : Promise.resolve([]);
+
+      const [notificationReminders, tasks, weeklyPlans] = await Promise.all([notificationsPromise, tasksPromise, weeklyPromise]);
+      const taskReminders = tasks
+        .filter((task) => {
+          const status = String(task.status || '').toLowerCase().replace(/_/g, '-');
+          if (['completed', 'reviewed', 'archived', 'cancelled'].includes(status)) return false;
+          const days = daysUntil(task.due_date || task.dueDate);
+          return days !== null && days <= 7;
+        })
+        .map((task) => mapTaskReminder(task, activeRole));
+
+      const weeklyReminders = weeklyPlans
+        .filter((plan) => String(plan.status || '').toLowerCase() === 'submitted')
+        .map((plan, idx) => ({
+          id: `weekly-${plan.id || idx}`,
+          type: 'review',
+          title: `Review weekly report${plan.intern_name || plan.internName ? `: ${plan.intern_name || plan.internName}` : ''}`,
+          description: plan.title || 'A submitted weekly plan is waiting for supervisor review.',
+          dueDateLabel: plan.created_at ? `Submitted ${relativeTime(plan.created_at)}` : 'Pending review',
+          urgency: 'warning',
+          actionLabel: 'Review',
+          actionRoute: '/supervisor/tasks',
+          progress: null,
+        }));
+
+      const deduped = new Map();
+      [...notificationReminders, ...taskReminders, ...weeklyReminders].forEach((reminder) => {
+        if (!deduped.has(reminder.id)) deduped.set(reminder.id, reminder);
+      });
+      return Array.from(deduped.values());
+    }
+    if (!MOCK_DATA_ENABLED) return [];
     await delay(250);
     const activeRole = getEffectiveRole(role);
     if (activeRole === 'Supervisor') {
@@ -415,11 +622,6 @@ export const notificationService = {
           timestamp: 'Just now',
           date: new Date().toISOString(),
         };
-        if (activeRole === 'Supervisor') {
-          _supervisorNotifications = [newNotif, ..._supervisorNotifications];
-        } else {
-          _internNotifications = [newNotif, ..._internNotifications];
-        }
         callback(newNotif);
         idx++;
       } else {

@@ -349,7 +349,7 @@ const TaskAssignmentModal = ({ isOpen, task, onClose, onAssign, isLoading }) => 
                 Cancel
               </button>
               <motion.button
-                whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(79,70,229,0.3)' }}
+                whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(0,180,216,0.3)' }}
                 whileTap={{ scale: 0.97 }}
                 onClick={handleConfirm}
                 disabled={!canConfirm() || isLoading}

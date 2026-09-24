@@ -9,6 +9,12 @@ const unwrapList = (res) => {
   return [];
 };
 
+const getApiErrorMessage = (err, fallback) =>
+  err?.response?.data?.message ||
+  err?.response?.data?.error ||
+  err?.message ||
+  fallback;
+
 const mondayIso = (date = new Date()) => {
   const d = new Date(date);
   const day = d.getUTCDay();
@@ -53,7 +59,7 @@ export const supervisorService = {
   async fetchDashboard() {
     try {
       const [internsRes, queueRes, projectsRes, weeklyRes, tasksRes] = await Promise.all([
-        api.get('/interns', { params: { limit: 100 } }).catch(() => ({ data: {} })),
+        api.get('/interns', { params: { limit: 100 } }),
         api.get('/onboarding/supervisor/queue').catch(() => ({ data: {} })),
         api.get('/projects', { params: { limit: 100 } }).catch(() => ({ data: {} })),
         api.get('/weekly-plans', { params: { limit: 100 } }).catch(() => ({ data: {} })),
@@ -89,16 +95,8 @@ export const supervisorService = {
           reviewsDue,
         },
       };
-    } catch {
-      return {
-        kpis: [
-          { id: 'total-interns', label: 'Total Assigned Interns', value: '0', trend: '0%', trendType: 'positive', iconName: 'RiTeamLine', color: 'blue', description: 'Interns assigned to you', to: '/supervisor/interns' },
-          { id: 'active-projects', label: 'Active Projects', value: '0', trend: '0%', trendType: 'positive', iconName: 'RiTaskLine', color: 'green', description: 'Projects currently in progress', to: '/supervisor/projects' },
-          { id: 'pending-reviews', label: 'Pending Task Reviews', value: '0', trend: 'Requires action', trendType: 'positive', iconName: 'RiCheckboxMultipleLine', color: 'amber', description: 'Onboarding and weekly reviews waiting', to: '/supervisor/reviews' },
-          { id: 'reviews-due', label: 'Reviews Due This Week', value: '0', trend: 'Weekly reports', trendType: 'positive', iconName: 'RiStarLine', color: 'purple', description: 'Submitted weekly reports to review', to: '/supervisor/weekly-review' },
-        ],
-        banner: { internCount: 0, pendingReviews: 0, reviewsDue: 0 },
-      };
+    } catch (err) {
+      throw new Error(getApiErrorMessage(err, 'Failed to load supervisor dashboard'));
     }
   },
 
@@ -134,8 +132,8 @@ export const supervisorService = {
         interns: formattedInterns,
         total: formattedInterns.length,
       };
-    } catch {
-      return { interns: [], total: 0 };
+    } catch (err) {
+      throw new Error(getApiErrorMessage(err, 'Failed to load assigned interns'));
     }
   },
 
