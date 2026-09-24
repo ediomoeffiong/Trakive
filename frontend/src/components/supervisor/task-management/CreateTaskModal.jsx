@@ -149,8 +149,9 @@ const SearchableInternSelector = ({
           avatar: intern.avatar,
           initials:
             intern.initials ||
-            intern.name
-              ?.split(/\s+/)
+            String(intern.name || '')
+              .trim()
+              .split(/\s+/)
               .filter(Boolean)
               .map((n) => n[0])
               .join('')
@@ -173,8 +174,9 @@ const SearchableInternSelector = ({
           avatar: intern.avatar,
           initials:
             intern.initials ||
-            intern.name
-              ?.split(/\s+/)
+            String(intern.name || '')
+              .trim()
+              .split(/\s+/)
               .filter(Boolean)
               .map((n) => n[0])
               .join('')
@@ -460,11 +462,13 @@ const SearchableInternSelector = ({
                     }}
                   >
                     {intern.initials ||
-                      intern.name
-                        ?.split(' ')
+                      String(intern.name || '')
+                        .trim()
+                        .split(/\s+/)
+                        .filter(Boolean)
+                        .slice(0, 2)
                         .map((n) => n[0])
                         .join('')
-                        .slice(0, 2)
                         .toUpperCase() ||
                       'IN'}
                   </div>
@@ -797,8 +801,9 @@ const CreateTaskModal = ({
             department: intern.department || intern.role || 'Intern',
             avatar: intern.avatar,
             initials:
-              intern.name
-                ?.split(' ')
+              String(intern.name || '')
+                .trim()
+                .split(/\s+/)
                 .filter(Boolean)
                 .slice(0, 2)
                 .map((part) => part[0])
@@ -866,8 +871,8 @@ const CreateTaskModal = ({
         ...data,
         status: isEditingExistingTask && editingTask?.status !== 'draft' ? editingTask.status : 'assigned',
         department: supervisorDepartment || data.department,
-        objectives: data.objectives.filter(Boolean),
-        learningObjectives: data.objectives.filter(Boolean),
+        objectives: (Array.isArray(data.objectives) ? data.objectives : []).filter(Boolean),
+        learningObjectives: (Array.isArray(data.objectives) ? data.objectives : []).filter(Boolean),
         attachments: data.attachments || [],
       });
 
@@ -899,8 +904,8 @@ const CreateTaskModal = ({
         ...data,
         status: 'draft',
         department: supervisorDepartment || data.department,
-        objectives: (data.objectives || []).filter(Boolean),
-        learningObjectives: (data.objectives || []).filter(Boolean),
+        objectives: (Array.isArray(data.objectives) ? data.objectives : []).filter(Boolean),
+        learningObjectives: (Array.isArray(data.objectives) ? data.objectives : []).filter(Boolean),
         attachments: data.attachments || [],
       });
       toast.success('Task saved as draft. You can view and edit it in the Drafts tab.');

@@ -153,15 +153,15 @@ export const useSupervisorTaskStore = create(
       // ── Multi-Select (Bulk) ───────────────────────────────────────────────
       toggleSelectTask: (taskId) => {
         set((state) => ({
-          selectedTaskIds: state.selectedTaskIds.includes(taskId)
-            ? state.selectedTaskIds.filter((id) => id !== taskId)
-            : [...state.selectedTaskIds, taskId],
+          selectedTaskIds: (Array.isArray(state.selectedTaskIds) ? state.selectedTaskIds : []).some((id) => String(id) === String(taskId))
+            ? state.selectedTaskIds.filter((id) => String(id) !== String(taskId))
+            : [...(Array.isArray(state.selectedTaskIds) ? state.selectedTaskIds : []), taskId],
         }));
       },
 
       selectAllTasks: () => {
         set((state) => ({
-          selectedTaskIds: state.tasks.map((t) => t.id),
+          selectedTaskIds: (Array.isArray(state.tasks) ? state.tasks : []).map((t) => t.id),
         }));
       },
 
@@ -290,14 +290,14 @@ export const useSupervisorTaskStore = create(
             const viewingArchived = s.activeTab === 'archived' || s.filters?.status === 'archived';
             const currentAll = Array.isArray(s.allTasks) && s.allTasks.length ? s.allTasks : (Array.isArray(s.tasks) ? s.tasks : []);
             const currentTasks = Array.isArray(s.tasks) ? s.tasks : [];
-            const nextAll = currentAll.map((t) => (t.id === taskId ? res.task : t));
+            const nextAll = currentAll.map((t) => (String(t.id) === String(taskId) ? res.task : t));
             const nextTasks = viewingArchived
               ? nextAll.filter((t) => t.status === 'archived')
-              : (currentTasks.map((t) => (t.id === taskId ? res.task : t))).filter((t) => t.status !== 'archived');
+              : (currentTasks.map((t) => (String(t.id) === String(taskId) ? res.task : t))).filter((t) => t.status !== 'archived');
             return {
               tasks: nextTasks,
               allTasks: nextAll,
-              selectedTask: s.selectedTask?.id === taskId ? res.task : s.selectedTask,
+              selectedTask: String(s.selectedTask?.id) === String(taskId) ? res.task : s.selectedTask,
               loading: { ...s.loading, action: false },
               isCreateModalOpen: false,
               editingTask: null,
@@ -318,10 +318,10 @@ export const useSupervisorTaskStore = create(
         try {
           await taskManagementService.deleteTask(taskId);
           set((s) => ({
-            tasks: (Array.isArray(s.tasks) ? s.tasks : []).filter((t) => t.id !== taskId),
-            allTasks: (Array.isArray(s.allTasks) ? s.allTasks : []).filter((t) => t.id !== taskId),
+            tasks: (Array.isArray(s.tasks) ? s.tasks : []).filter((t) => String(t.id) !== String(taskId)),
+            allTasks: (Array.isArray(s.allTasks) ? s.allTasks : []).filter((t) => String(t.id) !== String(taskId)),
             totalTasks: Math.max(0, (s.totalTasks || 1) - 1),
-            selectedTaskIds: (Array.isArray(s.selectedTaskIds) ? s.selectedTaskIds : []).filter((id) => id !== taskId),
+            selectedTaskIds: (Array.isArray(s.selectedTaskIds) ? s.selectedTaskIds : []).filter((id) => String(id) !== String(taskId)),
             loading: { ...s.loading, action: false },
           }));
         } catch (err) {
@@ -367,8 +367,8 @@ export const useSupervisorTaskStore = create(
           // Update local state
           if (action === 'delete') {
             set((s) => ({
-              tasks: currentTasks.filter((t) => !selectedTaskIds.includes(t.id)),
-              allTasks: currentAll.filter((t) => !selectedTaskIds.includes(t.id)),
+              tasks: currentTasks.filter((t) => !selectedTaskIds.some((id) => String(id) === String(t.id))),
+              allTasks: currentAll.filter((t) => !selectedTaskIds.some((id) => String(id) === String(t.id))),
               totalTasks: Math.max(0, (s.totalTasks || selectedTaskIds.length) - selectedTaskIds.length),
               selectedTaskIds: [],
               loading: { ...s.loading, action: false },
@@ -376,19 +376,19 @@ export const useSupervisorTaskStore = create(
           } else if (action === 'status') {
             set((s) => ({
               tasks: currentTasks.map((t) =>
-                selectedTaskIds.includes(t.id) ? { ...t, status: value } : t
+                selectedTaskIds.some((id) => String(id) === String(t.id)) ? { ...t, status: value } : t
               ),
               allTasks: currentAll.map((t) =>
-                selectedTaskIds.includes(t.id) ? { ...t, status: value } : t
+                selectedTaskIds.some((id) => String(id) === String(t.id)) ? { ...t, status: value } : t
               ),
               selectedTaskIds: [],
               loading: { ...s.loading, action: false },
             }));
           } else if (action === 'archive') {
             set((s) => ({
-              tasks: currentTasks.filter((t) => !selectedTaskIds.includes(t.id)),
+              tasks: currentTasks.filter((t) => !selectedTaskIds.some((id) => String(id) === String(t.id))),
               allTasks: currentAll.map((t) =>
-                selectedTaskIds.includes(t.id) ? { ...t, status: 'archived' } : t
+                selectedTaskIds.some((id) => String(id) === String(t.id)) ? { ...t, status: 'archived' } : t
               ),
               selectedTaskIds: [],
               loading: { ...s.loading, action: false },

@@ -349,10 +349,10 @@ const TaskCalendarView = ({ tasks: customTasks, loading: customLoading, onTaskCl
   }, []);
 
   useEffect(() => {
-    if (!customTasks && !calendarTasks.length && supervisorStore.fetchTasks) {
+    if (customTasks === undefined && !supervisorStore.tasks?.length && !supervisorStore.loading?.tasks && supervisorStore.fetchTasks) {
       supervisorStore.fetchTasks();
     }
-  }, [customTasks, calendarTasks.length]);
+  }, []);
 
   const taskMap = useMemo(() => buildTaskMap(calendarTasks), [calendarTasks]);
 

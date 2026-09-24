@@ -353,7 +353,7 @@ const TaskManagementPage = () => {
         ? [{
             id: plan?.intern_id,
             name: internName,
-            initials: internName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase(),
+            initials: internName.split(/\s+/).filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase() || 'IN',
             avatar: plan?.intern_avatar || plan?.internAvatar,
           }]
         : [],
@@ -937,7 +937,7 @@ const TaskManagementPage = () => {
       <TaskDetailsDrawer
         isOpen={isDetailsDrawerOpen}
         task={selectedTask}
-        submissions={(Array.isArray(taskSubmissions) ? taskSubmissions : []).filter((s) => s?.taskId === selectedTask?.id)}
+        submissions={(Array.isArray(taskSubmissions) ? taskSubmissions : []).filter((s) => String(s?.taskId) === String(selectedTask?.id))}
         isLoadingSubmissions={loading.submissions}
         timeline={taskTimeline}
         isLoadingTimeline={loading.timeline}

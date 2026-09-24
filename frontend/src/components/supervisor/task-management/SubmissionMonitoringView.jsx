@@ -32,10 +32,12 @@ const STATUS_CONFIG = {
 };
 
 // ── Circular progress ring ────────────────────────────────────────────────────
-const ProgressRing = ({ value, max, color, size = 60, strokeWidth = 5 }) => {
+const ProgressRing = ({ value = 0, max = 0, color, size = 60, strokeWidth = 5 }) => {
+  const safeValue = Number(value) || 0;
+  const safeMax = Number(max) || 0;
   const radius = (size - strokeWidth * 2) / 2;
   const circumference = 2 * Math.PI * radius;
-  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  const pct = safeMax > 0 ? Math.min((safeValue / safeMax) * 100, 100) : 0;
   const offset = circumference - (pct / 100) * circumference;
 
   return (

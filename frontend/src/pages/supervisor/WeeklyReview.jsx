@@ -24,7 +24,9 @@ function getMondayOfWeek(date = new Date()) {
 }
 
 function formatWeekRange(weekStart) {
+  if (!weekStart) return 'Current Week';
   const start = new Date(weekStart);
+  if (isNaN(start.getTime())) return 'Current Week';
   const end = new Date(weekStart);
   end.setUTCDate(end.getUTCDate() + 6);
   const opts = { day: 'numeric', month: 'short' };
@@ -32,7 +34,8 @@ function formatWeekRange(weekStart) {
 }
 
 function shiftWeek(weekStart, dir) {
-  const d = new Date(weekStart);
+  const d = weekStart ? new Date(weekStart) : new Date();
+  if (isNaN(d.getTime())) return getMondayOfWeek();
   d.setUTCDate(d.getUTCDate() + dir * 7);
   return toISODate(d);
 }
