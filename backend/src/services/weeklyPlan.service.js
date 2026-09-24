@@ -27,6 +27,12 @@ function getWeekEnd(weekStartStr) {
   return date.toISOString().split('T')[0];
 }
 
+function toDateKey(value) {
+  if (!value) return '';
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return String(value).slice(0, 10);
+}
+
 const WeeklyPlanService = {
   async _getSupervisorProfileId(userId) {
     const profile = await ProfileModel.findSupervisorProfileByUserId(userId);
@@ -295,20 +301,30 @@ const WeeklyPlanService = {
     const items = await WeeklyPlanModel.findBySupervisor(scopedFilters);
     const total = await WeeklyPlanModel.countBySupervisor(scopedFilters);
 
-    // For each plan, attach summary stats
-    const plansWithStats = await Promise.all(
-      items.map(async (plan) => {
-        const tasks = await TaskModel.findByWeek(plan.intern_id, plan.week_start);
-        const stats = {
-          total: tasks.length,
-          completed: tasks.filter((t) => t.end_of_week_status === 'completed').length,
-          ongoing: tasks.filter((t) => t.end_of_week_status === 'ongoing').length,
-          pending: tasks.filter((t) => !t.end_of_week_status || t.end_of_week_status === 'pending').length,
-          not_done: tasks.filter((t) => t.end_of_week_status === 'not_done').length,
-        };
-        return { ...plan, tasks, stats };
-      })
-    );
+    const planKeys = items.map((plan) => ({
+      intern_id: plan.intern_id,
+      week_start: toDateKey(plan.week_start),
+    }));
+    const tasks = await TaskModel.findByInternWeeks(planKeys);
+    const tasksByPlan = new Map();
+    tasks.forEach((task) => {
+      const key = `${task.assignee_id}:${toDateKey(task.week_start)}`;
+      const grouped = tasksByPlan.get(key) || [];
+      grouped.push(task);
+      tasksByPlan.set(key, grouped);
+    });
+
+    const plansWithStats = items.map((plan) => {
+      const planTasks = tasksByPlan.get(`${plan.intern_id}:${toDateKey(plan.week_start)}`) || [];
+      const stats = {
+        total: planTasks.length,
+        completed: planTasks.filter((t) => t.end_of_week_status === 'completed').length,
+        ongoing: planTasks.filter((t) => t.end_of_week_status === 'ongoing').length,
+        pending: planTasks.filter((t) => !t.end_of_week_status || t.end_of_week_status === 'pending').length,
+        not_done: planTasks.filter((t) => t.end_of_week_status === 'not_done').length,
+      };
+      return { ...plan, tasks: planTasks, stats };
+    });
 
     return formatPaginatedResponse(plansWithStats, total, page, limit);
   },

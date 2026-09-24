@@ -121,6 +121,29 @@ const TaskModel = {
     return res.rows;
   },
 
+  async findByInternWeeks(planKeys = []) {
+    if (!Array.isArray(planKeys) || planKeys.length === 0) {
+      return [];
+    }
+
+    const internIds = planKeys.map((key) => key.intern_id);
+    const weekStarts = planKeys.map((key) => key.week_start);
+    const sql = `
+      SELECT t.*, p.title AS project_title, pm_mile.title AS milestone_title,
+        c.first_name AS creator_first_name, c.last_name AS creator_last_name
+      FROM tasks t
+      LEFT JOIN projects p ON p.id = t.project_id
+      LEFT JOIN project_milestones pm_mile ON pm_mile.id = t.milestone_id
+      LEFT JOIN users c ON c.id = t.creator_id
+      JOIN UNNEST($1::uuid[], $2::date[]) AS keys(intern_id, week_start)
+        ON keys.intern_id = t.assignee_id AND keys.week_start = t.week_start
+      WHERE t.deleted_at IS NULL
+      ORDER BY t.assignee_id, t.week_start, t.due_date ASC NULLS LAST, t.created_at ASC;
+    `;
+    const res = await query(sql, [internIds, weekStarts]);
+    return res.rows;
+  },
+
   async findPaginated({
     organization_id = null,
     search = '',

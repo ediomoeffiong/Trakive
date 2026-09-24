@@ -211,6 +211,51 @@ const ProfileModel = {
     return res.rows[0] || null;
   },
 
+  async getCompleteInternProfiles(userIds = []) {
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return [];
+    }
+
+    const sql = `
+      SELECT
+        u.id AS user_id, u.organization_id, u.department_id, u.email,
+        u.first_name, u.last_name, u.phone, u.avatar_url,
+        u.date_of_birth, u.gender, u.address, u.city, u.state, u.country, u.bio,
+        u.status AS user_status,
+        u.created_at AS user_created_at,
+        r.name AS role_name,
+        d.name AS department_name, d.code AS department_code,
+        ip.id AS intern_profile_id, ip.institution, ip.field_of_study, ip.academic_year,
+        ip.emergency_contact, ip.skills, ip.work_location, ip.work_hours, ip.days_per_week,
+        ip.status AS intern_status, ip.supervisor_id,
+        sup_u.id AS supervisor_user_id, sup_u.first_name AS supervisor_first_name,
+        sup_u.last_name AS supervisor_last_name, sup_u.email AS supervisor_email,
+        head_u.id AS head_user_id, head_u.first_name AS head_first_name,
+        head_u.last_name AS head_last_name, head_u.email AS head_email,
+        ir.id AS internship_record_id, ir.title AS internship_title,
+        ir.start_date, ir.end_date, ir.status AS internship_record_status,
+        ir.work_location AS record_work_location, ir.work_hours AS record_work_hours,
+        ir.days_per_week AS record_days_per_week
+      FROM users u
+      JOIN roles r ON r.id = u.role_id
+      LEFT JOIN departments d ON d.id = u.department_id
+      LEFT JOIN intern_profiles ip ON ip.user_id = u.id
+      LEFT JOIN supervisor_profiles sp ON sp.id = ip.supervisor_id
+      LEFT JOIN users sup_u ON sup_u.id = sp.user_id
+      LEFT JOIN users head_u ON head_u.id = d.head_user_id
+      LEFT JOIN LATERAL (
+        SELECT *
+        FROM internship_records
+        WHERE user_id = u.id AND status IN ('active', 'onboarding')
+        ORDER BY internship_number DESC
+        LIMIT 1
+      ) ir ON true
+      WHERE u.id = ANY($1::uuid[]) AND u.deleted_at IS NULL;
+    `;
+    const res = await query(sql, [userIds]);
+    return res.rows;
+  },
+
   async updateInternStatus(userId, status) {
     const sql = `
       UPDATE intern_profiles

@@ -25,6 +25,12 @@ const ONBOARDING_SECTION_LABELS = {
   training: 'Training',
 };
 
+const REQUIRED_DOCS = [
+  { category: 'resume', title: 'Resume / CV' },
+  { category: 'placement_letter', title: 'Internship / Placement Letter' },
+  { category: 'acceptance_letter', title: 'Acceptance Letter' },
+];
+
 const VALID_TRANSITIONS = {
   applied: ['under_review', 'accepted', 'approved', 'rejected'],
   pending_review: ['under_review', 'accepted', 'approved', 'rejected'],
@@ -38,6 +44,72 @@ const VALID_TRANSITIONS = {
   completed: [],
   terminated: [],
 };
+
+function buildDocumentTracking(docs, targetRecord = null) {
+  const relevantDocs = targetRecord
+    ? docs.filter((doc) => doc.internship_record_id === targetRecord.id)
+    : docs;
+
+  const docsByCategory = new Map();
+  relevantDocs.forEach((doc) => {
+    if (!docsByCategory.has(doc.category)) {
+      docsByCategory.set(doc.category, doc);
+    }
+  });
+
+  const checklist = REQUIRED_DOCS.map((item) => {
+    const doc = docsByCategory.get(item.category) || null;
+    return {
+      category: item.category,
+      title: item.title,
+      submitted: !!doc,
+      review_status: doc ? doc.review_status || 'pending' : 'not_submitted',
+      document: doc,
+      history: [],
+    };
+  });
+
+  const approvedCount = checklist.filter((item) => item.review_status === 'approved').length;
+  const totalRequired = REQUIRED_DOCS.length;
+  const submittedCount = checklist.filter((item) => item.submitted).length;
+  const rejectedItems = checklist.filter(
+    (item) => item.review_status === 'rejected' || item.review_status === 'resubmission_required'
+  );
+  const hasRejections = rejectedItems.length > 0;
+  const allSubmitted = checklist.every((item) => item.submitted);
+  const allApproved = approvedCount === totalRequired;
+
+  let status = 'not_started';
+  if (allApproved) {
+    status = 'completed';
+  } else if (hasRejections) {
+    status = 'action_required';
+  } else if (allSubmitted) {
+    status = 'pending';
+  } else if (submittedCount > 0) {
+    status = 'in_progress';
+  }
+
+  const rejectionReason = hasRejections
+    ? rejectedItems.map((item) => `${item.title}: ${item.document?.review_notes || 'Action required'}`).join('; ')
+    : null;
+
+  return {
+    documents: relevantDocs,
+    checklist,
+    approved_count: approvedCount,
+    total_required: totalRequired,
+    progress_label: `${approvedCount}/${totalRequired} Approved`,
+    onboarding_ready: allApproved,
+    all_required_submitted: allSubmitted,
+    status,
+    action_required: status === 'action_required' || status === 'in_progress' || status === 'not_started',
+    rejection_reason: rejectionReason,
+    internship_record_id: targetRecord ? targetRecord.id : null,
+    internship_number: targetRecord?.internship_number || 1,
+    internship_title: targetRecord?.title || 'Internship #1',
+  };
+}
 
 const OnboardingService = {
   async findCurrentApplicationForUser(userId) {
@@ -785,12 +857,6 @@ const OnboardingService = {
     const targetRecordId = targetRecord ? targetRecord.id : null;
     const docs = await OnboardingModel.findDocumentsByOwner(ownerId, null, targetRecordId);
 
-    const REQUIRED_DOCS = [
-      { category: 'resume', title: 'Resume / CV' },
-      { category: 'placement_letter', title: 'Internship / Placement Letter' },
-      { category: 'acceptance_letter', title: 'Acceptance Letter' },
-    ];
-
     const checklist = await Promise.all(
       REQUIRED_DOCS.map(async (item) => {
         const doc = docs.find((d) => d.category === item.category) || null;
@@ -930,71 +996,142 @@ const OnboardingService = {
       }
     }
 
-    const interns = await UserModel.findPaginated({
-      organization_id: orgId,
-      role: 'intern',
-      limit: 100,
-      offset: 0,
-    });
+    const values = [];
+    const whereClauses = ['u.deleted_at IS NULL', "r.name = 'intern'"];
+    if (orgId) {
+      values.push(orgId);
+      whereClauses.push(`u.organization_id = $${values.length}`);
+    }
 
-    const queue = await Promise.all(
-      interns.map(async (user) => {
-        const fullProfile = await ProfileModel.getCompleteInternProfile(user.id);
-        if (!fullProfile) return null;
-
-        const docTracking = await this.trackDocuments(user.id, requestingUser);
-        const hasSubmittedDocs = docTracking.checklist.some((d) => d.submitted);
-        const application = await this.findCurrentApplicationForUser(user.id);
-        const onboardingDetails = application?.onboarding_data?.onboarding_details || {};
-
-        if (supProfile) {
-          const isAssigned = fullProfile.supervisor_id === supProfile.id;
-          const isSameDepartmentUnassigned =
-            !fullProfile.supervisor_id &&
-            fullProfile.department_id &&
-            fullProfile.department_id === supProfile.department_id;
-          // Catch submissions that landed before a department/supervisor was set
-          const orphanWithSubmittedDocs =
-            hasSubmittedDocs &&
-            !fullProfile.supervisor_id &&
-            (!fullProfile.department_id || fullProfile.department_id === supProfile.department_id);
-
-          if (!isAssigned && !isSameDepartmentUnassigned && !orphanWithSubmittedDocs) {
-            return null;
-          }
-        }
-
-        return {
-          intern_id: user.id,
-          internId: user.id,
-          user_id: user.id,
-          internName: `${user.first_name} ${user.last_name}`.trim(),
-          email: user.email,
-          department: fullProfile.department_name || 'Unassigned',
-          supervisor_id: fullProfile.supervisor_id || (supProfile ? supProfile.id : null),
-          supervisor_name: fullProfile.supervisor_first_name
-            ? `${fullProfile.supervisor_first_name} ${fullProfile.supervisor_last_name}`
-            : (supProfile ? `${requestingUser.first_name} ${requestingUser.last_name}` : 'Unassigned'),
-          approved_count: docTracking.approved_count,
-          total_required: docTracking.total_required,
-          progress_label: docTracking.progress_label,
-          onboarding_ready: docTracking.onboarding_ready,
-          onboarding_details: onboardingDetails,
-          onboarding_info: {
-            institution: fullProfile.institution || application?.onboarding_data?.institution || null,
-            field_of_study: fullProfile.field_of_study || application?.onboarding_data?.field_of_study || null,
-            academic_year: fullProfile.academic_year || application?.onboarding_data?.academic_year || null,
-            phone: user.phone || application?.onboarding_data?.phone || null,
-            start_date: fullProfile.start_date || application?.onboarding_data?.start_date || null,
-            end_date: fullProfile.end_date || application?.onboarding_data?.end_date || null,
-          },
-          documents: docTracking.checklist,
-          steps: docTracking.checklist,
-        };
-      })
+    const internRes = await query(
+      `
+      SELECT
+        u.id AS user_id, u.organization_id, u.department_id, u.email,
+        u.first_name, u.last_name, u.phone, u.avatar_url,
+        u.date_of_birth, u.gender, u.address, u.city, u.state, u.country, u.bio,
+        u.status AS user_status,
+        u.created_at AS user_created_at,
+        r.name AS role_name,
+        d.name AS department_name, d.code AS department_code,
+        ip.id AS intern_profile_id, ip.institution, ip.field_of_study, ip.academic_year,
+        ip.emergency_contact, ip.skills, ip.work_location, ip.work_hours, ip.days_per_week,
+        ip.status AS intern_status, ip.supervisor_id,
+        sup_u.id AS supervisor_user_id, sup_u.first_name AS supervisor_first_name,
+        sup_u.last_name AS supervisor_last_name, sup_u.email AS supervisor_email,
+        head_u.id AS head_user_id, head_u.first_name AS head_first_name,
+        head_u.last_name AS head_last_name, head_u.email AS head_email,
+        ir.id AS internship_record_id, ir.title AS internship_title,
+        ir.internship_number, ir.start_date, ir.end_date, ir.status AS internship_record_status,
+        ir.work_location AS record_work_location, ir.work_hours AS record_work_hours,
+        ir.days_per_week AS record_days_per_week,
+        app.id AS application_id, app.onboarding_data AS application_onboarding_data
+      FROM users u
+      JOIN roles r ON r.id = u.role_id
+      LEFT JOIN intern_profiles ip ON ip.user_id = u.id
+      LEFT JOIN LATERAL (
+        SELECT *
+        FROM internship_records
+        WHERE user_id = u.id AND status IN ('active', 'onboarding')
+        ORDER BY internship_number DESC
+        LIMIT 1
+      ) ir ON true
+      LEFT JOIN departments d ON d.id = COALESCE(u.department_id, ip.department_id, ir.department_id)
+      LEFT JOIN supervisor_profiles sp ON sp.id = ip.supervisor_id
+      LEFT JOIN users sup_u ON sup_u.id = sp.user_id
+      LEFT JOIN users head_u ON head_u.id = d.head_user_id
+      LEFT JOIN LATERAL (
+        SELECT ia.*
+        FROM internship_applications ia
+        JOIN internships i ON i.id = ia.internship_id
+        WHERE ia.applicant_id = u.id
+        ORDER BY ia.created_at DESC
+        LIMIT 1
+      ) app ON true
+      WHERE ${whereClauses.join(' AND ')}
+      ORDER BY u.created_at DESC
+      LIMIT 100;
+      `,
+      values
     );
 
-    return queue.filter(Boolean);
+    const profiles = internRes.rows;
+    if (profiles.length === 0) return [];
+
+    const internIds = profiles.map((profile) => profile.user_id);
+    const docsRes = await query(
+      `
+      SELECT *
+      FROM documents
+      WHERE owner_id = ANY($1::uuid[]) AND deleted_at IS NULL
+      ORDER BY owner_id, created_at DESC;
+      `,
+      [internIds]
+    );
+
+    const docsByOwner = docsRes.rows.reduce((acc, doc) => {
+      if (!acc.has(doc.owner_id)) acc.set(doc.owner_id, []);
+      acc.get(doc.owner_id).push(doc);
+      return acc;
+    }, new Map());
+
+    return profiles.map((fullProfile) => {
+      const userDocs = docsByOwner.get(fullProfile.user_id) || [];
+      const activeRecord = fullProfile.internship_record_id
+        ? {
+          id: fullProfile.internship_record_id,
+          internship_number: fullProfile.internship_number,
+          title: fullProfile.internship_title,
+        }
+        : null;
+      const docTracking = buildDocumentTracking(userDocs, activeRecord);
+      const hasSubmittedDocs = docTracking.checklist.some((d) => d.submitted);
+      const applicationData = fullProfile.application_onboarding_data || {};
+      const onboardingDetails = applicationData.onboarding_details || {};
+
+      if (supProfile) {
+        const isAssigned = fullProfile.supervisor_id === supProfile.id;
+        const isSameDepartmentUnassigned =
+          !fullProfile.supervisor_id &&
+          fullProfile.department_id &&
+          fullProfile.department_id === supProfile.department_id;
+        const orphanWithSubmittedDocs =
+          hasSubmittedDocs &&
+          !fullProfile.supervisor_id &&
+          (!fullProfile.department_id || fullProfile.department_id === supProfile.department_id);
+
+        if (!isAssigned && !isSameDepartmentUnassigned && !orphanWithSubmittedDocs) {
+          return null;
+        }
+      }
+
+      return {
+        intern_id: fullProfile.user_id,
+        internId: fullProfile.user_id,
+        user_id: fullProfile.user_id,
+        internName: `${fullProfile.first_name} ${fullProfile.last_name}`.trim(),
+        email: fullProfile.email,
+        department: fullProfile.department_name || 'Unassigned',
+        supervisor_id: fullProfile.supervisor_id || (supProfile ? supProfile.id : null),
+        supervisor_name: fullProfile.supervisor_first_name
+          ? `${fullProfile.supervisor_first_name} ${fullProfile.supervisor_last_name}`
+          : (supProfile ? `${requestingUser.first_name} ${requestingUser.last_name}` : 'Unassigned'),
+        approved_count: docTracking.approved_count,
+        total_required: docTracking.total_required,
+        progress_label: docTracking.progress_label,
+        onboarding_ready: docTracking.onboarding_ready,
+        onboarding_details: onboardingDetails,
+        onboarding_info: {
+          institution: fullProfile.institution || applicationData.institution || null,
+          field_of_study: fullProfile.field_of_study || applicationData.field_of_study || null,
+          academic_year: fullProfile.academic_year || applicationData.academic_year || null,
+          phone: fullProfile.phone || applicationData.phone || null,
+          start_date: fullProfile.start_date || applicationData.start_date || null,
+          end_date: fullProfile.end_date || applicationData.end_date || null,
+        },
+        documents: docTracking.checklist,
+        steps: docTracking.checklist,
+      };
+    }).filter(Boolean);
   },
 
   async assignSupervisorAndDepartment(data, requestingUser, ipAddress = null, userAgent = null) {

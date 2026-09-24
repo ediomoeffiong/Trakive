@@ -23,7 +23,7 @@ const config = {
     password: process.env.DB_PASSWORD || 'postgres',
     ssl: process.env.DB_SSL === 'true' || Boolean(process.env.DATABASE_URL && process.env.DATABASE_URL.includes('sslmode=require')),
     sslRejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
-    max: parseInt(process.env.DB_MAX_CONNECTIONS, 10) || 20,
+    max: parseInt(process.env.DB_MAX_CONNECTIONS, 10) || 10,
     idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS, 10) || 30000,
   },
   rateLimit: {

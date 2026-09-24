@@ -241,12 +241,9 @@ const InternService = {
       supervisor_id: supervisorFilter,
     });
 
-    const enrichedItems = await Promise.all(
-      items.map(async (u) => {
-        const full = await ProfileModel.getCompleteInternProfile(u.id);
-        return full || u;
-      })
-    );
+    const completeProfiles = await ProfileModel.getCompleteInternProfiles(items.map((u) => u.id));
+    const profilesByUserId = new Map(completeProfiles.map((profile) => [profile.user_id, profile]));
+    const enrichedItems = items.map((u) => profilesByUserId.get(u.id) || u);
 
     return formatPaginatedResponse(enrichedItems, totalItems, page, limit);
   },
