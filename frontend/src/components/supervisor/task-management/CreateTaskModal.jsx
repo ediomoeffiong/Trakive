@@ -820,12 +820,16 @@ const CreateTaskModal = ({
 
   useEffect(() => {
     if (editingTask) {
-      const existingObjs =
+      const rawObjs =
         editingTask.objectives?.length
           ? editingTask.objectives
           : editingTask.learningObjectives?.length
           ? editingTask.learningObjectives
           : [''];
+      const existingObjs = (Array.isArray(rawObjs) ? rawObjs : [rawObjs])
+        .map(o => (typeof o === 'string' ? o : (o?.text || o?.title || o?.name || '')))
+        .filter(Boolean);
+      if (existingObjs.length === 0) existingObjs.push('');
 
       reset({
         title: editingTask.title || '',

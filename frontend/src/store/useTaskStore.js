@@ -182,14 +182,16 @@ export const useTaskStore = create((set, get) => ({
 }));
 
 // Helper logic for filtering & sorting tasks
-export const getFilteredAndSortedTasks = (state) => {
-  const { tasks, filters, sort } = state;
+export const getFilteredAndSortedTasks = (state = {}) => {
+  const { tasks, filters = {}, sort = {} } = state;
+  const safeTasks = Array.isArray(tasks) ? tasks.filter(Boolean) : [];
 
   // 1. Filter
-  let result = tasks.filter((task) => {
+  let result = safeTasks.filter((task) => {
+    if (!task) return false;
     // Search
     if (filters.searchQuery) {
-      const query = filters.searchQuery.toLowerCase();
+      const query = String(filters.searchQuery).toLowerCase();
       const matchTitle = String(task.title || '').toLowerCase().includes(query);
       const matchDesc = String(task.description || '').toLowerCase().includes(query);
       const matchCat = String(task.category || '').toLowerCase().includes(query);
@@ -197,17 +199,17 @@ export const getFilteredAndSortedTasks = (state) => {
     }
 
     // Status
-    if (filters.status !== 'all' && task.status !== filters.status) {
+    if (filters.status && filters.status !== 'all' && task.status !== filters.status) {
       return false;
     }
 
     // Priority
-    if (filters.priority !== 'all' && task.priority !== filters.priority) {
+    if (filters.priority && filters.priority !== 'all' && task.priority !== filters.priority) {
       return false;
     }
 
     // Category
-    if (filters.category !== 'all' && task.category !== filters.category) {
+    if (filters.category && filters.category !== 'all' && task.category !== filters.category) {
       return false;
     }
 
@@ -224,31 +226,40 @@ export const getFilteredAndSortedTasks = (state) => {
     'completed': 2,
   };
 
+  const getSortTime = (val, fallback = '2026-07-10') => {
+    if (!val) val = fallback;
+    const t = new Date(val).getTime();
+    return Number.isNaN(t) ? 0 : t;
+  };
+
   result.sort((a, b) => {
+    if (!a && !b) return 0;
+    if (!a) return 1;
+    if (!b) return -1;
+
     let valA, valB;
 
     switch (sort.sortBy) {
       case 'dueDate':
-        valA = new Date(a.dueDate).getTime();
-        valB = new Date(b.dueDate).getTime();
+        valA = getSortTime(a.dueDate, '9999-12-31');
+        valB = getSortTime(b.dueDate, '9999-12-31');
         break;
       case 'newest':
-        // Mock assigned date or ID
-        valA = new Date(b.assignedDate || '2026-07-10').getTime();
-        valB = new Date(a.assignedDate || '2026-07-10').getTime();
+        valA = getSortTime(b.assignedDate || b.created_at || b.createdAt);
+        valB = getSortTime(a.assignedDate || a.created_at || a.createdAt);
         break;
       case 'oldest':
-        valA = new Date(a.assignedDate || '2026-07-10').getTime();
-        valB = new Date(b.assignedDate || '2026-07-10').getTime();
+        valA = getSortTime(a.assignedDate || a.created_at || a.createdAt);
+        valB = getSortTime(b.assignedDate || b.created_at || b.createdAt);
         break;
       case 'priority':
         valA = priorityWeight[a.priority] || 0;
         valB = priorityWeight[b.priority] || 0;
         break;
       case 'alphabetical':
-        valA = String(a.title || '').toLowerCase();
-        valB = String(b.title || '').toLowerCase();
-        break;
+        return sort.sortOrder === 'asc'
+          ? String(a.title || '').localeCompare(String(b.title || ''))
+          : String(b.title || '').localeCompare(String(a.title || ''));
       case 'status':
         valA = statusWeight[a.status] || 0;
         valB = statusWeight[b.status] || 0;

@@ -395,12 +395,18 @@ export const fetchDepartmentTasks = async (params = {}) => {
   const pendingReview = list.filter((t) => t.status === 'pending_review' || t.status === 'submitted').length;
   const overdue = list.filter((t) => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'completed' && t.status !== 'approved').length;
 
-  const stats = isDemoUser() ? deptTaskStats : {
+  const stats = {
+    total: list.length,
+    active: inProgress,
+    completed,
+    pendingReview,
+    overdue,
     totalTasks: list.length,
     completedTasks: completed,
     inProgressTasks: inProgress,
     pendingReviewTasks: pendingReview,
     overdueTasks: overdue,
+    ...(isDemoUser() ? deptTaskStats : {}),
   };
 
   return { data: list, stats, total: list.length };

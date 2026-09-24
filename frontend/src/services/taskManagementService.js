@@ -235,11 +235,31 @@ const normalizeTask = (raw = {}, avatarIndex = internAvatarIndex || {}) => {
   });
   const status = raw.status === 'draft' ? 'draft' : normalizeStatus(raw.status, dueDate);
   const completionPercentage = completionForStatus(status, raw.completionPercentage ?? raw.progress);
-  const objectives = Array.isArray(raw.objectives)
-    ? raw.objectives
-    : Array.isArray(raw.learningObjectives)
-      ? raw.learningObjectives
-      : [];
+  let rawObjectives = raw.objectives;
+  if (typeof rawObjectives === 'string') {
+    try {
+      rawObjectives = JSON.parse(rawObjectives);
+    } catch {
+      rawObjectives = [rawObjectives];
+    }
+  } else if (!Array.isArray(rawObjectives) && Array.isArray(raw.learningObjectives)) {
+    rawObjectives = raw.learningObjectives;
+  }
+  const objectives = Array.isArray(rawObjectives)
+    ? rawObjectives.filter(Boolean).map((obj, idx) => {
+        if (typeof obj === 'string') {
+          return { id: `obj-${idx + 1}`, text: obj, checked: false };
+        }
+        if (obj && typeof obj === 'object') {
+          return {
+            id: obj.id || `obj-${idx + 1}`,
+            text: obj.text || obj.name || obj.title || '',
+            checked: Boolean(obj.checked || obj.completed || obj.is_completed),
+          };
+        }
+        return { id: `obj-${idx + 1}`, text: String(obj || ''), checked: false };
+      })
+    : [];
   const attachments = Array.isArray(raw.attachments) ? raw.attachments : [];
 
   return {

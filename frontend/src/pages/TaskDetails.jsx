@@ -184,11 +184,32 @@ export default function TaskDetails() {
   }, [taskId, fetchTaskDetails]);
 
   useEffect(() => {
-    if (currentTask?.objectives) setObjectives(currentTask.objectives);
+    if (currentTask?.objectives) {
+      const rawObjs = Array.isArray(currentTask.objectives)
+        ? currentTask.objectives
+        : typeof currentTask.objectives === 'string'
+        ? [currentTask.objectives]
+        : [];
+      setObjectives(
+        rawObjs.filter(Boolean).map((o, i) =>
+          typeof o === 'string'
+            ? { id: `obj-${i + 1}`, text: o, checked: false }
+            : {
+                id: o.id || `obj-${i + 1}`,
+                text: o.text || o.title || o.name || '',
+                checked: Boolean(o.checked),
+              }
+        )
+      );
+    } else {
+      setObjectives([]);
+    }
   }, [currentTask]);
 
   const handleToggleObjective = useCallback(objId => {
-    setObjectives(prev => prev.map(o => o.id === objId ? { ...o, checked: !o.checked } : o));
+    setObjectives(prev =>
+      (Array.isArray(prev) ? prev : []).map(o => (o.id === objId ? { ...o, checked: !o.checked } : o))
+    );
   }, []);
 
   const handleStartTask  = () => updateTaskStatus(currentTask.id, 'in-progress');
@@ -243,9 +264,9 @@ export default function TaskDetails() {
 
   const sm = STATUS_META[currentTask.status] ?? STATUS_META.assigned;
   const pm = PRIORITY_META[currentTask.priority] ?? PRIORITY_META.low;
-  const isOverdue = !currentTask.completedAt && currentTask.remainingDays < 0;
-  const doneObj = objectives.filter(o => o.checked).length;
-  const totalObj = objectives.length;
+  const safeObjectives = Array.isArray(objectives) ? objectives : [];
+  const doneObj = safeObjectives.filter(o => o && o.checked).length;
+  const totalObj = safeObjectives.length;
 
   const currentStepIndex = STATUS_ORDER.indexOf(currentTask.status);
   const workflowStepIndex = step => STATUS_ORDER.indexOf(step.key);
@@ -396,34 +417,39 @@ export default function TaskDetails() {
                 <ProgressBar value={totalObj > 0 ? Math.round((doneObj / totalObj) * 100) : 0} variant="success" size="sm" />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {objectives.map(obj => (
-                  <motion.div
-                    key={obj.id}
-                    onClick={() => handleToggleObjective(obj.id)}
-                    whileHover={{ x: 2 }}
-                    transition={{ duration: 0.12 }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '0.875rem',
-                      padding: '0.875rem 1rem',
-                      background: obj.checked ? '#f0fdf4' : '#fff',
-                      border: `1px solid ${obj.checked ? '#bbf7d0' : 'var(--color-neutral-200)'}`,
-                      borderRadius: '0.75rem', cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    {obj.checked
-                      ? <RiCheckboxCircleLine style={{ color: '#16a34a', fontSize: '1.25rem', flexShrink: 0 }} />
-                      : <RiCheckboxBlankCircleLine style={{ color: '#cbd5e1', fontSize: '1.25rem', flexShrink: 0 }} />
-                    }
-                    <span style={{
-                      fontSize: '0.875rem', fontWeight: 500, flex: 1,
-                      color: obj.checked ? 'var(--color-neutral-400)' : 'var(--color-neutral-800)',
-                      textDecoration: obj.checked ? 'line-through' : 'none',
-                    }}>
-                      {obj.text}
-                    </span>
-                  </motion.div>
-                ))}
+                {safeObjectives.map((obj, index) => {
+                  const isChecked = Boolean(obj?.checked);
+                  const text = typeof obj === 'string' ? obj : (obj?.text || obj?.title || obj?.name || '');
+                  const key = obj?.id || `obj-${index}`;
+                  return (
+                    <motion.div
+                      key={key}
+                      onClick={() => handleToggleObjective(key)}
+                      whileHover={{ x: 2 }}
+                      transition={{ duration: 0.12 }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.875rem',
+                        padding: '0.875rem 1rem',
+                        background: isChecked ? '#f0fdf4' : '#fff',
+                        border: `1px solid ${isChecked ? '#bbf7d0' : 'var(--color-neutral-200)'}`,
+                        borderRadius: '0.75rem', cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {isChecked
+                        ? <RiCheckboxCircleLine style={{ color: '#16a34a', fontSize: '1.25rem', flexShrink: 0 }} />
+                        : <RiCheckboxBlankCircleLine style={{ color: '#cbd5e1', fontSize: '1.25rem', flexShrink: 0 }} />
+                      }
+                      <span style={{
+                        fontSize: '0.875rem', fontWeight: 500, flex: 1,
+                        color: isChecked ? 'var(--color-neutral-400)' : 'var(--color-neutral-800)',
+                        textDecoration: isChecked ? 'line-through' : 'none',
+                      }}>
+                        {text}
+                      </span>
+                    </motion.div>
+                  );
+                })}
               </div>
             </Section>
           )}

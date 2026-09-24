@@ -138,6 +138,7 @@ const SOURCE_STYLES = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getStatusLabel(s) {
+  if (!s || typeof s !== 'string') return 'Assigned';
   return s.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
@@ -189,8 +190,9 @@ function TaskCard({ task, onPreview, onOpen }) {
   const sm = STATUS_META[task.status] ?? STATUS_META.assigned;
   const pm = PRIORITY_META[task.priority] ?? PRIORITY_META.low;
   const catColor = getCategoryColor(task.category);
-  const doneObj = task.objectives?.filter(o => o.checked).length ?? 0;
-  const totalObj = task.objectives?.length ?? 0;
+  const safeObjectives = Array.isArray(task.objectives) ? task.objectives : [];
+  const doneObj = safeObjectives.filter(o => typeof o === 'object' && o !== null ? Boolean(o.checked) : false).length;
+  const totalObj = safeObjectives.length;
   const isOverdue = !task.completedAt && task.remainingDays < 0;
 
   return (
@@ -555,32 +557,37 @@ function QuickPreviewPanel({ task, onClose, onOpen }) {
           </div>
         </div>
 
-        {task.objectives?.length > 0 && (
+        {Array.isArray(task.objectives) && task.objectives.length > 0 && (
           <div>
             <h4 style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-neutral-400)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.625rem' }}>
               Objectives
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-              {task.objectives.map(obj => (
-                <div key={obj.id} style={{
-                  display: 'flex', alignItems: 'center', gap: '0.625rem',
-                  padding: '0.5rem 0.75rem',
-                  background: obj.checked ? '#f0fdf4' : 'var(--color-neutral-50)',
-                  border: `1px solid ${obj.checked ? '#bbf7d0' : 'var(--color-neutral-100)'}`,
-                  borderRadius: '0.625rem',
-                }}>
-                  {obj.checked
-                    ? <RiCheckboxCircleLine style={{ color: '#16a34a', fontSize: '1rem', flexShrink: 0 }} />
-                    : <RiCheckboxBlankCircleLine style={{ color: '#cbd5e1', fontSize: '1rem', flexShrink: 0 }} />}
-                  <span style={{
-                    fontSize: '0.78rem', fontWeight: 500, flex: 1,
-                    color: obj.checked ? 'var(--color-neutral-400)' : 'var(--color-neutral-700)',
-                    textDecoration: obj.checked ? 'line-through' : 'none',
+              {task.objectives.map((obj, idx) => {
+                const isChecked = typeof obj === 'object' && obj !== null ? Boolean(obj.checked) : false;
+                const text = typeof obj === 'string' ? obj : (obj?.text || obj?.name || obj?.title || `Objective ${idx + 1}`);
+                const key = (typeof obj === 'object' && obj?.id) ? obj.id : `obj-${idx}`;
+                return (
+                  <div key={key} style={{
+                    display: 'flex', alignItems: 'center', gap: '0.625rem',
+                    padding: '0.5rem 0.75rem',
+                    background: isChecked ? '#f0fdf4' : 'var(--color-neutral-50)',
+                    border: `1px solid ${isChecked ? '#bbf7d0' : 'var(--color-neutral-100)'}`,
+                    borderRadius: '0.625rem',
                   }}>
-                    {obj.text}
-                  </span>
-                </div>
-              ))}
+                    {isChecked
+                      ? <RiCheckboxCircleLine style={{ color: '#16a34a', fontSize: '1rem', flexShrink: 0 }} />
+                      : <RiCheckboxBlankCircleLine style={{ color: '#cbd5e1', fontSize: '1rem', flexShrink: 0 }} />}
+                    <span style={{
+                      fontSize: '0.78rem', fontWeight: 500, flex: 1,
+                      color: isChecked ? 'var(--color-neutral-400)' : 'var(--color-neutral-700)',
+                      textDecoration: isChecked ? 'line-through' : 'none',
+                    }}>
+                      {text}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -632,7 +639,8 @@ function FilterSidebar({ tasks, filters, onPriority, onReset }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
           {['all', 'urgent', 'high', 'medium', 'low'].map(prio => {
             const pm = PRIORITY_META[prio] ?? { color: '#64748b', bg: '#f8fafc', border: '#e2e8f0', label: 'All' };
-            const count = prio === 'all' ? tasks.length : tasks.filter(t => t.priority === prio).length;
+            const safeTasks = Array.isArray(tasks) ? tasks.filter(Boolean) : [];
+            const count = prio === 'all' ? safeTasks.length : safeTasks.filter(t => t?.priority === prio).length;
             const isActive = filters.priority === prio;
             const label = prio === 'all' ? 'All Priorities' : pm.label;
             return (
@@ -814,13 +822,14 @@ export default function TaskList() {
   };
 
   // All tasks derived stats
-  const total     = tasks.length;
-  const completed = tasks.filter(t => t.status === 'completed').length;
-  const inReview  = tasks.filter(t => t.status === 'under-review' || t.status === 'submitted').length;
+  const safeTasks = Array.isArray(tasks) ? tasks.filter(Boolean) : [];
+  const total     = safeTasks.length;
+  const completed = safeTasks.filter(t => t?.status === 'completed').length;
+  const inReview  = safeTasks.filter(t => t?.status === 'under-review' || t?.status === 'submitted').length;
   const remaining = total - completed;
   const pct       = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-  const filtered = getFilteredAndSortedTasks({ tasks, filters, sort });
+  const filtered = getFilteredAndSortedTasks({ tasks: safeTasks, filters, sort });
 
   const activeFilterCount = [
     filters.status !== 'all',
@@ -833,12 +842,13 @@ export default function TaskList() {
   const planCfg = PLAN_STATUS[planStatus] || PLAN_STATUS.open;
   const weeklyLocked = ['submitted', 'reviewed'].includes(planStatus);
 
+  const safeWeeklyTasks = Array.isArray(weeklyTasks) ? weeklyTasks.filter(Boolean) : [];
   const weeklyStats = {
-    total:     weeklyTasks.length,
-    completed: weeklyTasks.filter((t) => t.end_of_week_status === 'completed').length,
-    ongoing:   weeklyTasks.filter((t) => t.end_of_week_status === 'ongoing').length,
-    pending:   weeklyTasks.filter((t) => !t.end_of_week_status || t.end_of_week_status === 'pending').length,
-    not_done:  weeklyTasks.filter((t) => t.end_of_week_status === 'not_done').length,
+    total:     safeWeeklyTasks.length,
+    completed: safeWeeklyTasks.filter((t) => t?.end_of_week_status === 'completed').length,
+    ongoing:   safeWeeklyTasks.filter((t) => t?.end_of_week_status === 'ongoing').length,
+    pending:   safeWeeklyTasks.filter((t) => !t?.end_of_week_status || t?.end_of_week_status === 'pending').length,
+    not_done:  safeWeeklyTasks.filter((t) => t?.end_of_week_status === 'not_done').length,
   };
 
   // Mobile filter content

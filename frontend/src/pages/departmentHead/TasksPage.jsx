@@ -182,7 +182,7 @@ const TasksPage = () => {
         </span>
         <h2 style={{ margin: '0 0 0.375rem', fontSize: '1.625rem', fontWeight: 900 }}>Department Tasks</h2>
         <p style={{ margin: 0, fontSize: '0.9375rem', color: 'rgba(255, 255, 255, 0.9)' }}>
-          Read-only overview of <strong style={{ color: '#fff' }}>{taskStats?.total ?? tasks.length} tasks</strong> across all engineering tracks.
+          Read-only overview of <strong style={{ color: '#fff' }}>{taskStats?.total ?? taskStats?.totalTasks ?? tasks.length} tasks</strong> across all engineering tracks.
         </p>
       </div>
 
@@ -190,11 +190,11 @@ const TasksPage = () => {
       {taskStats && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
           {[
-            { label: 'Total', value: taskStats.total, color: '#4f46e5' },
-            { label: 'Active', value: taskStats.active, color: '#0ea5e9' },
-            { label: 'Completed', value: taskStats.completed, color: '#10b981' },
-            { label: 'Pending Review', value: taskStats.pendingReview, color: '#f59e0b' },
-            { label: 'Overdue', value: taskStats.overdue, color: '#dc2626' },
+            { label: 'Total', value: taskStats.total ?? taskStats.totalTasks ?? 0, color: '#4f46e5' },
+            { label: 'Active', value: taskStats.active ?? taskStats.inProgressTasks ?? 0, color: '#0ea5e9' },
+            { label: 'Completed', value: taskStats.completed ?? taskStats.completedTasks ?? 0, color: '#10b981' },
+            { label: 'Pending Review', value: taskStats.pendingReview ?? taskStats.pendingReviewTasks ?? 0, color: '#f59e0b' },
+            { label: 'Overdue', value: taskStats.overdue ?? taskStats.overdueTasks ?? 0, color: '#dc2626' },
           ].map(({ label, value, color }, i) => (
             <motion.div key={label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} style={{ background: '#fff', borderRadius: '0.875rem', padding: '1rem', border: '1px solid var(--color-neutral-200)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', textAlign: 'center' }}>
               <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color }}>{value}</p>

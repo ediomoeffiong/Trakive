@@ -6,6 +6,7 @@ const NotificationModel = require('../models/notification.model');
 const DocumentModel = require('../models/document.model');
 const ConversationModel = require('../models/conversation.model');
 const ProfileModel = require('../models/profile.model');
+const ApiError = require('../utils/apiError');
 const { getPaginationParams, formatPaginatedResponse } = require('../utils/pagination');
 
 const SearchService = {

@@ -106,7 +106,7 @@ const OverviewTab = ({ task }) => {
                   {i + 1}.
                 </span>
                 <span style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-700)', lineHeight: 1.5 }}>
-                  {obj}
+                  {typeof obj === 'string' ? obj : (obj?.text || obj?.title || obj?.name || '')}
                 </span>
               </div>
             ))}

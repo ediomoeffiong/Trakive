@@ -20,6 +20,7 @@ const isDemoUser = () => {
 };
 
 const normalizeTask = (raw = {}) => {
+  if (!raw || typeof raw !== 'object') raw = {};
   const rawDue = raw.dueDate || raw.due_date;
   const dueDate = rawDue ? String(rawDue).slice(0, 10) : '';
   const status = raw.status === 'todo' ? 'assigned' : (raw.status || 'assigned');
@@ -34,17 +35,45 @@ const normalizeTask = (raw = {}) => {
     }
   }
 
+  let rawObjectives = raw.objectives;
+  if (typeof rawObjectives === 'string') {
+    try {
+      rawObjectives = JSON.parse(rawObjectives);
+    } catch {
+      rawObjectives = [rawObjectives];
+    }
+  } else if (!Array.isArray(rawObjectives) && Array.isArray(raw.learningObjectives)) {
+    rawObjectives = raw.learningObjectives;
+  }
+
+  const objectives = Array.isArray(rawObjectives)
+    ? rawObjectives.filter(Boolean).map((obj, idx) => {
+        if (typeof obj === 'string') {
+          return { id: `obj-${idx + 1}`, text: obj, checked: false };
+        }
+        if (obj && typeof obj === 'object') {
+          return {
+            id: obj.id || `obj-${idx + 1}`,
+            text: obj.text || obj.name || obj.title || '',
+            checked: Boolean(obj.checked || obj.completed || obj.is_completed),
+          };
+        }
+        return { id: `obj-${idx + 1}`, text: String(obj || ''), checked: false };
+      })
+    : [];
+
   return {
     ...raw,
-    id: String(raw.id),
+    id: String(raw.id || raw.task_id || `task-${Math.random().toString(36).slice(2)}`),
     title: raw.title || 'Untitled task',
     description: raw.description || '',
-    category: raw.category || raw.project_title || 'General',
+    category: raw.category || raw.project_title || raw.milestone_title || 'General',
     priority: String(raw.priority || 'medium').toLowerCase(),
     status,
     dueDate,
     remainingDays,
     progress: raw.progress ?? (status === 'completed' ? 100 : status === 'in-progress' ? 50 : 0),
+    objectives,
   };
 };
 

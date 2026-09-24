@@ -189,7 +189,9 @@ const TemplatePreviewPanel = ({ template, onClose, onUse, isMobile = false }) =>
           <p style={{ margin: '0 0 0.375rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-neutral-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Objectives & Deliverables</p>
           <ul style={{ margin: 0, paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             {objectives.map((obj, i) => (
-              <li key={i} style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-700)', lineHeight: 1.5 }}>{obj}</li>
+              <li key={i} style={{ fontSize: '0.8125rem', color: 'var(--color-neutral-700)', lineHeight: 1.5 }}>
+                {typeof obj === 'string' ? obj : (obj?.text || obj?.title || obj?.name || '')}
+              </li>
             ))}
           </ul>
         </div>
