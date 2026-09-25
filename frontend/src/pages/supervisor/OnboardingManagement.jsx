@@ -13,7 +13,6 @@ import {
   RiTimeLine,
   RiShieldCheckLine,
   RiHistoryLine,
-  RiComputerLine,
 } from 'react-icons/ri';
 
 import { useSupervisorReviewStore } from '../../store/useSupervisorReviewStore';
@@ -440,7 +439,7 @@ export default function OnboardingManagementPage() {
         {[
           { id: 'cohort', label: 'Intern Cohort Directory', icon: RiUserLine, count: onboardingQueue.length },
           { id: 'pending', label: 'Fast-Track Pending Queue', icon: RiTimeLine, count: stats.pendingReviews, badgeColor: '#b45309', badgeBg: '#fef3c7' },
-          { id: 'compliance', label: 'Compliance & Provisioning', icon: RiComputerLine },
+          { id: 'compliance', label: 'Compliance & Provisioning', icon: RiShieldCheckLine },
           { id: 'audit', label: 'Verification Audit Trail', icon: RiHistoryLine },
         ].map((tab) => {
           const isActive = activeTab === tab.id;
