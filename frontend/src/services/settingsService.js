@@ -60,6 +60,7 @@ const writeLocal = (suffix, value) => {
 
 const mergeSettings = (serverSettings = {}) => {
   const user = useAppStore.getState()?.user;
+  const activeTheme = useAppStore.getState()?.theme;
   const account = {
     ...defaultSettings.account,
     displayName: user?.name || serverSettings.account?.displayName || defaultSettings.account.displayName,
@@ -77,7 +78,12 @@ const mergeSettings = (serverSettings = {}) => {
     account: { ...defaultSettings.account, ...persisted.account, ...serverSettings.account, ...account },
     security: { ...defaultSettings.security, ...persisted.security, ...serverSettings.security },
     notifications: normalizeNotificationSettings({ ...persisted.notifications, ...serverSettings.notifications }),
-    appearance: { ...defaultSettings.appearance, ...persisted.appearance, ...serverSettings.appearance },
+    appearance: {
+      ...defaultSettings.appearance,
+      ...persisted.appearance,
+      ...serverSettings.appearance,
+      ...(activeTheme ? { theme: activeTheme } : {}),
+    },
     privacy: { ...defaultSettings.privacy, ...persisted.privacy, ...serverSettings.privacy },
     accessibility: { ...defaultSettings.accessibility, ...persisted.accessibility, ...serverSettings.accessibility },
     language: { ...defaultSettings.language, ...persisted.language, ...serverSettings.language },

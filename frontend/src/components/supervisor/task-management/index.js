@@ -5,6 +5,7 @@
 
 export { default as TaskKPISummary } from './TaskKPISummary';
 export { default as TaskManagementFilters } from './TaskManagementFilters';
+export { default as TaskOverviewWorkspace } from './TaskOverviewWorkspace';
 export { default as TaskDirectoryTable } from './TaskDirectoryTable';
 export { default as TaskDetailsDrawer } from './TaskDetailsDrawer';
 export { default as CreateTaskModal } from './CreateTaskModal';

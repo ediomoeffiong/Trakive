@@ -124,23 +124,30 @@ const RadioRow = ({ option, selected, onSelect, name }) => (
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const AppearanceSettingsForm = () => {
-  const { settings, updateField, saveCategory, saving, isDirty, discardChanges } = useSettingsStore();
+  const {
+    settings,
+    pristineSettings,
+    updateField,
+    updateFields,
+    saveCategory,
+    saving,
+    isDirty,
+    discardChanges,
+  } = useSettingsStore();
+  const theme = useAppStore((s) => s.theme);
   const setTheme = useAppStore((s) => s.setTheme);
   const setSpacing = useAppStore((s) => s.setSpacing);
   const setSidebarBehavior = useAppStore((s) => s.setSidebarBehavior);
   const appearance = settings.appearance;
 
   useEffect(() => {
-    setTheme(appearance.theme);
     setSpacing(appearance.spacing);
     setSidebarBehavior(appearance.sidebarBehavior);
   }, [
     appearance.sidebarBehavior,
     appearance.spacing,
-    appearance.theme,
     setSidebarBehavior,
     setSpacing,
-    setTheme,
   ]);
 
   const handleThemeSelect = (themeId) => {
@@ -160,11 +167,22 @@ const AppearanceSettingsForm = () => {
 
   const handleSave = async () => {
     try {
+      // The app store owns the live theme. Keep the settings profile in sync
+      // when saving instead of overwriting the active theme when this page opens.
+      updateFields('appearance', { theme });
       await saveCategory('appearance');
       toast.success('Appearance settings saved!', { icon: '🎨' });
     } catch {
       toast.error('Failed to save appearance settings.');
     }
+  };
+
+  const handleDiscard = () => {
+    const savedAppearance = pristineSettings.appearance;
+    discardChanges();
+    setTheme(savedAppearance.theme);
+    setSpacing(savedAppearance.spacing);
+    setSidebarBehavior(savedAppearance.sidebarBehavior);
   };
 
   return (
@@ -199,7 +217,7 @@ const AppearanceSettingsForm = () => {
             <ThemeCard
               key={opt.id}
               option={opt}
-              selected={appearance.theme === opt.id}
+              selected={theme === opt.id}
               onSelect={handleThemeSelect}
             />
           ))}
@@ -267,7 +285,7 @@ const AppearanceSettingsForm = () => {
         isDirty={isDirty}
         saving={saving}
         onSave={handleSave}
-        onDiscard={discardChanges}
+        onDiscard={handleDiscard}
       />
     </div>
   );

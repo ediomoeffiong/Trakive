@@ -246,13 +246,13 @@ export default function AnalyticsDashboardPage() {
 
           case 'reports':
             return (
-              <section key={widget.id} aria-label="Summary Report Cards">
-                <div style={{ marginBottom: '1rem' }}>
-                  <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
-                    Executive Summary Cards
+              <section key={widget.id} aria-label="Executive Summary">
+                <div style={{ marginBottom: '1.125rem' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1875rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
+                    Executive Summary
                   </h3>
-                  <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
-                    Highlights of top performers, SLA velocity, and overdue items
+                  <p style={{ margin: '0.125rem 0 0', fontSize: '0.8125rem', color: 'var(--color-neutral-500)' }}>
+                    Leadership briefing on top performers, operational velocity, deadlines, and priority items
                   </p>
                 </div>
                 <ReportSummaryGrid summaryCards={summaryCards} />

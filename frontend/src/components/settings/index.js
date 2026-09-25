@@ -10,7 +10,6 @@ export { default as SecuritySettingsForm }      from './SecuritySettingsForm';
 export { default as SessionsDevicesList }       from './SessionsDevicesList';
 export { default as NotificationPrefsForm }     from './NotificationPrefsForm';
 export { default as AppearanceSettingsForm }    from './AppearanceSettingsForm';
-export { default as PrivacySettingsForm }       from './PrivacySettingsForm';
 export { default as AccessibilitySettingsForm } from './AccessibilitySettingsForm';
 export { default as LanguageRegionSettingsForm }from './LanguageRegionSettingsForm';
 export { default as RolePreferencesForm }       from './RolePreferencesForm';

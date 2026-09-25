@@ -343,10 +343,10 @@ const makeKpis = (tasks = []) => {
   const overdue = countBy(active, (task) => task?.status === 'overdue');
 
   return [
-    { id: 'total', label: 'Total Tasks', value: total, trend: pct(total), trendType: 'neutral', color: 'blue', iconName: 'RiTaskLine', filterKey: 'all', description: `${active.filter(isActiveTask).length} active task(s)` },
+    { id: 'total', label: 'Total Tasks', value: total, trend: pct(total), trendType: 'neutral', color: 'indigo', iconName: 'RiCheckboxLine', filterKey: 'all', description: `${active.filter(isActiveTask).length} active task(s)` },
     { id: 'completed', label: 'Completed', value: completed, trend: pct(completed), trendType: 'positive', color: 'green', iconName: 'RiCheckboxCircleLine', filterKey: 'completed', description: 'Reviewed and done' },
     { id: 'in-progress', label: 'In Progress', value: inProgress, trend: pct(inProgress), trendType: 'neutral', color: 'indigo', iconName: 'RiPlayCircleLine', filterKey: 'in-progress', description: 'Assigned or being worked on' },
-    { id: 'pending-review', label: 'Under Review', value: pendingReview, trend: pct(pendingReview), trendType: 'warning', color: 'amber', iconName: 'RiEyeLine', filterKey: 'pending-review', description: 'Submitted and not reviewed' },
+    { id: 'pending-review', label: 'Under Review', value: pendingReview, trend: pct(pendingReview), trendType: 'warning', color: 'amber', iconName: 'RiFocus2Line', filterKey: 'pending-review', description: 'Submitted and not reviewed' },
     { id: 'overdue', label: 'Overdue', value: overdue, trend: pct(overdue), trendType: 'urgent', color: 'red', iconName: 'RiAlarmWarningLine', filterKey: 'overdue', description: 'Past due date' },
   ];
 };
@@ -409,6 +409,7 @@ function applyFilters(tasks = [], filters = {}) {
   if (filters.status && filters.status !== 'all') {
     result = result.filter((t) => {
       if (filters.status === 'active') return isActiveTask(t) && !['completed', 'overdue', 'pending-review'].includes(t.status);
+      if (filters.status === 'in-progress') return ['in-progress', 'assigned', 'needs-revision'].includes(t.status);
       if (filters.status === 'archived') return t.status === 'archived';
       return t.status === filters.status;
     });

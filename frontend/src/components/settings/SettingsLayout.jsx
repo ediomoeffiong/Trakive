@@ -4,12 +4,11 @@
  * Renders the active settings section with animated transitions.
  */
 
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   RiDashboardLine,
   RiUserSettingsLine, RiShieldCheckLine, RiComputerLine,
-  RiBellLine, RiPaletteLine, RiShieldUserLine, RiEyeLine,
+  RiBellLine, RiPaletteLine, RiEyeLine,
   RiTranslate2, RiSettings4Line, RiArrowLeftLine,
 } from 'react-icons/ri';
 
@@ -21,7 +20,6 @@ const NAV_ITEMS = [
   { id: 'sessions',      label: 'Sessions & Devices',  icon: RiComputerLine },
   { id: 'notifications', label: 'Notifications',       icon: RiBellLine },
   { id: 'appearance',    label: 'Appearance',          icon: RiPaletteLine },
-  { id: 'privacy',       label: 'Privacy',             icon: RiShieldUserLine },
   { id: 'accessibility', label: 'Accessibility',       icon: RiEyeLine },
   { id: 'language',      label: 'Language & Region',   icon: RiTranslate2 },
   { id: 'role',          label: 'Role Preferences',    icon: RiSettings4Line },
@@ -35,7 +33,6 @@ const SECTION_TITLES = {
   sessions:      'Sessions & Devices',
   notifications: 'Notification Preferences',
   appearance:    'Appearance',
-  privacy:       'Privacy Settings',
   accessibility: 'Accessibility',
   language:      'Language & Region',
   role:          'Role Preferences',

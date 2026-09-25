@@ -6,7 +6,7 @@
 import { motion } from 'framer-motion';
 import {
   RiUserSettingsLine, RiShieldCheckLine, RiBellLine, RiPaletteLine,
-  RiShieldUserLine, RiEyeLine, RiTranslate2, RiComputerLine,
+  RiEyeLine, RiTranslate2, RiComputerLine,
   RiSettings4Line, RiArrowRightLine, RiCheckboxCircleLine,
   RiGlobalLine, RiNotification3Line, RiLockPasswordLine, RiUserLine,
 } from 'react-icons/ri';
@@ -50,13 +50,6 @@ const CATEGORIES = [
     description: 'Theme, layout density, and sidebar behavior',
     icon:        RiPaletteLine,
     color:       { bg: 'var(--color-primary-50)', text: 'var(--color-primary-700)' },
-  },
-  {
-    id:          'privacy',
-    label:       'Privacy',
-    description: 'Profile visibility, data sharing, and activity controls',
-    icon:        RiShieldUserLine,
-    color:       { bg: '#fff7ed', text: '#ea580c' },
   },
   {
     id:          'accessibility',
@@ -160,13 +153,6 @@ const PreferencesSummary = ({ settings, user }) => {
       icon: RiLockPasswordLine,
       label: 'Last Password Change',
       value: formatDate(s.security?.lastPasswordChange),
-    },
-    {
-      icon: RiUserLine,
-      label: 'Profile Visibility',
-      value: s.privacy?.profileVisibility
-        ? s.privacy.profileVisibility.charAt(0).toUpperCase() + s.privacy.profileVisibility.slice(1)
-        : 'Everyone',
     },
   ];
 

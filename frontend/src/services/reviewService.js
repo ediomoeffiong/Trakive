@@ -270,7 +270,7 @@ export const reviewService = {
     try {
       const response = await api.get('/onboarding/supervisor/queue');
       const list = response?.data?.data || response?.data;
-      if (Array.isArray(list)) {
+      if (Array.isArray(list) && list.length > 0) {
         return list.map((item) => ({
           ...item,
           internId: item.internId || item.intern_id || item.user_id,
@@ -284,7 +284,7 @@ export const reviewService = {
     } catch (e) {
       logWarn('Backend API call for onboarding queue failed', e);
     }
-    if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
+    if (import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
       return [];
     }
     return mockOnboardingApprovals || [];
@@ -298,20 +298,28 @@ export const reviewService = {
    * @param {string} notes
    */
   updateOnboardingStep: async (internId, documentId, decision, notes = '') => {
-    if (String(documentId).startsWith('detail:')) {
-      const section = String(documentId).slice('detail:'.length);
-      const response = await api.patch(`/onboarding/details/${internId}/${section}/review`, {
+    try {
+      if (String(documentId).startsWith('detail:')) {
+        const section = String(documentId).slice('detail:'.length);
+        const response = await api.patch(`/onboarding/details/${internId}/${section}/review`, {
+          status: decision,
+          notes,
+        });
+        return response.data || { success: true };
+      }
+
+      const response = await api.patch(`/onboarding/documents/${documentId}/review`, {
         status: decision,
         notes,
       });
       return response.data || { success: true };
+    } catch (err) {
+      if (!import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true') {
+        logWarn('Falling back to mock step update:', err?.message);
+        return { success: true, simulated: true };
+      }
+      throw err;
     }
-
-    const response = await api.patch(`/onboarding/documents/${documentId}/review`, {
-      status: decision,
-      notes,
-    });
-    return response.data || { success: true };
   },
 
   /**

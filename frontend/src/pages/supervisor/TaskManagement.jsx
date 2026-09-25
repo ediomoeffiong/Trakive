@@ -28,6 +28,7 @@ import WeeklyReview from './WeeklyReview';
 import {
   TaskKPISummary,
   TaskManagementFilters,
+  TaskOverviewWorkspace,
   TaskDirectoryTable,
   TaskDetailsDrawer,
   CreateTaskModal,
@@ -57,130 +58,6 @@ const TABS = [
   { id: 'archived',    label: 'Archived',  icon: RiArchiveLine },
   { id: 'templates',   label: 'Templates', icon: RiLayoutGridLine },
 ];
-
-// ── Recent Activity mini-feed (for dashboard tab) ─────────────────────────────
-const ActivityFeed = ({ items = [] }) => {
-  const safeItems = Array.isArray(items) ? items : [];
-  const TYPE_STYLES = {
-    submission: { bg: '#f0f9ff', color: '#1e40af', dot: '#3b82f6' },
-    revision:   { bg: '#fef3c7', color: '#92400e', dot: '#f59e0b' },
-    overdue:    { bg: '#fee2e2', color: '#991b1b', dot: '#ef4444' },
-    completed:  { bg: '#d1fae5', color: '#065f46', dot: '#10b981' },
-    assigned:   { bg: '#e0e7ff', color: '#3730a3', dot: '#4f46e5' },
-  };
-
-  return (
-    <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', boxShadow: '0 4px 16px rgba(0,0,0,0.04)', padding: '1.25rem' }}>
-      <h3 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-800)' }}>
-        Recent Activity
-      </h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {safeItems.length === 0 ? (
-          <div style={{ padding: '1.25rem 0.5rem', textAlign: 'center' }}>
-            <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>No recent activity</p>
-            <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.45 }}>
-              Intern submissions, assignments, and completed tasks will appear here.
-            </p>
-          </div>
-        ) : safeItems.map((item) => {
-          const style = TYPE_STYLES[item.type] || TYPE_STYLES.assigned;
-          return (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}
-            >
-              {/* Avatar / dot */}
-              {item.internInitials ? (
-                <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: style.dot, color: '#fff', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {item.internInitials}
-                </div>
-              ) : (
-                <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: style.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: style.dot }} />
-                </div>
-              )}
-              <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-700)', lineHeight: 1.5 }}>{item.message}</p>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>{item.timeAgo}</span>
-              </div>
-              <span style={{ padding: '0.15rem 0.5rem', borderRadius: '9999px', fontSize: '0.625rem', fontWeight: 700, background: style.bg, color: style.color, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                {item.type}
-              </span>
-            </motion.div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-// ── Upcoming Deadlines widget ─────────────────────────────────────────────────
-const UpcomingDeadlines = ({ deadlines = [] }) => {
-  const safeDeadlines = Array.isArray(deadlines) ? deadlines : [];
-  const urgencyColor = (daysLeft) => {
-    if (typeof daysLeft !== 'number' || Number.isNaN(daysLeft)) return '#4f46e5';
-    if (daysLeft <= 1) return '#ef4444';
-    if (daysLeft <= 4) return '#f59e0b';
-    return '#4f46e5';
-  };
-
-  return (
-    <div style={{ background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', boxShadow: '0 4px 16px rgba(0,0,0,0.04)', padding: '1.25rem' }}>
-      <h3 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-800)' }}>
-        Upcoming Deadlines
-      </h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-        {safeDeadlines.length === 0 ? (
-          <div style={{ padding: '1.25rem 0.5rem', textAlign: 'center' }}>
-            <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-700)' }}>No upcoming deadlines</p>
-            <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)', lineHeight: 1.45 }}>
-              Tasks with due dates will show here so you can follow up before they become overdue.
-            </p>
-          </div>
-        ) : safeDeadlines.map((item) => (
-          <div
-            key={item.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              padding: '0.625rem 0.875rem',
-              background: 'var(--color-neutral-50)',
-              borderRadius: '0.75rem',
-              border: '1px solid var(--color-neutral-100)',
-              borderLeft: `3px solid ${urgencyColor(item.daysLeft)}`,
-            }}
-          >
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-neutral-800)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {item.taskTitle}
-              </p>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-400)' }}>
-                {item.assignedCount} intern(s) · Due {item.dueDate}
-              </p>
-            </div>
-            <span
-              style={{
-                padding: '0.2rem 0.5rem',
-                borderRadius: '9999px',
-                fontSize: '0.6875rem',
-                fontWeight: 800,
-                background: `${urgencyColor(item.daysLeft)}18`,
-                color: urgencyColor(item.daysLeft),
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-              }}
-            >
-              {item.daysLeft <= 0 ? 'OVERDUE' : item.daysLeft === 1 ? '1 day left' : `${item.daysLeft} days`}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 const TaskManagementPage = () => {
@@ -363,6 +240,17 @@ const TaskManagementPage = () => {
   const taskCatalog = Array.isArray(allTasks) && allTasks.length ? allTasks : (Array.isArray(tasks) ? tasks : []);
   const archivedTasks = taskCatalog.filter((task) => task?.status === 'archived');
   const draftTasks = taskCatalog.filter((task) => task?.status === 'draft');
+  const [overviewStatusFilter, setOverviewStatusFilter] = useState('all');
+
+  const previewTasks = taskCatalog.filter((task) => {
+    if (!task || task.status === 'archived') return false;
+    if (overviewStatusFilter === 'all') return true;
+    if (overviewStatusFilter === 'completed') return task.status === 'completed';
+    if (overviewStatusFilter === 'in-progress') return ['in-progress', 'assigned', 'needs-revision'].includes(task.status);
+    if (overviewStatusFilter === 'pending-review') return task.status === 'pending-review';
+    if (overviewStatusFilter === 'overdue') return task.status === 'overdue';
+    return task.status === overviewStatusFilter;
+  });
 
   const handleBulkAction = async (action) => {
     if (action === 'export') {
@@ -380,13 +268,10 @@ const TaskManagementPage = () => {
   };
 
   const handleKPIClick = (kpi) => {
-    if (kpi.filterKey && kpi.filterKey !== 'all') {
-      setActiveTab('directory');
-      setFilter('status', kpi.filterKey === 'overdue' ? 'overdue' : kpi.filterKey === 'pending-review' ? 'pending-review' : kpi.filterKey === 'draft' ? 'draft' : kpi.filterKey);
-    } else {
-      setActiveTab('directory');
-      clearAllFilters();
-    }
+    const key = kpi.filterKey || 'all';
+    const nextKey = overviewStatusFilter === key ? 'all' : key;
+    setOverviewStatusFilter(nextKey);
+    setFilter('status', nextKey);
   };
 
   const handleUseTemplate = (template) => {
@@ -599,51 +484,27 @@ const TaskManagementPage = () => {
               kpis={kpis}
               isLoading={loading.dashboard}
               onKPIClick={handleKPIClick}
+              activeFilter={overviewStatusFilter}
             />
 
-            {/* Two-column: Activity + Deadlines */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '1.25rem' }}>
-              <ActivityFeed items={recentActivity} />
-              <UpcomingDeadlines deadlines={upcomingDeadlines} />
-            </div>
-
-            {/* Quick access: task directory preview */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem' }}>
-                <h3 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-800)' }}>
-                  Task Overview
-                </h3>
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setActiveTab('directory')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#00b4d8', fontSize: '0.875rem', fontWeight: 700 }}
-                >
-                  View All →
-                </motion.button>
-              </div>
-              <TaskDirectoryTable
-                tasks={(Array.isArray(tasks) ? tasks : []).slice(0, 5)}
-                isLoading={loading.tasks}
-                selectedTaskIds={selectedTaskIds}
-                onToggleSelect={toggleSelectTask}
-                onSelectAll={selectAllTasks}
-                onClearSelection={clearSelection}
-                onView={handleViewTask}
-                onEdit={handleEditTask}
-                onDuplicate={handleDuplicateTask}
-                onAssign={handleAssignTask}
-                onArchive={handleArchiveTask}
-                onDelete={handleDeleteTask}
-                activeSort={activeSort}
-                onSortChange={setSort}
-                currentPage={1}
-                totalPages={1}
-                totalTasks={Math.min((Array.isArray(tasks) ? tasks : []).length, 5)}
-                pageSize={5}
-                emptyType="no-tasks"
-                onCreateFirst={() => openCreateModal()}
-              />
-            </div>
+            <TaskOverviewWorkspace
+              tasks={previewTasks}
+              recentActivity={recentActivity}
+              upcomingDeadlines={upcomingDeadlines}
+              isLoading={loading.dashboard || loading.tasks}
+              activeFilterLabel={overviewStatusFilter === 'all' ? '' : (kpis.find((k) => k.filterKey === overviewStatusFilter)?.label || overviewStatusFilter)}
+              onClearFilter={() => {
+                setOverviewStatusFilter('all');
+                setFilter('status', 'all');
+              }}
+              onViewTask={handleViewTask}
+              onViewBoard={() => {
+                setFilter('status', overviewStatusFilter);
+                setActiveTab('directory');
+              }}
+              onViewCalendar={() => setActiveTab('calendar')}
+              onCreateTask={() => openCreateModal()}
+            />
           </motion.div>
         )}
 

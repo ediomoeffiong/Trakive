@@ -11,7 +11,6 @@
  *  - Active sessions
  *  - Notification preferences
  *  - Appearance (theme, spacing, sidebar)
- *  - Privacy settings
  *  - Accessibility settings
  *  - Language & region settings
  *  - Role-specific preferences
@@ -37,7 +36,7 @@ export const useSettingsStore = create((set, get) => ({
   rolePreferences:         {},
 
   // ── Active section in settings nav ──────────────────────────────────────────
-  activeSection: 'dashboard', // 'dashboard' | 'account' | 'security' | 'sessions' | 'notifications' | 'appearance' | 'privacy' | 'accessibility' | 'language' | 'role'
+  activeSection: 'dashboard', // 'dashboard' | 'account' | 'security' | 'sessions' | 'notifications' | 'appearance' | 'accessibility' | 'language' | 'role'
 
   // ── Unsaved changes ──────────────────────────────────────────────────────────
   isDirty:  false,

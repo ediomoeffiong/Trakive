@@ -36,17 +36,20 @@ export const TaskKPISkeletonCard = () => (
       boxShadow: '0 4px 16px rgba(0,0,0,0.04)',
       display: 'flex',
       flexDirection: 'column',
-      gap: '0.875rem',
+      justifyContent: 'space-between',
+      minHeight: '140px',
+      position: 'relative',
+      overflow: 'hidden',
     }}
   >
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
       <SkeletonBox width={42} height={42} rounded="lg" />
-      <SkeletonBox width={60} height={22} rounded="full" />
+      <SkeletonBox width={46} height={22} rounded="full" />
     </div>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      <SkeletonBox width="60%" height={12} />
-      <SkeletonBox width="40%" height={28} rounded="lg" />
-      <SkeletonBox width="75%" height={11} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginTop: '0.5rem' }}>
+      <SkeletonBox width="55%" height={12} />
+      <SkeletonBox width="35%" height={26} rounded="lg" />
+      <SkeletonBox width="70%" height={11} />
     </div>
   </div>
 );
@@ -55,11 +58,12 @@ export const TaskKPISkeletonGrid = () => (
   <div
     style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))',
       gap: '1rem',
+      width: '100%',
     }}
   >
-    {Array.from({ length: 6 }).map((_, i) => (
+    {Array.from({ length: 5 }).map((_, i) => (
       <TaskKPISkeletonCard key={i} />
     ))}
   </div>

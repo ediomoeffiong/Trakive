@@ -24,7 +24,6 @@ import SecuritySettingsForm        from '../components/settings/SecuritySettings
 import SessionsDevicesList         from '../components/settings/SessionsDevicesList';
 import NotificationPrefsForm       from '../components/settings/NotificationPrefsForm';
 import AppearanceSettingsForm      from '../components/settings/AppearanceSettingsForm';
-import PrivacySettingsForm         from '../components/settings/PrivacySettingsForm';
 import AccessibilitySettingsForm   from '../components/settings/AccessibilitySettingsForm';
 import LanguageRegionSettingsForm  from '../components/settings/LanguageRegionSettingsForm';
 import RolePreferencesForm         from '../components/settings/RolePreferencesForm';
@@ -37,7 +36,6 @@ const SECTION_COMPONENTS = {
   sessions:      SessionsDevicesList,
   notifications: NotificationPrefsForm,
   appearance:    AppearanceSettingsForm,
-  privacy:       PrivacySettingsForm,
   accessibility: AccessibilitySettingsForm,
   language:      LanguageRegionSettingsForm,
   role:          RolePreferencesForm,

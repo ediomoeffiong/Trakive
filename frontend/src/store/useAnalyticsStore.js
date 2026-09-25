@@ -23,7 +23,7 @@ const DEFAULT_FILTERS = {
 const DEFAULT_LAYOUT = [
   { id: 'kpis', title: 'Key Metrics Overview', visible: true, order: 0 },
   { id: 'insights', title: 'AI System Insights', visible: true, order: 1 },
-  { id: 'reports', title: 'Summary Report Cards', visible: true, order: 2 },
+  { id: 'reports', title: 'Executive Summary', visible: true, order: 2 },
   { id: 'charts', title: 'Charts & Performance Visualizations', visible: true, order: 3 },
   { id: 'heatmap', title: 'Activity Contribution Heatmap', visible: true, order: 4 },
 ];
