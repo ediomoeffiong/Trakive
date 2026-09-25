@@ -20,7 +20,7 @@ import toast from 'react-hot-toast';
 import {
   RiBellLine, RiCheckDoubleLine, RiSettings3Line,
   RiInboxLine, RiSearchLine, RiMegaphoneLine,
-  RiAlarmLine, RiFilterLine,
+  RiAlarmLine, RiFilterLine, RiWifiOffLine,
 } from 'react-icons/ri';
 
 import { useNotificationStore, useAppStore } from '../store';
@@ -466,6 +466,7 @@ const NotificationsPage = () => {
   const getUnreadCount = useNotificationStore((s) => s.getUnreadCount);
   const setPreferencesOpen = useNotificationStore((s) => s.setPreferencesOpen);
   const preferencesOpen = useNotificationStore((s) => s.preferencesOpen);
+  const error = useNotificationStore((s) => s.error);
 
   const unreadCount = getUnreadCount();
 
@@ -664,11 +665,20 @@ const NotificationsPage = () => {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.18 }}
           >
-            {activeTab === 'notifications' && (
-              <NotificationsTabContent isMobile={isMobile} />
+            {error ? (
+              <EmptyState
+                icon={<RiWifiOffLine />}
+                title="Notifications are unavailable"
+                description={error}
+                action={<button type="button" className="btn btn-primary" onClick={() => fetchAll(user?.role)}>Try Again</button>}
+              />
+            ) : (
+              <>
+                {activeTab === 'notifications' && <NotificationsTabContent isMobile={isMobile} />}
+                {activeTab === 'announcements' && <AnnouncementsTabContent />}
+                {activeTab === 'reminders' && <RemindersTabContent />}
+              </>
             )}
-            {activeTab === 'announcements' && <AnnouncementsTabContent />}
-            {activeTab === 'reminders' && <RemindersTabContent />}
           </motion.div>
         </AnimatePresence>
       </div>

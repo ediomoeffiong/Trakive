@@ -1,6 +1,6 @@
 /**
  * @file authService.js
- * @description Mock authentication service to simulate API requests with artificial latency.
+ * @description Backend authentication with an explicitly opted-in local development mode.
  */
 
 import api, { resetApiSessionState } from './api';
@@ -9,7 +9,9 @@ import { normalizeDepartmentForPerson, normalizePersonRecord } from '../utils/pe
 import { isOrganizationEmail, ORG_EMAIL_REQUIRED_MESSAGE } from '../utils/helpers';
 import { formatUserFriendlyError, resetSessionExpiredFlag } from '../utils/errorHandling';
 
-const MOCK_AUTH_ENABLED = !import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
+// Never allow a production outage to turn into a mock login. Local mock auth is
+// available only when a developer explicitly opts into it.
+const MOCK_AUTH_ENABLED = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
 const CUSTOM_USERS_KEY = 'trakive_custom_users';
 const PASSWORD_OVERRIDES_KEY = 'trakive_mock_password_overrides';
 const PENDING_RESET_EMAIL_KEY = 'trakive_pending_reset_email';

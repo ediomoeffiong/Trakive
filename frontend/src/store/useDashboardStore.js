@@ -91,6 +91,14 @@ export const useDashboardStore = create((set, get) => ({
   fetchAllDashboardData: async (userId) => {
     if (!userId) return;
     set({
+      stats: null,
+      tasks: [],
+      activities: [],
+      notifications: [],
+      progress: null,
+      chartData: null,
+      reviewSummary: null,
+      loadedForUserId: null,
       loadingStats: true,
       loadingTasks: true,
       loadingActivities: true,
@@ -119,6 +127,14 @@ export const useDashboardStore = create((set, get) => ({
       });
     } catch (err) {
       set({
+        stats: null,
+        tasks: [],
+        activities: [],
+        notifications: [],
+        progress: null,
+        chartData: null,
+        reviewSummary: null,
+        loadedForUserId: null,
         error: err.message,
         loadingStats: false,
         loadingTasks: false,

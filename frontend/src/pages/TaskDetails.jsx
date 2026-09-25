@@ -28,6 +28,7 @@ import {
   RiFolderDownloadLine,
   RiAlarmWarningLine,
   RiCheckLine,
+  RiWifiOffLine,
 } from 'react-icons/ri';
 
 import { useTaskStore } from '../store';
@@ -162,7 +163,7 @@ export default function TaskDetails() {
   const navigate = useNavigate();
 
   const {
-    currentTask, loadingTaskDetails, updatingStatus, submittingDeliverable, addingComment,
+    currentTask, loadingTaskDetails, updatingStatus, submittingDeliverable, addingComment, error,
     fetchTaskDetails, updateTaskStatus, submitDeliverable, addComment,
   } = useTaskStore();
 
@@ -251,6 +252,17 @@ export default function TaskDetails() {
 
   // ─── Loading & error states ────────────────────────────────────────────────
   if (loadingTaskDetails) return <DetailSkeleton />;
+
+  if (error) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5rem 1rem' }}>
+      <EmptyState
+        icon={<RiWifiOffLine />}
+        title="Task is unavailable"
+        description={error}
+        action={<Button onClick={() => fetchTaskDetails(taskId)}>Try Again</Button>}
+      />
+    </div>
+  );
 
   if (!currentTask) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5rem 1rem' }}>

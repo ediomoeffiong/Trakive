@@ -67,9 +67,38 @@ const api = axios.create({
   },
 });
 
+const inFlightGetRequests = new Map();
+
+/** Coalesce identical concurrent reads triggered by shared layouts/pages. */
+export const getWithDedup = (url, config = {}) => {
+  const params = config.params || {};
+  const sortedParams = Object.keys(params).sort().reduce((result, key) => {
+    result[key] = params[key];
+    return result;
+  }, {});
+  const requestKey = `${url}:${JSON.stringify(sortedParams)}`;
+  if (!inFlightGetRequests.has(requestKey)) {
+    const request = api.get(url, config).finally(() => {
+      inFlightGetRequests.delete(requestKey);
+    });
+    inFlightGetRequests.set(requestKey, request);
+  }
+  return inFlightGetRequests.get(requestKey);
+};
+
 // ── Request Interceptor ──────────────────────────────────────────────────────
 api.interceptors.request.use(
   async (config) => {
+    // Avoid sending requests the browser already knows cannot succeed. Besides
+    // reducing duplicate console noise, this gives every screen the same
+    // explicit offline error instead of allowing a service to substitute data.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      const offlineError = new Error('Unable to reach the server. Please check your internet connection.');
+      offlineError.code = 'ERR_OFFLINE';
+      offlineError.isOffline = true;
+      return Promise.reject(offlineError);
+    }
+
     // If the session has already expired, avoid making further authenticated network calls
     if (isSessionExpired) {
       return Promise.reject(new Error('Your session has expired. Please log in again to continue.'));

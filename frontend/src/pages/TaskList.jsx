@@ -33,6 +33,7 @@ import {
   RiSendPlaneLine,
   RiCalendarCheckLine,
   RiTaskLine,
+  RiWifiOffLine,
 } from 'react-icons/ri';
 
 import { useTaskStore, getFilteredAndSortedTasks } from '../store';
@@ -754,7 +755,7 @@ export default function TaskList() {
   const [viewTab, setViewTab] = useState('all');
 
   // All tasks store
-  const { tasks, filters, sort, loadingTasks, fetchTasks, setFilter, setSort, resetFilters } = useTaskStore();
+  const { tasks, filters, sort, loadingTasks, error, fetchTasks, setFilter, setSort, resetFilters } = useTaskStore();
   const [layout, setLayout] = useState('grid'); // 'grid' | 'list'
   const [previewTask, setPreviewTask] = useState(null);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
@@ -1237,6 +1238,19 @@ export default function TaskList() {
 
               {loadingTasks ? (
                 <TasksSkeleton layout={layout} />
+              ) : error ? (
+                <div style={{
+                  background: '#fff', borderRadius: '1rem', padding: '2rem',
+                  border: '1px solid var(--color-danger-100)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <EmptyState
+                    icon={<RiWifiOffLine />}
+                    title="Tasks are unavailable"
+                    description={error}
+                    action={<Button variant="outline" size="sm" onClick={fetchTasks}><RiRefreshLine /> Try Again</Button>}
+                  />
+                </div>
               ) : filtered.length === 0 ? (
                 <div style={{
                   background: '#fff', borderRadius: '1rem', padding: '4rem 2rem',

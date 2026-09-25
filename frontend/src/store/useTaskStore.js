@@ -14,7 +14,7 @@ const initialSort = {
   sortOrder: 'asc',
 };
 
-export const useTaskStore = create((set, get) => ({
+export const useTaskStore = create((set) => ({
   // State
   tasks: [],
   currentTask: null,
@@ -52,22 +52,22 @@ export const useTaskStore = create((set, get) => ({
 
   // Actions
   fetchTasks: async () => {
-    set({ loadingTasks: true, error: null });
+    set({ tasks: [], loadingTasks: true, error: null });
     try {
       const tasks = await taskService.getTasks();
       set({ tasks, loadingTasks: false });
     } catch (err) {
-      set({ error: err.message, loadingTasks: false });
+      set({ tasks: [], error: err.message, loadingTasks: false });
     }
   },
 
   fetchTaskDetails: async (taskId) => {
-    set({ loadingTaskDetails: true, error: null });
+    set({ currentTask: null, loadingTaskDetails: true, error: null });
     try {
       const task = await taskService.getTaskById(taskId);
       set({ currentTask: task, loadingTaskDetails: false });
     } catch (err) {
-      set({ error: err.message, loadingTaskDetails: false });
+      set({ currentTask: null, error: err.message, loadingTaskDetails: false });
     }
   },
 
@@ -226,8 +226,9 @@ export const getFilteredAndSortedTasks = (state = {}) => {
     'completed': 2,
   };
 
-  const getSortTime = (val, fallback = '2026-07-10') => {
+  const getSortTime = (val, fallback = null) => {
     if (!val) val = fallback;
+    if (!val) return 0;
     const t = new Date(val).getTime();
     return Number.isNaN(t) ? 0 : t;
   };

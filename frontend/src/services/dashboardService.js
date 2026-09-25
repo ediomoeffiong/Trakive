@@ -3,7 +3,7 @@
  * @description Intern dashboard data from live APIs (tasks, weekly plans, onboarding, notifications).
  */
 
-import api from './api';
+import api, { getWithDedup } from './api';
 import { useAppStore } from '../store/useAppStore';
 import { weeklyPlanService } from './weeklyPlanService';
 import { projectService } from './projectService';
@@ -250,11 +250,11 @@ const loadDashboardSnapshot = async () => {
   const weekStarts = [0, 1, 2, 3].map((offset) => shiftDays(thisMonday, -offset * 7));
 
   const [tasksRes, analyticsRes, notificationsRes, documentsRes, projectsRes, trendsRes, ...weekResults] = await Promise.all([
-    api.get('/tasks', { params: { page: 1, limit: 100, sort: 'due_date:asc' } }).catch(() => null),
-    api.get('/analytics/dashboard').catch(() => null),
-    api.get('/notifications').catch(() => null),
+    getWithDedup('/tasks', { params: { page: 1, limit: 100, sort: 'due_date:asc' } }),
+    api.get('/analytics/dashboard'),
+    getWithDedup('/notifications'),
     api.get('/onboarding/documents').catch(() => null),
-    projectService.listProjects({ limit: 100 }).catch(() => ({ data: [] })),
+    projectService.listProjects({ limit: 100 }),
     api.get('/reviews/performance-trends').catch(() => null),
     ...weekStarts.map((weekStart) => weeklyPlanService.getWeeklyPlan(weekStart).catch(() => ({ data: { tasks: [] } }))),
   ]);
@@ -283,7 +283,7 @@ const loadDashboardSnapshot = async () => {
     .sort((a, b) => String(a.dueDateKey).localeCompare(String(b.dueDateKey)));
 
   // Calculate high-level performance metrics for Intern Dashboard
-  let perfScore = '4.8';
+  let perfScore = null;
   let perfTrend = '+0%';
   let perfTrendUp = true;
   if (reviewTrends?.overallScore != null && reviewTrends.overallScore !== '—') {
@@ -306,7 +306,7 @@ const loadDashboardSnapshot = async () => {
   const attRateRaw = analytics?.attendance?.attendance_rate;
   const attendanceRate = attRateRaw != null
     ? Math.round(Number(attRateRaw))
-    : (attTotal > 0 ? Math.round((attPresent / attTotal) * 100) : 100);
+    : (attTotal > 0 ? Math.round((attPresent / attTotal) * 100) : null);
 
   const startDate = onboarding.info.start_date || user?.startDate || user?.start_date || '';
   const endDate = onboarding.info.end_date || user?.endDate || user?.end_date || '';
@@ -347,7 +347,7 @@ const loadDashboardSnapshot = async () => {
     return task.dueDateKey >= lastMonday && task.dueDateKey < thisMonday;
   }).length;
 
-  const profileValue = user?.profileCompleted ? 100 : Math.max(onboarding.info.is_saved ? 55 : 20, onboarding.value > 0 ? 40 : 20);
+  const profileValue = user?.profileCompleted ? 100 : 0;
 
   const productivity = buildProductivity(mergedRaw, thisMonday);
   const distribution = buildDistribution(tasks);
@@ -358,8 +358,8 @@ const loadDashboardSnapshot = async () => {
     stats: {
       overallPerformance: {
         label: 'Overall Performance',
-        value: perfScore,
-        suffix: ' / 5.0',
+        value: perfScore ?? '—',
+        suffix: perfScore == null ? '' : ' / 5.0',
         trend: perfTrend,
         trendUp: perfTrendUp,
       },
@@ -370,10 +370,10 @@ const loadDashboardSnapshot = async () => {
       },
       attendanceRate: {
         label: 'Attendance Rate',
-        value: attendanceRate,
-        suffix: '%',
-        trend: attTotal > 0 ? `${attPresent}d present` : '100% on-track',
-        trendUp: attendanceRate >= 80,
+        value: attendanceRate ?? '—',
+        suffix: attendanceRate == null ? '' : '%',
+        trend: attTotal > 0 ? `${attPresent}d present` : 'No attendance data',
+        trendUp: attendanceRate == null || attendanceRate >= 80,
       },
       internshipProgress: {
         label: 'Overall Internship Progress',
@@ -390,7 +390,7 @@ const loadDashboardSnapshot = async () => {
     },
     reviewSummary: {
       overallScore: perfScore,
-      rating: reviewTrends?.averageRating || (Number(perfScore) * 20),
+      rating: reviewTrends?.averageRating || (perfScore == null ? null : Number(perfScore) * 20),
       completedReviews: reviewTrends?.completedReviews || 0,
       nextReviewDate: reviewTrends?.nextReviewDate || null,
       trend: reviewTrends?.trend || 'stable',

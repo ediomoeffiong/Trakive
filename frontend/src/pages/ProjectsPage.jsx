@@ -4,11 +4,10 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import {
   RiFolderLine, RiAddLine, RiArrowRightLine, RiSearchLine,
   RiRefreshLine, RiTimeLine, RiCheckboxCircleLine, RiLoader2Line,
-  RiEditLine,
+  RiEditLine, RiWifiOffLine,
 } from 'react-icons/ri';
 import { Card, Button, EmptyState, Skeleton, ProgressBar } from '../components/ui';
 import { ROUTES } from '../constants';
@@ -115,14 +114,17 @@ export default function ProjectsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [proposing, setProposing] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
+  const [loadError, setLoadError] = useState(null);
 
   const fetchProjects = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
+    setProjects([]);
     try {
       const res = await projectService.listProjects({ search, status: statusFilter, limit: 50 });
       setProjects(res.data || []);
-    } catch {
-      toast.error('Failed to load projects');
+    } catch (err) {
+      setLoadError(err.message || 'Unable to load projects from the server.');
     } finally {
       setLoading(false);
     }
@@ -213,6 +215,13 @@ export default function ProjectsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: '1rem' }}>
           {[1, 2, 3].map((i) => <CardSkeleton key={i} />)}
         </div>
+      ) : loadError ? (
+        <EmptyState
+          icon={<RiWifiOffLine style={{ fontSize: '2.5rem', color: 'var(--color-danger-400)' }} />}
+          title="Projects are unavailable"
+          description={loadError}
+          action={<Button onClick={fetchProjects}><RiRefreshLine /> Try Again</Button>}
+        />
       ) : projects.length === 0 ? (
         <EmptyState
           icon={<RiFolderLine style={{ fontSize: '2.5rem', color: 'var(--color-neutral-300)' }} />}

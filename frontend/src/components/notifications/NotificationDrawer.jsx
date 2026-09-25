@@ -8,7 +8,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RiBellLine, RiCheckDoubleLine, RiArrowRightLine } from 'react-icons/ri';
+import { RiBellLine, RiCheckDoubleLine, RiArrowRightLine, RiWifiOffLine } from 'react-icons/ri';
 import { useNotificationStore, useAppStore } from '../../store';
 import NotificationItem from './NotificationItem';
 import NotificationBadge from './NotificationBadge';
@@ -28,6 +28,7 @@ const NotificationDrawer = () => {
   const markAsRead = useNotificationStore((s) => s.markAsRead);
   const setSelectedNotification = useNotificationStore((s) => s.setSelectedNotification);
   const getUnreadCount = useNotificationStore((s) => s.getUnreadCount);
+  const error = useNotificationStore((s) => s.error);
 
   const unreadCount = getUnreadCount();
   const recentNotifications = notifications
@@ -171,6 +172,15 @@ const NotificationDrawer = () => {
               <div style={{ overflowY: 'auto', flex: 1 }}>
                 {loadingNotifications ? (
                   <DrawerSkeleton />
+                ) : error ? (
+                  <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center', color: 'var(--color-danger-600)' }}>
+                    <RiWifiOffLine style={{ fontSize: '2rem', marginBottom: '0.5rem' }} />
+                    <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600 }}>Notifications unavailable</p>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem' }}>{error}</p>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => fetchNotifications(user?.role)} style={{ marginTop: '0.75rem' }}>
+                      Try Again
+                    </button>
+                  </div>
                 ) : recentNotifications.length === 0 ? (
                   <div
                     style={{

@@ -2,8 +2,7 @@
  * @file useNotificationStore.js
  * @description Dedicated Zustand store for Trakive's Notifications & Communication Center.
  *
- * Architecture note: All service calls go through notificationService so that
- * switching from mock to real API / WebSocket requires only updating that service file.
+ * Architecture note: All server calls go through notificationService.
  */
 
 import { create } from 'zustand';
@@ -47,17 +46,17 @@ export const useNotificationStore = create((set, get) => ({
 
   fetchNotifications: async (role) => {
     const nextRole = role || 'current';
-    set((state) => ({
+    set({
       loadingNotifications: true,
-      notifications: state.loadedRole === nextRole ? state.notifications : [],
-      selectedNotification: state.loadedRole === nextRole ? state.selectedNotification : null,
+      notifications: [],
+      selectedNotification: null,
       error: null,
-    }));
+    });
     try {
       const notifications = await notificationService.getNotifications(role);
       set({ notifications, loadingNotifications: false, loadedRole: nextRole });
     } catch (err) {
-      set({ error: err.message, loadingNotifications: false });
+      set({ notifications: [], error: err.message, loadingNotifications: false });
     }
   },
 
@@ -72,7 +71,7 @@ export const useNotificationStore = create((set, get) => ({
       const announcements = await notificationService.getAnnouncements(role);
       set({ announcements, loadingAnnouncements: false });
     } catch (err) {
-      set({ error: err.message, loadingAnnouncements: false });
+      set({ announcements: [], error: err.message, loadingAnnouncements: false });
     }
   },
 
@@ -87,7 +86,7 @@ export const useNotificationStore = create((set, get) => ({
       const reminders = await notificationService.getReminders(role);
       set({ reminders, loadingReminders: false });
     } catch (err) {
-      set({ error: err.message, loadingReminders: false });
+      set({ reminders: [], error: err.message, loadingReminders: false });
     }
   },
 
@@ -102,13 +101,49 @@ export const useNotificationStore = create((set, get) => ({
   },
 
   fetchAll: async (role) => {
-    const store = get();
-    await Promise.all([
-      store.fetchNotifications(role),
-      store.fetchAnnouncements(role),
-      store.fetchReminders(role),
-      store.fetchPreferences(role),
-    ]);
+    const nextRole = role || 'current';
+    set({
+      notifications: [],
+      announcements: [],
+      reminders: [],
+      selectedNotification: null,
+      loadingNotifications: true,
+      loadingAnnouncements: true,
+      loadingReminders: true,
+      loadingPreferences: true,
+      error: null,
+    });
+    try {
+      // Fetch notifications once and reuse that server response for derived tabs.
+      const notifications = await notificationService.getNotifications(role);
+      const [announcements, reminders, preferences] = await Promise.all([
+        notificationService.getAnnouncements(role, notifications),
+        notificationService.getReminders(role, notifications),
+        notificationService.getPreferences(role),
+      ]);
+      set({
+        notifications,
+        announcements,
+        reminders,
+        preferences,
+        loadedRole: nextRole,
+        loadingNotifications: false,
+        loadingAnnouncements: false,
+        loadingReminders: false,
+        loadingPreferences: false,
+      });
+    } catch (err) {
+      set({
+        notifications: [],
+        announcements: [],
+        reminders: [],
+        error: err.message,
+        loadingNotifications: false,
+        loadingAnnouncements: false,
+        loadingReminders: false,
+        loadingPreferences: false,
+      });
+    }
   },
 
   // ── CRUD Actions ───────────────────────────────────────────────────────────

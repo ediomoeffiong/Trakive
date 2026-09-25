@@ -1,23 +1,9 @@
 /**
  * @file taskService.js
- * @description Real API service layer with fallbacks for Intern task management.
+ * @description Server-backed service layer for intern task management.
  */
 
 import api from './api';
-import { mockTasks, mockTaskComments, mockSubmissions, mockAttachments } from '../data';
-import { useAppStore } from '../store/useAppStore';
-
-const isDemoUser = () => {
-  try {
-    const user = useAppStore.getState()?.user;
-    if (!user) return false;
-    const demoIds = ['u-1', 'u-2', 'u-3', 'u-4'];
-    const demoEmails = ['intern@thefifthlab.com', 'supervisor@thefifthlab.com', 'hr@thefifthlab.com', 'head@thefifthlab.com'];
-    return demoIds.includes(user.id) || demoEmails.includes(user.email?.toLowerCase());
-  } catch {
-    return false;
-  }
-};
 
 const normalizeTask = (raw = {}) => {
   if (!raw || typeof raw !== 'object') raw = {};
@@ -47,24 +33,21 @@ const normalizeTask = (raw = {}) => {
   }
 
   const objectives = Array.isArray(rawObjectives)
-    ? rawObjectives.filter(Boolean).map((obj, idx) => {
-        if (typeof obj === 'string') {
-          return { id: `obj-${idx + 1}`, text: obj, checked: false };
+    ? rawObjectives.filter(Boolean).map((objective, index) => {
+        if (typeof objective === 'string') {
+          return { id: `obj-${index + 1}`, text: objective, checked: false };
         }
-        if (obj && typeof obj === 'object') {
-          return {
-            id: obj.id || `obj-${idx + 1}`,
-            text: obj.text || obj.name || obj.title || '',
-            checked: Boolean(obj.checked || obj.completed || obj.is_completed),
-          };
-        }
-        return { id: `obj-${idx + 1}`, text: String(obj || ''), checked: false };
+        return {
+          id: objective.id || `obj-${index + 1}`,
+          text: objective.text || objective.name || objective.title || '',
+          checked: Boolean(objective.checked || objective.completed || objective.is_completed),
+        };
       })
     : [];
 
   return {
     ...raw,
-    id: String(raw.id || raw.task_id || `task-${Math.random().toString(36).slice(2)}`),
+    id: String(raw.id || raw.task_id || ''),
     title: raw.title || 'Untitled task',
     description: raw.description || '',
     category: raw.category || raw.project_title || raw.milestone_title || 'General',
@@ -74,150 +57,40 @@ const normalizeTask = (raw = {}) => {
     remainingDays,
     progress: raw.progress ?? (status === 'completed' ? 100 : status === 'in-progress' ? 50 : 0),
     objectives,
+    attachments: Array.isArray(raw.attachments) ? raw.attachments : [],
+    comments: Array.isArray(raw.comments) ? raw.comments : [],
+    submissions: Array.isArray(raw.submissions) ? raw.submissions : [],
   };
 };
 
+const responseData = (response) => response.data?.data ?? response.data;
+
+const unsupported = (feature) => {
+  throw new Error(`${feature} is not available from the server yet. No local data was saved.`);
+};
+
 export const taskService = {
-  /**
-   * Fetch all tasks from backend API.
-   */
   getTasks: async () => {
-    try {
-      const response = await api.get('/tasks', { params: { limit: 100 } });
-      const items = response.data?.data || response.data?.items || (Array.isArray(response.data) ? response.data : []);
-      if (Array.isArray(items)) {
-        return items.map(normalizeTask);
-      }
-    } catch (err) {
-      if (!isDemoUser()) {
-        const user = useAppStore.getState()?.user;
-        const key = `trakive_user_tasks_${user?.id || 'new'}`;
-        const saved = localStorage.getItem(key);
-        if (saved) {
-          try {
-            return JSON.parse(saved).map(normalizeTask);
-          } catch {
-            // ignore
-          }
-        }
-      }
-    }
-
-    if (isDemoUser()) {
-      return JSON.parse(JSON.stringify(mockTasks)).map(normalizeTask);
-    }
-
-    return [];
+    const response = await api.get('/tasks', { params: { limit: 100 } });
+    const items = responseData(response);
+    return Array.isArray(items) ? items.map(normalizeTask) : [];
   },
 
-  /**
-   * Fetch task details by ID.
-   */
   getTaskById: async (taskId) => {
-    try {
-      const response = await api.get(`/tasks/${taskId}`);
-      const data = response.data?.data || response.data;
-      if (data) {
-        return normalizeTask(data);
-      }
-    } catch (err) {
-      // Fallback to local mock data if offline or demo
-    }
-
-    const tasks = JSON.parse(JSON.stringify(mockTasks));
-    const task = tasks.find((t) => String(t.id) === String(taskId));
-    if (!task) {
-      throw new Error(`Task with ID ${taskId} not found.`);
-    }
-
-    task.attachments = JSON.parse(JSON.stringify(mockAttachments[taskId] || []));
-    task.comments = JSON.parse(JSON.stringify(mockTaskComments[taskId] || []));
-    task.submissions = JSON.parse(JSON.stringify(mockSubmissions[taskId] || []));
-
-    return normalizeTask(task);
+    const response = await api.get(`/tasks/${taskId}`);
+    return normalizeTask(responseData(response));
   },
 
-  /**
-   * Update task status.
-   */
   updateTaskStatus: async (taskId, status) => {
-    try {
-      const response = await api.patch(`/tasks/${taskId}/status`, { status });
-      const updated = response.data?.data || response.data;
-      if (updated) return normalizeTask(updated);
-    } catch (err) {
-      // Fallback for offline/demo
-    }
-
-    const taskIdx = mockTasks.findIndex((t) => String(t.id) === String(taskId));
-    if (taskIdx !== -1) {
-      mockTasks[taskIdx].status = status;
-      if (status === 'completed') {
-        mockTasks[taskIdx].progress = 100;
-        mockTasks[taskIdx].completedAt = new Date().toISOString().split('T')[0];
-      }
-      return normalizeTask(mockTasks[taskIdx]);
-    }
-
-    return { id: taskId, status };
+    const response = await api.patch(`/tasks/${taskId}/status`, { status });
+    return normalizeTask(responseData(response));
   },
 
-  /**
-   * Upload a deliverable submission.
-   */
-  submitTaskDeliverable: async (taskId, fileMetadata) => {
-    try {
-      await api.patch(`/tasks/${taskId}/status`, { status: 'submitted' });
-    } catch {
-      // ignore
-    }
-
-    const newSubmission = {
-      id: `sub-${taskId}-${Date.now()}`,
-      submittedAt: new Date().toISOString(),
-      fileName: fileMetadata.name,
-      fileSize: fileMetadata.size,
-      status: 'under-review',
-      feedback: null,
-      feedbackAuthor: null,
-      feedbackDate: null,
-    };
-
-    if (!mockSubmissions[taskId]) {
-      mockSubmissions[taskId] = [];
-    }
-    mockSubmissions[taskId].unshift(newSubmission);
-
-    return newSubmission;
-  },
-
-  /**
-   * Fetch comments for a task.
-   */
-  getTaskComments: async (taskId) => {
-    return JSON.parse(JSON.stringify(mockTaskComments[taskId] || []));
-  },
-
-  /**
-   * Add a new comment to a task.
-   */
-  addTaskComment: async (taskId, commentData) => {
-    if (!mockTaskComments[taskId]) {
-      mockTaskComments[taskId] = [];
-    }
-
-    const newComment = {
-      id: `c-${taskId}-${Date.now()}`,
-      authorName: commentData.authorName || 'Intern User',
-      authorRole: commentData.authorRole || 'Intern',
-      avatar: commentData.avatar || null,
-      timestamp: new Date().toISOString(),
-      message: commentData.message,
-    };
-
-    mockTaskComments[taskId].push(newComment);
-    return newComment;
-  },
+  // The backend currently has no deliverable or discussion endpoints. Failing
+  // explicitly prevents the UI from reporting browser-only records as saved.
+  submitTaskDeliverable: async () => unsupported('Deliverable upload'),
+  getTaskComments: async () => unsupported('Task comments'),
+  addTaskComment: async () => unsupported('Task comments'),
 };
 
 export default taskService;
