@@ -13,6 +13,7 @@ import {
   RiTimeLine,
   RiShieldCheckLine,
   RiHistoryLine,
+  RiComputerLine,
 } from 'react-icons/ri';
 
 import { useSupervisorReviewStore } from '../../store/useSupervisorReviewStore';
