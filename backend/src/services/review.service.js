@@ -74,6 +74,32 @@ const toTaskReview = (row) => ({
   metrics: { source: 'task_review', rating: row.rating },
 });
 
+const toSupervisorTaskReview = (row) => {
+  const firstName = row.intern_first_name || '';
+  const lastName = row.intern_last_name || '';
+  const internName = `${firstName} ${lastName}`.trim() || 'Intern';
+  const internInitials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || 'IN';
+
+  return {
+    id: row.id,
+    internId: row.intern_id,
+    internName,
+    internInitials,
+    internDepartment: row.department_name || 'Unassigned',
+    taskTitle: row.task_title || 'Task Review',
+    decision: row.status === 'revision_requested' ? 'needs-revision' : row.status,
+    score: row.rating == null ? null : Number(row.rating) * 20,
+    feedback: row.feedback || '',
+    reviewedAt: row.reviewed_at || row.created_at,
+    reviewerName: row.reviewer_first_name
+      ? `${row.reviewer_first_name} ${row.reviewer_last_name || ''}`.trim()
+      : 'Supervisor',
+    recommendation: '',
+    strengths: [],
+    areasForImprovement: [],
+  };
+};
+
 const emptyTrends = {
   trends: [],
   radarData: [],
@@ -91,6 +117,30 @@ const sortByDateDesc = (items) =>
   items.sort((a, b) => new Date(b.reviewDate || b.scheduledAt || 0) - new Date(a.reviewDate || a.scheduledAt || 0));
 
 const ReviewService = {
+  async listSupervisorReviewHistory(requestingUser) {
+    const res = await query(
+      `SELECT
+         tr.*,
+         t.title AS task_title,
+         t.assignee_id AS intern_id,
+         intern.first_name AS intern_first_name,
+         intern.last_name AS intern_last_name,
+         department.name AS department_name,
+         reviewer.first_name AS reviewer_first_name,
+         reviewer.last_name AS reviewer_last_name
+       FROM task_reviews tr
+       JOIN tasks t ON t.id = tr.task_id
+       JOIN users intern ON intern.id = t.assignee_id
+       LEFT JOIN departments department ON department.id = t.department_id
+       LEFT JOIN users reviewer ON reviewer.id = tr.reviewer_id
+       WHERE tr.reviewer_id = $1
+       ORDER BY tr.reviewed_at DESC, tr.created_at DESC`,
+      [requestingUser.id]
+    );
+
+    return res.rows.map(toSupervisorTaskReview);
+  },
+
   async listInternReviews(requestingUser) {
     const [reports, weekly, taskReviews] = await Promise.all([
       query(

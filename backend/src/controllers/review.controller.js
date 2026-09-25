@@ -10,6 +10,14 @@ const listReviews = asyncHandler(async (req, res) => {
   });
 });
 
+const listSupervisorReviewHistory = asyncHandler(async (req, res) => {
+  const result = await ReviewService.listSupervisorReviewHistory(req.user);
+  return sendSuccess(res, {
+    message: 'Supervisor review history retrieved successfully',
+    data: result,
+  });
+});
+
 const getReviewById = asyncHandler(async (req, res) => {
   const result = await ReviewService.getInternReviewById(req.params.reviewId, req.user);
   return sendSuccess(res, {
@@ -44,6 +52,7 @@ const submitSelfAssessment = asyncHandler(async (req, res) => {
 
 module.exports = {
   listReviews,
+  listSupervisorReviewHistory,
   getReviewById,
   getPerformanceTrends,
   getDevelopmentGoals,

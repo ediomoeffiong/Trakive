@@ -37,8 +37,8 @@ const NotificationGroup = ({
         style={{
           padding: '0.5rem 1.25rem',
           background: 'var(--color-neutral-50)',
-          borderBottom: '1px solid var(--color-neutral-100)',
-          borderTop: '1px solid var(--color-neutral-100)',
+          borderBottom: '1px solid var(--color-neutral-200)',
+          borderTop: '1px solid var(--color-neutral-200)',
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem',
@@ -62,7 +62,7 @@ const NotificationGroup = ({
             padding: '1px 7px',
             borderRadius: '999px',
             background: 'var(--color-neutral-200)',
-            color: 'var(--color-neutral-600)',
+            color: 'var(--color-neutral-700)',
           }}
         >
           {notifications.length}

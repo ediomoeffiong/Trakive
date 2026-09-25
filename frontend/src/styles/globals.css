@@ -1238,6 +1238,20 @@ a {
   --surface-page:    #0b1120;
   --surface-primary: #111827;
 
+  /* Dark mode variants for brand & status tint surfaces */
+  --color-primary-50:  rgba(0, 180, 216, 0.12);
+  --color-primary-100: rgba(0, 180, 216, 0.22);
+  --color-primary-200: rgba(0, 180, 216, 0.35);
+
+  --color-success-50:  rgba(34, 197, 94, 0.12);
+  --color-success-100: rgba(34, 197, 94, 0.22);
+
+  --color-warning-50:  rgba(245, 158, 11, 0.12);
+  --color-warning-100: rgba(245, 158, 11, 0.22);
+
+  --color-danger-50:   rgba(239, 68, 68, 0.12);
+  --color-danger-100:  rgba(239, 68, 68, 0.22);
+
   /* Shadow deepening */
   --shadow-card:       0 1px 4px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
   --shadow-card-hover: 0 4px 20px 0 rgb(0 0 0 / 0.45), 0 2px 8px -2px rgb(0 0 0 / 0.35);
@@ -1318,6 +1332,38 @@ a {
 @keyframes skeleton-shimmer {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* ── Notification Components ─────────────────────────────────────────────────── */
+.notification-item {
+  background: var(--surface-primary);
+  border-bottom: 1px solid var(--color-neutral-100);
+  transition: background 0.15s ease;
+}
+
+.dark .notification-item {
+  background: var(--surface-primary);
+  border-bottom-color: var(--color-neutral-200);
+}
+
+.notification-item:hover {
+  background: var(--color-neutral-50) !important;
+}
+
+.dark .notification-item:hover {
+  background: var(--color-neutral-100) !important;
+}
+
+.notification-item.unread {
+  background: linear-gradient(to right, rgba(0, 180, 216, 0.05) 0%, var(--surface-primary) 100%);
+}
+
+.dark .notification-item.unread {
+  background: linear-gradient(to right, rgba(0, 180, 216, 0.12) 0%, var(--surface-primary) 100%);
+}
+
+.notification-item.selected {
+  background: var(--color-primary-50) !important;
 }
 
 /* ── Settings module layout utilities ────────────────────────────────────────── */

@@ -73,7 +73,7 @@ function PaginationControls({ currentPage, totalPages, totalItems, pageSize = 10
         justifyContent: 'space-between',
         padding: '0.75rem 1.25rem',
         borderTop: '1px solid var(--color-neutral-200)',
-        background: '#fff',
+        background: 'var(--surface-primary)',
         fontSize: '0.8125rem',
         color: 'var(--color-neutral-600)',
         flexShrink: 0,
@@ -195,7 +195,7 @@ function NotificationsTabContent({ isMobile }) {
       <div
         style={{
           flex: 1,
-          background: '#fff',
+          background: 'var(--surface-primary)',
           borderRadius: '1rem',
           border: '1px solid var(--color-neutral-200)',
           overflow: 'hidden',
@@ -578,7 +578,7 @@ const NotificationsPage = () => {
           display: 'flex',
           alignItems: 'center',
           gap: 0,
-          borderBottom: '2px solid var(--color-neutral-100)',
+          borderBottom: '2px solid var(--color-neutral-200)',
         }}
         role="tablist"
         aria-label="Notification sections"

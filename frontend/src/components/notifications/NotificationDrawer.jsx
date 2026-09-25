@@ -118,9 +118,9 @@ const NotificationDrawer = () => {
                 right: 0,
                 width: 360,
                 maxHeight: 'calc(100vh - 100px)',
-                background: '#fff',
+                background: 'var(--surface-primary)',
                 borderRadius: '1rem',
-                boxShadow: '0 12px 40px rgba(0,0,0,0.13)',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
                 zIndex: 51,
                 overflow: 'hidden',
                 border: '1px solid var(--color-neutral-200)',
@@ -132,12 +132,12 @@ const NotificationDrawer = () => {
               <div
                 style={{
                   padding: '1rem 1.25rem',
-                  borderBottom: '1px solid var(--color-neutral-100)',
+                  borderBottom: '1px solid var(--color-neutral-200)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flexShrink: 0,
-                  background: 'linear-gradient(135deg, #f8faff, #fff)',
+                  background: 'var(--surface-primary)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
@@ -214,7 +214,7 @@ const NotificationDrawer = () => {
               <div
                 style={{
                   padding: '0.75rem',
-                  borderTop: '1px solid var(--color-neutral-100)',
+                  borderTop: '1px solid var(--color-neutral-200)',
                   background: 'var(--color-neutral-50)',
                   flexShrink: 0,
                 }}

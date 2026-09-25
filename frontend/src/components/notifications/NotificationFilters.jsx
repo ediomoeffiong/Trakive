@@ -83,8 +83,8 @@ const NotificationFilters = () => {
                   position: 'absolute',
                   inset: 0,
                   borderRadius: '0.5rem',
-                  background: '#fff',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                  background: 'var(--surface-primary)',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
                   zIndex: -1,
                 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
@@ -109,11 +109,11 @@ const NotificationFilters = () => {
             padding: '0.375rem 0.875rem',
             borderRadius: '0.625rem',
             border: `1px solid ${filters.category !== 'all' ? 'var(--color-primary-400)' : 'var(--color-neutral-200)'}`,
-            background: filters.category !== 'all' ? 'var(--color-primary-50)' : '#fff',
+            background: filters.category !== 'all' ? 'var(--color-primary-50)' : 'var(--surface-primary)',
             color:
               filters.category !== 'all'
-                ? 'var(--color-primary-700)'
-                : 'var(--color-neutral-600)',
+                ? 'var(--color-primary-600)'
+                : 'var(--color-neutral-700)',
             fontSize: '0.8125rem',
             fontWeight: 600,
             cursor: 'pointer',
@@ -156,9 +156,9 @@ const NotificationFilters = () => {
                   top: 'calc(100% + 6px)',
                   left: 0,
                   width: 220,
-                  background: '#fff',
+                  background: 'var(--surface-primary)',
                   borderRadius: '0.75rem',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
                   border: '1px solid var(--color-neutral-200)',
                   zIndex: 201,
                   overflow: 'hidden',

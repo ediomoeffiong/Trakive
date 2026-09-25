@@ -37,7 +37,7 @@ function CategoryIcon({ category }) {
         width: 40,
         height: 40,
         borderRadius: '50%',
-        background: config.bgColor,
+        background: `color-mix(in srgb, ${config.color} 14%, var(--surface-primary))`,
         color: config.color,
         fontSize: '1.125rem',
         flexShrink: 0,
@@ -113,30 +113,15 @@ const NotificationItem = ({
       transition={{ duration: 0.22 }}
       role="article"
       aria-label={`${isRead ? 'Read' : 'Unread'} notification: ${title}`}
+      className={`notification-item ${!isRead ? 'unread' : ''} ${selected ? 'selected' : ''}`}
       style={{
         position: 'relative',
         display: 'flex',
         alignItems: 'flex-start',
         gap: compact ? '0.75rem' : '1rem',
         padding: compact ? '0.75rem 1rem' : '1rem 1.25rem',
-        background: selected
-          ? 'var(--color-primary-50)'
-          : isRead
-          ? '#fff'
-          : 'linear-gradient(to right, #f0f4ff 0%, #fff 100%)',
-        borderBottom: '1px solid var(--color-neutral-100)',
         cursor: 'pointer',
-        transition: 'background 0.15s ease',
         borderLeft: !isRead ? `3px solid ${catConfig.color}` : '3px solid transparent',
-      }}
-      onMouseEnter={(e) => {
-        if (!selected) e.currentTarget.style.background = 'var(--color-neutral-50)';
-      }}
-      onMouseLeave={(e) => {
-        if (!selected)
-          e.currentTarget.style.background = isRead
-            ? '#fff'
-            : 'linear-gradient(to right, #f0f4ff 0%, #fff 100%)';
       }}
       onClick={handleItemClick}
     >
@@ -224,9 +209,10 @@ const NotificationItem = ({
                 fontWeight: 600,
                 padding: '1px 8px',
                 borderRadius: '999px',
-                background: catConfig.bgColor,
+                background: `color-mix(in srgb, ${catConfig.color} 14%, var(--surface-primary))`,
                 color: catConfig.color,
                 textTransform: 'capitalize',
+                border: `1px solid color-mix(in srgb, ${catConfig.color} 24%, transparent)`,
               }}
             >
               {catConfig.label}
@@ -246,17 +232,17 @@ const NotificationItem = ({
                 gap: '0.2rem',
                 padding: '0.15rem 0.55rem',
                 borderRadius: '0.375rem',
-                background: '#e0f2fe',
-                color: '#0284c7',
-                border: '1px solid #bae6fd',
+                background: 'var(--color-primary-50)',
+                color: 'var(--color-primary-600)',
+                border: '1px solid var(--color-primary-200)',
                 fontSize: '0.72rem',
                 fontWeight: 700,
                 cursor: 'pointer',
                 marginLeft: 'auto',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#bae6fd'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#e0f2fe'}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-primary-100)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'var(--color-primary-50)'}
             >
               {viewButtonLabel} <RiArrowRightSLine />
             </button>
@@ -299,9 +285,9 @@ const NotificationItem = ({
                     top: '100%',
                     right: 0,
                     width: 190,
-                    background: '#fff',
+                    background: 'var(--surface-primary)',
                     borderRadius: '0.625rem',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
                     border: '1px solid var(--color-neutral-200)',
                     zIndex: 101,
                     padding: '0.25rem',

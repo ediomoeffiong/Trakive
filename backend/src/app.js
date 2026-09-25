@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const config = require('./config/env');
-const { securityHeaders, apiLimiter } = require('./middleware/security.middleware');
+const { securityHeaders, permissionsPolicy, apiLimiter } = require('./middleware/security.middleware');
 const rewriteUnprefixedApi = require('./middleware/apiPrefix.middleware');
 const requestLogger = require('./middleware/requestLogger.middleware');
 const notFoundHandler = require('./middleware/notFound.middleware');
@@ -20,6 +20,7 @@ app.set('trust proxy', 1);
 
 // Security HTTP headers
 app.use(securityHeaders);
+app.use(permissionsPolicy);
 
 // CORS configuration — CORS_ORIGIN may be a single origin or a comma-separated list
 app.use(

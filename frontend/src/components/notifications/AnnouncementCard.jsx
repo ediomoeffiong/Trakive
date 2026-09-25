@@ -14,14 +14,14 @@ import Avatar from '../ui/Avatar';
 const PRIORITY_META = {
   important: {
     label: 'Important',
-    bg: 'linear-gradient(135deg, #fff7ed, #fff)',
-    border: '#fed7aa',
-    badge: { bg: '#fff7ed', color: '#ea580c' },
+    bg: 'var(--surface-primary)',
+    border: 'var(--color-warning-500)',
+    badge: { bg: 'var(--color-warning-50)', color: 'var(--color-warning-600)' },
     icon: <RiAlarmLine />,
   },
   general: {
     label: 'General',
-    bg: '#fff',
+    bg: 'var(--surface-primary)',
     border: 'var(--color-neutral-200)',
     badge: { bg: 'var(--color-neutral-100)', color: 'var(--color-neutral-600)' },
     icon: <RiMegaphoneLine />,
@@ -29,9 +29,9 @@ const PRIORITY_META = {
 };
 
 const TYPE_META = {
-  event: { label: 'Event', bg: '#eff6ff', color: '#2563eb' },
+  event: { label: 'Event', bg: 'var(--color-primary-50)', color: 'var(--color-primary-600)' },
   general: { label: 'General', bg: 'var(--color-neutral-100)', color: 'var(--color-neutral-600)' },
-  reminder: { label: 'Reminder', bg: '#f0fdfa', color: '#0d9488' },
+  reminder: { label: 'Reminder', bg: 'var(--color-success-50)', color: 'var(--color-success-600)' },
 };
 
 /**
@@ -208,8 +208,8 @@ const AnnouncementCard = ({ announcement }) => {
             <div
               style={{
                 padding: '1.25rem',
-                borderTop: '1px solid var(--color-neutral-100)',
-                background: 'rgba(255,255,255,0.7)',
+                borderTop: '1px solid var(--color-neutral-200)',
+                background: 'var(--color-neutral-50)',
               }}
             >
               <p

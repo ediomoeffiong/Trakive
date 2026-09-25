@@ -77,7 +77,7 @@ function NotificationsTabContent({ isMobile }) {
 
   return (
     <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start', flex: 1, minHeight: 0 }}>
-      <div style={{ flex: 1, background: '#fff', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', minHeight: 300 }}>
+      <div style={{ flex: 1, background: 'var(--surface-primary)', borderRadius: '1rem', border: '1px solid var(--color-neutral-200)', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', minHeight: 300 }}>
         {loadingNotifications ? (
           <NotificationListSkeleton count={6} />
         ) : !hasAny ? (
@@ -223,7 +223,7 @@ const NotificationsPage = () => {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '2px solid var(--color-neutral-100)', gap: 0 }} role="tablist">
+      <div style={{ display: 'flex', borderBottom: '2px solid var(--color-neutral-200)', gap: 0 }} role="tablist">
         {TABS.map((tab) => (
           <button
             key={tab.key}

@@ -4,6 +4,12 @@ const ReviewController = require('../../controllers/review.controller');
 
 const router = express.Router();
 
+router.get(
+  '/supervisor/history',
+  authenticate,
+  requireRole('supervisor', 'admin', 'hr', 'head'),
+  ReviewController.listSupervisorReviewHistory
+);
 router.get('/', authenticate, requireRole('intern'), ReviewController.listReviews);
 router.get('/performance-trends', authenticate, requireRole('intern'), ReviewController.getPerformanceTrends);
 router.get('/development-goals', authenticate, requireRole('intern'), ReviewController.getDevelopmentGoals);

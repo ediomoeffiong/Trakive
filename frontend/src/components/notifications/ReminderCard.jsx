@@ -17,23 +17,27 @@ import ProgressBar from '../ui/ProgressBar';
 const TYPE_META = {
   deadline: {
     Icon: RiTimeLine,
-    color: '#f97316',
-    bg: '#fff7ed',
+    color: 'var(--color-warning-500)',
+    bg: 'var(--color-warning-50)',
+    border: 'var(--color-warning-100)',
   },
   onboarding: {
     Icon: RiMapLine,
-    color: '#0ea5e9',
-    bg: '#f0f9ff',
+    color: 'var(--color-primary-500)',
+    bg: 'var(--color-primary-50)',
+    border: 'var(--color-primary-100)',
   },
   review: {
     Icon: RiStarLine,
     color: '#8b5cf6',
-    bg: '#f5f3ff',
+    bg: 'rgba(139, 92, 246, 0.12)',
+    border: 'rgba(139, 92, 246, 0.25)',
   },
   profile: {
     Icon: RiUser3Line,
     color: '#3b82f6',
-    bg: '#eff6ff',
+    bg: 'rgba(59, 130, 246, 0.12)',
+    border: 'rgba(59, 130, 246, 0.25)',
   },
 };
 
@@ -46,9 +50,9 @@ const URGENCY_BORDER = {
 };
 
 const URGENCY_BADGE = {
-  critical: { label: 'Due Today',  bg: '#fef2f2', color: '#dc2626' },
-  overdue:  { label: 'Overdue',    bg: '#fef2f2', color: '#dc2626' },
-  warning:  { label: 'Coming Soon',bg: '#fff7ed', color: '#c2410c' },
+  critical: { label: 'Due Today',  bg: 'var(--color-danger-50)', color: 'var(--color-danger-500)' },
+  overdue:  { label: 'Overdue',    bg: 'var(--color-danger-50)', color: 'var(--color-danger-500)' },
+  warning:  { label: 'Coming Soon',bg: 'var(--color-warning-50)', color: 'var(--color-warning-500)' },
   normal:   { label: null, bg: null, color: null },
 };
 
@@ -76,7 +80,7 @@ const ReminderCard = ({ reminder, compact = false }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       style={{
-        background: '#fff',
+        background: 'var(--surface-primary)',
         border: `1px solid ${borderColor}`,
         borderRadius: '0.875rem',
         padding: compact ? '0.875rem 1rem' : '1rem 1.25rem',
@@ -84,8 +88,8 @@ const ReminderCard = ({ reminder, compact = false }) => {
         alignItems: compact ? 'center' : 'flex-start',
         gap: '0.875rem',
         boxShadow: urgency === 'critical' || urgency === 'overdue'
-          ? '0 2px 12px rgba(239,68,68,0.08)'
-          : '0 2px 8px rgba(0,0,0,0.04)',
+          ? '0 2px 12px rgba(239,68,68,0.15)'
+          : '0 2px 8px rgba(0,0,0,0.06)',
         transition: 'transform 0.15s',
       }}
       whileHover={{ scale: 1.01 }}
@@ -200,7 +204,7 @@ const ReminderCard = ({ reminder, compact = false }) => {
             fontSize: '0.75rem',
             fontWeight: 700,
             color: meta.color,
-            border: `1px solid ${meta.bg === '#fff7ed' ? '#fed7aa' : meta.bg}`,
+            border: `1px solid ${meta.border || meta.bg}`,
             borderRadius: '0.5rem',
             padding: '0.375rem 0.75rem',
             gap: '0.25rem',

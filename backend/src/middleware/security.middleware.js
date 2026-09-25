@@ -21,6 +21,17 @@ const securityHeaders = helmet({
   referrerPolicy: { policy: 'no-referrer' },
 });
 
+// Keep the policy deliberately small and standards-based. Older ad-tech
+// directives such as join-ad-interest-group and run-ad-auction generate
+// browser console warnings after being removed from some Chromium versions.
+const permissionsPolicy = (req, res, next) => {
+  res.setHeader(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=()'
+  );
+  next();
+};
+
 // Configure General API Rate Limiter
 const apiLimiter = rateLimit({
   windowMs: config.rateLimit.windowMs,
@@ -49,6 +60,7 @@ const authLimiter = rateLimit({
 
 module.exports = {
   securityHeaders,
+  permissionsPolicy,
   apiLimiter,
   authLimiter,
 };

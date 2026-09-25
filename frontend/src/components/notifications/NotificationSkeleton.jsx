@@ -14,7 +14,7 @@ export function NotificationItemSkeleton({ compact = false }) {
         display: 'flex',
         gap: compact ? '0.75rem' : '1rem',
         padding: compact ? '0.75rem 1rem' : '1rem 1.25rem',
-        borderBottom: '1px solid var(--color-neutral-100)',
+        borderBottom: '1px solid var(--color-neutral-200)',
         alignItems: 'flex-start',
       }}
       aria-hidden
@@ -52,7 +52,7 @@ export function DrawerSkeleton() {
       <div
         style={{
           padding: '1rem 1.25rem',
-          borderBottom: '1px solid var(--color-neutral-100)',
+          borderBottom: '1px solid var(--color-neutral-200)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -104,7 +104,7 @@ export function AnnouncementCardSkeleton() {
         padding: '1.25rem',
         borderRadius: '0.875rem',
         border: '1px solid var(--color-neutral-200)',
-        background: '#fff',
+        background: 'var(--surface-primary)',
         marginBottom: '1rem',
       }}
       aria-hidden
@@ -132,7 +132,7 @@ export function ReminderCardSkeleton() {
         padding: '1rem 1.25rem',
         borderRadius: '0.875rem',
         border: '1px solid var(--color-neutral-200)',
-        background: '#fff',
+        background: 'var(--surface-primary)',
         marginBottom: '0.75rem',
         display: 'flex',
         gap: '1rem',

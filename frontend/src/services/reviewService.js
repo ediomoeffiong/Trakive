@@ -373,10 +373,20 @@ export const reviewService = {
   fetchReviewHistory: async (filters = {}) => {
     if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
       try {
-        const res = await api.get('/reviews');
+        const res = await api.get('/reviews/supervisor/history');
         const list = res?.data?.data?.items || res?.data?.items || (Array.isArray(res?.data?.data) ? res.data.data : []) || [];
-        return list;
+        const { internId, internSearch, department, decision, dateFrom, dateTo } = filters;
+        return list.filter((review) => {
+          if (internId && String(review.internId) !== String(internId)) return false;
+          if (internSearch && !String(review.internName || '').toLowerCase().includes(internSearch.toLowerCase())) return false;
+          if (department && review.internDepartment !== department) return false;
+          if (decision && review.decision !== decision) return false;
+          if (dateFrom && new Date(review.reviewedAt) < new Date(dateFrom)) return false;
+          if (dateTo && new Date(review.reviewedAt) > new Date(`${dateTo}T23:59:59.999`)) return false;
+          return true;
+        });
       } catch (e) {
+        logWarn('Failed to fetch supervisor review history:', e);
         return [];
       }
     }

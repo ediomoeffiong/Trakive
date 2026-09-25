@@ -26,10 +26,10 @@ const ICON_MAP = {
 };
 
 const PRIORITY_META = {
-  urgent: { label: 'Urgent', bg: '#fef2f2', color: '#ef4444' },
-  high:   { label: 'High',   bg: '#fff7ed', color: '#f97316' },
-  normal: { label: 'Normal', bg: '#f0f4ff', color: '#6366f1' },
-  low:    { label: 'Low',    bg: '#f9fafb', color: '#9ca3af' },
+  urgent: { label: 'Urgent', bg: 'var(--color-danger-50)', color: 'var(--color-danger-500)', border: 'var(--color-danger-100)' },
+  high:   { label: 'High',   bg: 'var(--color-warning-50)', color: 'var(--color-warning-500)', border: 'var(--color-warning-100)' },
+  normal: { label: 'Normal', bg: 'var(--color-primary-50)', color: 'var(--color-primary-500)', border: 'var(--color-primary-100)' },
+  low:    { label: 'Low',    bg: 'var(--color-neutral-100)', color: 'var(--color-neutral-500)', border: 'var(--color-neutral-200)' },
 };
 
 /**
@@ -72,7 +72,7 @@ const NotificationDetailPanel = ({ notification, onClose, isMobile = false }) =>
           alignItems: 'flex-start',
           gap: '1rem',
           padding: '1.25rem 1.5rem',
-          borderBottom: '1px solid var(--color-neutral-100)',
+          borderBottom: '1px solid var(--color-neutral-200)',
         }}
       >
         {/* Category icon */}
@@ -84,7 +84,7 @@ const NotificationDetailPanel = ({ notification, onClose, isMobile = false }) =>
             width: 48,
             height: 48,
             borderRadius: '50%',
-            background: catConfig.bgColor,
+            background: `color-mix(in srgb, ${catConfig.color} 14%, var(--surface-primary))`,
             color: catConfig.color,
             fontSize: '1.375rem',
             flexShrink: 0,
@@ -156,7 +156,7 @@ const NotificationDetailPanel = ({ notification, onClose, isMobile = false }) =>
             background: 'var(--color-neutral-50)',
             borderRadius: '0.75rem',
             marginBottom: '1.5rem',
-            border: '1px solid var(--color-neutral-100)',
+            border: '1px solid var(--color-neutral-200)',
           }}
         >
           {/* Sender */}
@@ -213,6 +213,7 @@ const NotificationDetailPanel = ({ notification, onClose, isMobile = false }) =>
                 fontWeight: 700,
                 background: priorityMeta.bg,
                 color: priorityMeta.color,
+                border: `1px solid ${priorityMeta.border || 'transparent'}`,
                 textTransform: 'capitalize',
               }}
             >
@@ -276,7 +277,7 @@ const NotificationDetailPanel = ({ notification, onClose, isMobile = false }) =>
         <div
           style={{
             padding: '1rem 1.5rem',
-            borderTop: '1px solid var(--color-neutral-100)',
+            borderTop: '1px solid var(--color-neutral-200)',
             background: 'var(--color-neutral-50)',
           }}
         >
@@ -310,11 +311,11 @@ const NotificationDetailPanel = ({ notification, onClose, isMobile = false }) =>
           flexShrink: 0,
           border: '1px solid var(--color-neutral-200)',
           borderRadius: '1rem',
-          background: '#fff',
+          background: 'var(--surface-primary)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
         }}
         aria-label="Notification detail"
         role="complementary"
@@ -350,13 +351,13 @@ const NotificationDetailPanel = ({ notification, onClose, isMobile = false }) =>
           left: 0,
           right: 0,
           zIndex: 301,
-          background: '#fff',
+          background: 'var(--surface-primary)',
           borderRadius: '1.25rem 1.25rem 0 0',
           maxHeight: '85vh',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          boxShadow: '0 -8px 32px rgba(0,0,0,0.12)',
+          boxShadow: '0 -8px 32px rgba(0,0,0,0.25)',
         }}
         role="dialog"
         aria-modal="true"

@@ -152,23 +152,24 @@ const NotificationPreferencesModal = ({ open, onClose }) => {
               width: '90vw',
               maxWidth: 540,
               maxHeight: '85vh',
-              background: '#fff',
+              background: 'var(--surface-primary)',
               borderRadius: '1.125rem',
-              boxShadow: '0 24px 64px rgba(0,0,0,0.16)',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.35)',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
+              border: '1px solid var(--color-neutral-200)',
             }}
           >
             {/* Header */}
             <div
               style={{
                 padding: '1.25rem 1.5rem',
-                borderBottom: '1px solid var(--color-neutral-100)',
+                borderBottom: '1px solid var(--color-neutral-200)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.75rem',
-                background: 'linear-gradient(135deg, #f8faff, #fff)',
+                background: 'var(--surface-primary)',
                 flexShrink: 0,
               }}
             >
@@ -180,8 +181,8 @@ const NotificationPreferencesModal = ({ open, onClose }) => {
                   width: 36,
                   height: 36,
                   borderRadius: '0.625rem',
-                  background: 'var(--color-primary-100)',
-                  color: 'var(--color-primary-600)',
+                  background: 'var(--color-primary-50)',
+                  color: 'var(--color-primary-500)',
                   fontSize: '1.125rem',
                 }}
                 aria-hidden
@@ -241,7 +242,7 @@ const NotificationPreferencesModal = ({ open, onClose }) => {
                             gap: '1rem',
                             padding: '0.875rem 1rem',
                             borderBottom: ii < section.items.length - 1
-                              ? '1px solid var(--color-neutral-100)' : 'none',
+                              ? '1px solid var(--color-neutral-200)' : 'none',
                             opacity: item.disabled ? 0.5 : 1,
                           }}
                         >
@@ -282,7 +283,7 @@ const NotificationPreferencesModal = ({ open, onClose }) => {
             <div
               style={{
                 padding: '1rem 1.5rem',
-                borderTop: '1px solid var(--color-neutral-100)',
+                borderTop: '1px solid var(--color-neutral-200)',
                 display: 'flex',
                 gap: '0.75rem',
                 justifyContent: 'flex-end',
