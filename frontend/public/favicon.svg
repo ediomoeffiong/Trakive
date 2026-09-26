@@ -1,5 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none">
-  <rect width="32" height="32" rx="8" fill="#0096c7" />
-  <path d="M16 10L22 13.5V18.5L16 22L10 18.5V13.5L16 10Z" fill="white" opacity="0.9" />
-  <path d="M16 10L22 13.5L16 17L10 13.5L16 10Z" fill="white" />
+  <title>Trakive</title>
+  <rect x="2" y="2" width="28" height="28" rx="6" fill="#0096c7" />
+  <path d="m16 8.5 7 4.05-7 4.05-7-4.05 7-4.05Z" fill="white" />
+  <path d="m9 12.55 7 4.05v7.9l-7-4.05v-7.9Z" fill="white" opacity=".9" />
+  <path d="m23 12.55-7 4.05v7.9l7-4.05v-7.9Z" fill="white" opacity=".78" />
 </svg>
