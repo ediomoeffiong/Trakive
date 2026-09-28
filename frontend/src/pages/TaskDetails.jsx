@@ -279,6 +279,12 @@ export default function TaskDetails() {
   const safeObjectives = Array.isArray(objectives) ? objectives : [];
   const doneObj = safeObjectives.filter(o => o && o.checked).length;
   const totalObj = safeObjectives.length;
+  const remainingDays = Number(currentTask.remainingDays);
+  const hasRemainingDays = currentTask.remainingDays !== null
+    && currentTask.remainingDays !== undefined
+    && currentTask.remainingDays !== ''
+    && Number.isFinite(remainingDays);
+  const isOverdue = !currentTask.completedAt && hasRemainingDays && remainingDays < 0;
 
   const currentStepIndex = STATUS_ORDER.indexOf(currentTask.status);
   const workflowStepIndex = step => STATUS_ORDER.indexOf(step.key);
@@ -365,7 +371,7 @@ export default function TaskDetails() {
               </span>
             </div>
           )}
-          {!isOverdue && currentTask.remainingDays <= 1 && !currentTask.completedAt && (
+          {!isOverdue && hasRemainingDays && remainingDays >= 0 && remainingDays <= 1 && !currentTask.completedAt && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: '0.625rem',
               padding: '0.75rem 1rem', background: '#fffbeb', border: '1px solid #fde68a',
@@ -373,7 +379,7 @@ export default function TaskDetails() {
             }}>
               <RiAlarmWarningLine style={{ color: '#d97706', fontSize: '1.1rem', flexShrink: 0 }} />
               <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#d97706' }}>
-                Deadline approaching — due {currentTask.remainingDays === 0 ? 'today' : 'tomorrow'} ({currentTask.dueDate}).
+                Deadline approaching — due {remainingDays === 0 ? 'today' : 'tomorrow'} ({currentTask.dueDate}).
               </span>
             </div>
           )}
