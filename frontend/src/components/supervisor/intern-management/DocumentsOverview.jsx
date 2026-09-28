@@ -24,11 +24,11 @@ import InternEmptyState from './InternEmptyStates';
 
 // ── Document Type Icons & Colors ──────────────────────────────────────────────
 const DOC_TYPE_CONFIG = {
-  CV: { icon: RiFileUserLine, color: '#0284c7', bg: '#e0f2fe' },
+  CV: { icon: RiFileUserLine, color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)' },
   'Offer Letter': { icon: RiFileShieldLine, color: '#059669', bg: '#ecfdf5' },
   'ID Card': { icon: RiFileImageLine, color: '#d97706', bg: '#fffbeb' },
-  Certificate: { icon: RiFilePdfLine, color: '#0891b2', bg: '#ecfeff' },
-  Portfolio: { icon: RiFileImageLine, color: '#0891b2', bg: '#ecfeff' },
+  Certificate: { icon: RiFilePdfLine, color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)' },
+  Portfolio: { icon: RiFileImageLine, color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)' },
   Agreement: { icon: RiFileTextLine, color: '#dc2626', bg: '#fef2f2' },
 };
 
@@ -203,7 +203,7 @@ const DocumentsOverview = ({ documents = [], isLoading = false }) => {
                     className="btn btn-ghost btn-icon"
                     title="View document"
                     onClick={() => handleView(doc)}
-                    style={{ fontSize: '1rem', padding: '0.375rem', color: '#0284c7' }}
+                    style={{ fontSize: '1rem', padding: '0.375rem', color: 'var(--color-primary-600)' }}
                   >
                     <RiEyeLine />
                   </button>

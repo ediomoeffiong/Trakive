@@ -270,7 +270,7 @@ export const reviewService = {
     try {
       const response = await api.get('/onboarding/supervisor/queue');
       const list = response?.data?.data || response?.data;
-      if (Array.isArray(list) && list.length > 0) {
+      if (Array.isArray(list)) {
         return list.map((item) => ({
           ...item,
           internId: item.internId || item.intern_id || item.user_id,
@@ -284,10 +284,10 @@ export const reviewService = {
     } catch (e) {
       logWarn('Backend API call for onboarding queue failed', e);
     }
-    if (import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
-      return [];
+    if (!import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true') {
+      return mockOnboardingApprovals || [];
     }
-    return mockOnboardingApprovals || [];
+    return [];
   },
 
   /**

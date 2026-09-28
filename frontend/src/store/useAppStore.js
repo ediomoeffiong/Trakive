@@ -75,6 +75,10 @@ const createAuthSlice = (set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await authService.login(credentials);
+      if (response.twoFactorRequired) {
+        set({ isLoading: false, error: null });
+        return response;
+      }
       const user = normalizePersonRecord(response.user);
       persistAuthTokens({
         accessToken: response.token || user?.accessToken || user?.token,
@@ -104,6 +108,23 @@ const createAuthSlice = (set, get) => ({
       return { ...response, user };
     } catch (err) {
       const friendlyError = formatUserFriendlyError(err, 'Login failed. Please check your credentials and try again.');
+      set({ error: friendlyError, isLoading: false });
+      throw new Error(friendlyError);
+    }
+  },
+
+  verifyTwoFactorLogin: async (challengeToken, code) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await authService.verifyTwoFactorLogin({ challengeToken, code });
+      const user = normalizePersonRecord(response.user);
+      persistAuthTokens({ accessToken: response.token, refreshToken: response.refreshToken });
+      resetSessionExpiredFlag();
+      resetApiSessionState();
+      set({ user, isAuthenticated: hasAuthTokens(), isLoading: false });
+      return { ...response, user };
+    } catch (err) {
+      const friendlyError = formatUserFriendlyError(err, 'The authentication code is invalid or expired.');
       set({ error: friendlyError, isLoading: false });
       throw new Error(friendlyError);
     }

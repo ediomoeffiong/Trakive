@@ -793,21 +793,21 @@ const AnalyticsService = {
         d.name AS department_name,
         
         -- Task metrics
-        COUNT(t.id)::int AS total_tasks,
-        COUNT(t.id) FILTER (WHERE t.status = 'completed')::int AS completed_tasks,
-        COUNT(t.id) FILTER (
+        COUNT(DISTINCT t.id)::int AS total_tasks,
+        COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'completed')::int AS completed_tasks,
+        COUNT(DISTINCT t.id) FILTER (
           WHERE t.status = 'completed'
             AND t.updated_at >= DATE_TRUNC('month', NOW())
         )::int AS current_month_completed,
-        COUNT(t.id) FILTER (
+        COUNT(DISTINCT t.id) FILTER (
           WHERE t.status = 'completed'
             AND t.updated_at >= DATE_TRUNC('month', NOW()) - INTERVAL '1 month'
             AND t.updated_at < DATE_TRUNC('month', NOW())
         )::int AS previous_month_completed,
         
         -- Attendance metrics
-        COUNT(a.id)::int AS total_attendance,
-        COUNT(a.id) FILTER (WHERE a.status IN ('present', 'late', 'remote', 'excused'))::int AS attended_days,
+        COUNT(DISTINCT a.id)::int AS total_attendance,
+        COUNT(DISTINCT a.id) FILTER (WHERE a.status IN ('present', 'late', 'remote', 'excused'))::int AS attended_days,
         COALESCE(MAX(ap.attendance_score_enabled::int), 1)::int AS attendance_score_enabled,
         COALESCE(MAX(ap.attendance_score_weight), 30)::numeric AS attendance_score_weight,
         
@@ -855,6 +855,8 @@ const AnalyticsService = {
         completed_tasks: row.completed_tasks,
         task_completion_rate: taskCompletionRate,
         attendance_rate: attendanceRate,
+        total_attendance: row.total_attendance,
+        attended_days: row.attended_days,
         attendance_score_enabled: attendanceEnabled,
         attendance_score_weight: Number(row.attendance_score_weight || 0),
         average_task_rating: avgRating,

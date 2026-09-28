@@ -64,12 +64,15 @@ const isDev = !import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH ===
 const Login = () => {
   const navigate = useNavigate();
   const loginFn = useAppStore((state) => state.login);
+  const verifyTwoFactorLogin = useAppStore((state) => state.verifyTwoFactorLogin);
   const authError = useAppStore((state) => state.error);
   const authLoading = useAppStore((state) => state.isLoading);
   const clearError = useAppStore((state) => state.clearError);
 
   const [showPassword, setShowPassword] = useState(false);
   const [selectedDemoRole, setSelectedDemoRole] = useState(null);
+  const [challengeToken, setChallengeToken] = useState('');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
 
   const {
     register,
@@ -108,10 +111,27 @@ const Login = () => {
   const onSubmit = async (data) => {
     try {
       const response = await loginFn({ email: data.email, password: data.password });
+      if (response.twoFactorRequired) {
+        setChallengeToken(response.challengeToken);
+        setTwoFactorCode('');
+        return;
+      }
       toast.success(`Welcome back, ${response.user.name}!`);
       const defaultRoute = getRoleDefaultRoute(response.user.role);
       navigate(defaultRoute);
     } catch (err) {
+      // Store error state handles display.
+    }
+  };
+
+  const handleTwoFactorSubmit = async (event) => {
+    event.preventDefault();
+    if (!/^\d{6}$/.test(twoFactorCode)) return;
+    try {
+      const response = await verifyTwoFactorLogin(challengeToken, twoFactorCode);
+      toast.success(`Welcome back, ${response.user.name}!`);
+      navigate(getRoleDefaultRoute(response.user.role));
+    } catch {
       // Store error state handles display.
     }
   };
@@ -209,6 +229,40 @@ const Login = () => {
 
       {authError && <ErrorMessage message={authError} />}
 
+      {challengeToken && (
+        <form onSubmit={handleTwoFactorSubmit} className="flex flex-col gap-4">
+          <div style={{ textAlign: 'center', padding: '0.5rem 0 0.75rem' }}>
+            <RiShieldCheckLine size={42} style={{ color: '#0096c7', margin: '0 auto 0.75rem' }} />
+            <h3 style={{ margin: 0, color: '#0f172a' }}>Two-factor verification</h3>
+            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
+              Enter the 6-digit code from your authenticator app.
+            </p>
+          </div>
+          <Input
+            id="two-factor-code"
+            label="Authentication code"
+            value={twoFactorCode}
+            onChange={(event) => setTwoFactorCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="000000"
+            disabled={authLoading}
+          />
+          {authError && <ErrorMessage message={authError} />}
+          <Button type="submit" size="lg" loading={authLoading} disabled={twoFactorCode.length !== 6} style={{ width: '100%' }}>
+            Verify and sign in
+          </Button>
+          <button
+            type="button"
+            onClick={() => { setChallengeToken(''); setTwoFactorCode(''); clearError(); }}
+            style={{ border: 0, background: 'none', color: '#0096c7', cursor: 'pointer', fontWeight: 600 }}
+          >
+            Use a different account
+          </button>
+        </form>
+      )}
+
+      {!challengeToken && (
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         {/* Email Field */}
         <div>
@@ -385,6 +439,7 @@ const Login = () => {
           Sign In
         </Button>
       </form>
+      )}
 
       {/* Footer Registration Link */}
       <p

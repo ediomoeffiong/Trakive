@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const crypto = require('crypto');
 const ApiError = require('../utils/apiError');
 const UserModel = require('../models/user.model');
 const RoleModel = require('../models/role.model');
@@ -15,6 +16,10 @@ const InternshipRecordModel = require('../models/internshipRecord.model');
 const AuditLogModel = require('../models/auditLog.model');
 const { validateInternshipDates } = require('../validators/internshipDate.validator');
 const { resolveFifthLabDefaults } = require('../utils/fifthlabDefaults');
+const { createLoginChallenge, verifyLoginChallenge, verifyCode } = require('../utils/twoFactor.utils');
+
+const MAX_ACTIVE_DEVICES = 7;
+const SESSION_INACTIVITY_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Role name resolver helper
@@ -175,12 +180,15 @@ const AuthService = {
     });
 
     // Generate tokens
+    const sessionId = crypto.randomUUID();
     const accessToken = generateAccessToken({
       userId: userProfile.id,
       role: userProfile.role_name,
+      sessionId,
     });
     const refreshToken = generateRefreshToken({
       userId: userProfile.id,
+      sessionId,
     });
 
     // Store refresh token
@@ -188,9 +196,9 @@ const AuthService = {
     const refreshExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     await query(
-      `INSERT INTO refresh_tokens (user_id, token_hash, ip_address, user_agent, expires_at, last_seen_at)
-       VALUES ($1, $2, $3, $4, $5, NOW())`,
-      [userProfile.id, refreshTokenHash, ipAddress, userAgent, refreshExpiry]
+      `INSERT INTO refresh_tokens (user_id, token_hash, family_id, ip_address, user_agent, expires_at, last_seen_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+      [userProfile.id, refreshTokenHash, sessionId, ipAddress, userAgent, refreshExpiry]
     );
 
     return {
@@ -219,6 +227,16 @@ const AuthService = {
 
     const isPasswordValid = await comparePassword(password, user.password_hash);
     if (!isPasswordValid) {
+      await AuditLogModel.log({
+        organizationId: user.organization_id,
+        userId: user.id,
+        action: 'USER_LOGIN_FAILED',
+        entityType: 'users',
+        entityId: user.id,
+        details: { email },
+        ipAddress,
+        userAgent,
+      });
       throw ApiError.unauthorized('Invalid email or password');
     }
 
@@ -232,11 +250,33 @@ const AuthService = {
 
     const isFirstLogin = !user.last_login_at;
 
-    // Update last login time
-    await UserModel.updateLastLogin(user.id);
-
     // Fetch full user profile with role and permissions
     const userProfile = await UserModel.findByIdWithRoleAndPermissions(user.id);
+
+    const twoFactorResult = await query(
+      `SELECT two_factor_enabled, two_factor_secret FROM user_settings WHERE user_id = $1`,
+      [user.id]
+    );
+    const twoFactor = twoFactorResult.rows[0];
+    if (twoFactor?.two_factor_enabled && twoFactor?.two_factor_secret) {
+      const challengeToken = createLoginChallenge(user.id);
+      await query(
+        `DELETE FROM two_factor_login_challenges
+         WHERE user_id = $1 AND (used_at IS NOT NULL OR expires_at <= NOW())`,
+        [user.id]
+      );
+      await query(
+        `INSERT INTO two_factor_login_challenges (user_id, token_hash, expires_at)
+         VALUES ($1, $2, NOW() + INTERVAL '5 minutes')`,
+        [user.id, hashToken(challengeToken)]
+      );
+      return {
+        twoFactorRequired: true,
+        challengeToken,
+      };
+    }
+
+    await UserModel.updateLastLogin(user.id);
 
     // Audit log login
     await AuditLogModel.log({
@@ -263,29 +303,44 @@ const AuthService = {
       );
     }
 
-    // Enforce max 3 distinct active concurrent device sessions
+    // Sessions that have not been used for a week are automatically signed out.
+    await query(
+      `UPDATE refresh_tokens
+       SET is_revoked = true,
+           revoked_at = NOW()
+       WHERE user_id = $1
+         AND is_revoked = false
+         AND COALESCE(last_seen_at, created_at) <= NOW() - INTERVAL '7 days'`,
+      [userProfile.id]
+    );
+
+    // Enforce the distinct active concurrent device session limit.
     const activeDevicesRes = await query(
-      `SELECT COUNT(DISTINCT COALESCE(user_agent, id::text))::int AS count
+      `SELECT COUNT(DISTINCT family_id)::int AS count
        FROM refresh_tokens
        WHERE user_id = $1
          AND is_revoked = false
-         AND expires_at > NOW()`,
+         AND expires_at > NOW()
+         AND COALESCE(last_seen_at, created_at) > NOW() - INTERVAL '7 days'`,
       [userProfile.id]
     );
     const activeDevicesCount = parseInt(activeDevicesRes.rows[0]?.count, 10) || 0;
-    if (activeDevicesCount >= 3) {
+    if (activeDevicesCount >= MAX_ACTIVE_DEVICES) {
       throw ApiError.forbidden(
-        'Maximum active device limit reached (3 devices). Please log out from one of your active devices before logging in.'
+        `Maximum active device limit reached (${MAX_ACTIVE_DEVICES} devices). Please log out from one of your active devices before logging in.`
       );
     }
 
     // Generate token set
+    const sessionId = crypto.randomUUID();
     const accessToken = generateAccessToken({
       userId: userProfile.id,
       role: userProfile.role_name,
+      sessionId,
     });
     const refreshToken = generateRefreshToken({
       userId: userProfile.id,
+      sessionId,
     });
 
     // Store refresh token
@@ -293,9 +348,9 @@ const AuthService = {
     const refreshExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     await query(
-      `INSERT INTO refresh_tokens (user_id, token_hash, ip_address, user_agent, expires_at, last_seen_at)
-       VALUES ($1, $2, $3, $4, $5, NOW())`,
-      [userProfile.id, refreshTokenHash, ipAddress, userAgent, refreshExpiry]
+      `INSERT INTO refresh_tokens (user_id, token_hash, family_id, ip_address, user_agent, expires_at, last_seen_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+      [userProfile.id, refreshTokenHash, sessionId, ipAddress, userAgent, refreshExpiry]
     );
 
     const sanitized = UserModel.sanitizeUser(userProfile);
@@ -309,6 +364,81 @@ const AuthService = {
         accessToken,
         refreshToken,
       },
+    };
+  },
+
+  async verifyTwoFactorLogin(challengeToken, code, ipAddress = null, userAgent = null) {
+    let challenge;
+    try {
+      challenge = verifyLoginChallenge(challengeToken);
+    } catch {
+      throw ApiError.unauthorized('The two-factor login challenge is invalid or expired');
+    }
+
+    const settingsResult = await query(
+      `SELECT two_factor_enabled, two_factor_secret FROM user_settings WHERE user_id = $1`,
+      [challenge.userId]
+    );
+    const settings = settingsResult.rows[0];
+    if (!settings?.two_factor_enabled || !settings?.two_factor_secret) {
+      throw ApiError.unauthorized('Two-factor authentication is not enabled for this account');
+    }
+    if (!(await verifyCode(settings.two_factor_secret, code))) {
+      throw ApiError.unauthorized('The authentication code is invalid or expired');
+    }
+
+    const consumed = await query(
+      `UPDATE two_factor_login_challenges
+       SET used_at = NOW()
+       WHERE user_id = $1 AND token_hash = $2 AND used_at IS NULL AND expires_at > NOW()
+       RETURNING id`,
+      [challenge.userId, hashToken(challengeToken)]
+    );
+    if (!consumed.rows[0]) throw ApiError.unauthorized('The two-factor login challenge is invalid or has already been used');
+
+    const userProfile = await UserModel.findByIdWithRoleAndPermissions(challenge.userId);
+    if (!userProfile || userProfile.status !== 'active') throw ApiError.forbidden('User account is invalid or suspended');
+
+    if (userAgent) {
+      await query(
+        `UPDATE refresh_tokens SET is_revoked = true, revoked_at = NOW()
+         WHERE user_id = $1 AND user_agent = $2 AND is_revoked = false`,
+        [userProfile.id, userAgent]
+      );
+    }
+    const activeDevicesRes = await query(
+      `SELECT COUNT(DISTINCT family_id)::int AS count
+       FROM refresh_tokens WHERE user_id = $1 AND is_revoked = false
+       AND expires_at > NOW() AND COALESCE(last_seen_at, created_at) > NOW() - INTERVAL '7 days'`,
+      [userProfile.id]
+    );
+    if ((parseInt(activeDevicesRes.rows[0]?.count, 10) || 0) >= MAX_ACTIVE_DEVICES) {
+      throw ApiError.forbidden(`Maximum active device limit reached (${MAX_ACTIVE_DEVICES} devices).`);
+    }
+
+    const sessionId = crypto.randomUUID();
+    const accessToken = generateAccessToken({ userId: userProfile.id, role: userProfile.role_name, sessionId });
+    const refreshToken = generateRefreshToken({ userId: userProfile.id, sessionId });
+    await query(
+      `INSERT INTO refresh_tokens (user_id, token_hash, family_id, ip_address, user_agent, expires_at, last_seen_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+      [userProfile.id, hashToken(refreshToken), sessionId, ipAddress, userAgent, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)]
+    );
+    const isFirstLogin = !userProfile.last_login_at;
+    await UserModel.updateLastLogin(userProfile.id);
+    await AuditLogModel.log({
+      organizationId: userProfile.organization_id,
+      userId: userProfile.id,
+      action: 'USER_LOGIN',
+      entityType: 'users',
+      entityId: userProfile.id,
+      details: { email: userProfile.email, twoFactor: true },
+      ipAddress,
+      userAgent,
+    });
+    return {
+      user: { ...UserModel.sanitizeUser(userProfile), isFirstLogin },
+      tokens: { accessToken, refreshToken },
     };
   },
 
@@ -335,8 +465,13 @@ const AuthService = {
     );
     const storedToken = tokenRes.rows[0];
 
-    // Token reuse protection: If token is revoked or missing, revoke entire family if found!
-    if (!storedToken || storedToken.is_revoked || new Date(storedToken.expires_at) < new Date()) {
+    const lastSeenAt = storedToken?.last_seen_at || storedToken?.created_at;
+    const isInactive = lastSeenAt
+      ? new Date(lastSeenAt).getTime() <= Date.now() - SESSION_INACTIVITY_MS
+      : false;
+
+    // Token reuse and inactivity protection: revoke the entire token family when applicable.
+    if (!storedToken || storedToken.is_revoked || new Date(storedToken.expires_at) < new Date() || isInactive) {
       if (storedToken && storedToken.family_id) {
         await query(
           `UPDATE refresh_tokens
@@ -346,7 +481,9 @@ const AuthService = {
           [storedToken.family_id]
         );
       }
-      throw ApiError.unauthorized('Invalid or expired refresh token');
+      throw ApiError.unauthorized(isInactive
+        ? 'Session expired after 7 days of inactivity. Please log in again.'
+        : 'Invalid or expired refresh token');
     }
 
     const userProfile = await UserModel.findByIdWithRoleAndPermissions(storedToken.user_id);
@@ -367,9 +504,11 @@ const AuthService = {
     const newAccessToken = generateAccessToken({
       userId: userProfile.id,
       role: userProfile.role_name,
+      sessionId: storedToken.family_id,
     });
     const newRefreshToken = generateRefreshToken({
       userId: userProfile.id,
+      sessionId: storedToken.family_id,
     });
 
     const newRefreshTokenHash = hashToken(newRefreshToken);
@@ -428,7 +567,7 @@ const AuthService = {
   /**
    * Change Password
    */
-  async changePassword(userId, currentPassword, newPassword) {
+  async changePassword(userId, currentPassword, newPassword, currentRefreshToken = null) {
     const res = await query('SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL', [userId]);
     const user = res.rows[0];
 
@@ -444,13 +583,15 @@ const AuthService = {
     const newPasswordHash = await hashPassword(newPassword);
     await UserModel.updatePassword(userId, newPasswordHash);
 
-    // Invalidate all active refresh tokens for security
+    // Invalidate every other session while preserving the session that performed the change.
+    const currentTokenHash = currentRefreshToken ? hashToken(currentRefreshToken) : null;
     await query(
       `UPDATE refresh_tokens
        SET is_revoked = true,
            revoked_at = NOW()
-       WHERE user_id = $1`,
-      [userId]
+       WHERE user_id = $1
+         AND ($2::text IS NULL OR token_hash <> $2)`,
+      [userId, currentTokenHash]
     );
 
     return { message: 'Password changed successfully' };
@@ -501,6 +642,20 @@ const AuthService = {
 
     const newPasswordHash = await hashPassword(newPassword);
     await UserModel.updatePassword(resetRecord.user_id, newPasswordHash);
+
+    // A verified password-reset link is the account recovery path when the
+    // authenticator device is unavailable.
+    await query(
+      `UPDATE user_settings
+       SET two_factor_enabled = false,
+           two_factor_secret = NULL,
+           two_factor_pending_secret = NULL,
+           two_factor_enabled_at = NULL,
+           last_password_change_at = NOW(),
+           updated_at = NOW()
+       WHERE user_id = $1`,
+      [resetRecord.user_id]
+    );
 
     // Mark reset token as used
     await query(

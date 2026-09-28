@@ -178,8 +178,7 @@ const TaskOverviewWorkspace = ({
         <article className="task-overview__panel task-overview__queue-panel">
           <header className="task-overview__panel-header">
             <div>
-              <span className="task-overview__panel-kicker">YOUR NEXT MOVES</span>
-              <h3>Priority queue <span>{activeTasks.length}</span></h3>
+              <span className="task-overview__panel-kicker">PRIORITY QUEUE</span>
             </div>
             <button type="button" className="task-overview__text-button" onClick={onViewBoard}>
               Open board <RiArrowRightLine aria-hidden="true" />
@@ -246,8 +245,7 @@ const TaskOverviewWorkspace = ({
         <aside className="task-overview__panel task-overview__deadline-panel">
           <header className="task-overview__panel-header">
             <div>
-              <span className="task-overview__panel-kicker">TIME SENSITIVE</span>
-              <h3>Deadline pulse</h3>
+              <span className="task-overview__panel-kicker">DEADLINES</span>
             </div>
             <span className="task-overview__header-icon"><RiCalendarEventLine aria-hidden="true" /></span>
           </header>
@@ -303,7 +301,6 @@ const TaskOverviewWorkspace = ({
           <header className="task-overview__panel-header">
             <div>
               <span className="task-overview__panel-kicker">LATEST UPDATES</span>
-              <h3>Recent activity</h3>
             </div>
             <span className="task-overview__header-icon task-overview__header-icon--plain"><RiHistoryLine aria-hidden="true" /></span>
           </header>
@@ -338,8 +335,7 @@ const TaskOverviewWorkspace = ({
         <article className="task-overview__panel task-overview__mix-panel">
           <header className="task-overview__panel-header">
             <div>
-              <span className="task-overview__panel-kicker">WORKLOAD HEALTH</span>
-              <h3>Task mix</h3>
+              <span className="task-overview__panel-kicker">TASK STATUS</span>
             </div>
             <span className="task-overview__header-icon task-overview__header-icon--plain"><RiFileList3Line aria-hidden="true" /></span>
           </header>

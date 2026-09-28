@@ -3,7 +3,7 @@
  * @description Mock active sessions and connected devices data for Trakive.
  */
 
-/** Mock current active sessions (concurrently logged-in devices, max 3) */
+/** Mock current active sessions (concurrently logged-in devices, max 7) */
 export const mockCurrentSessions = [
   {
     id:          'sess-curr-1',

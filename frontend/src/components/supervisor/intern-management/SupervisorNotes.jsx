@@ -24,7 +24,7 @@ import { InternNotesLoader } from './InternSkeletonLoaders';
 import InternEmptyState from './InternEmptyStates';
 
 const NOTE_CATEGORIES = ['Performance', 'Technical', 'Communication', 'Review', 'Onboarding', 'Support Needed', 'Achievement', 'Action Required', 'Context', 'Observation', 'Leave Management', 'Improvement'];
-const NOTE_COLORS = ['#4f46e5', '#059669', '#d97706', '#dc2626', '#7c3aed', '#64748b'];
+const NOTE_COLORS = ['#00b4d8', '#059669', '#d97706', '#dc2626', '#7c3aed', '#64748b'];
 
 const NoteFormModal = ({ existingNote, onSave, onClose }) => {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
@@ -32,7 +32,7 @@ const NoteFormModal = ({ existingNote, onSave, onClose }) => {
       title: existingNote?.title || '',
       content: existingNote?.content || '',
       category: existingNote?.category || 'Performance',
-      color: existingNote?.color || '#4f46e5',
+      color: existingNote?.color || '#00b4d8',
     },
   });
 

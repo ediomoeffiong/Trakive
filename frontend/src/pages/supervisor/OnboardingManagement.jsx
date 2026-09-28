@@ -412,7 +412,6 @@ export default function OnboardingManagementPage() {
         isRefreshing={loading.onboarding}
         onOpenGuide={() => setIsGuideModalOpen(true)}
         onExportSummary={handleExportSummary}
-        onSwitchToPendingTab={() => setActiveTab('pending')}
       />
 
       {/* ── 2. Interactive KPI Metrics Grid ─────────────────────────────────── */}

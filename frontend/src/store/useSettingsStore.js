@@ -33,6 +33,8 @@ export const useSettingsStore = create((set, get) => ({
   otherSessions:           [],
   otherSessionsPagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
   sessions:                [],
+  securityEvents:          [],
+  securityEventsPagination:{ page: 1, limit: 10, total: 0, totalPages: 1 },
   rolePreferences:         {},
 
   // ── Active section in settings nav ──────────────────────────────────────────
@@ -47,6 +49,7 @@ export const useSettingsStore = create((set, get) => ({
   changingPassword: false,
   loadingSessions:  false,
   revokingSession:  null,  // session id being revoked, or null
+  loadingSecurityEvents: false,
 
   // ── Email verification modal ─────────────────────────────────────────────────
   emailVerifyOpen:  false,
@@ -103,13 +106,35 @@ export const useSettingsStore = create((set, get) => ({
         });
       }
     } catch (err) {
-      set({ sessionsError: err.message, loadingSessions: false });
+      set({
+        currentSessions: [],
+        otherSessions: [],
+        otherSessionsPagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
+        sessions: [],
+        sessionsError: err.message,
+        loadingSessions: false,
+      });
       throw err;
     }
   },
 
   setOtherSessionsPage: async (page) => {
     return get().fetchSessions(page);
+  },
+
+  fetchSecurityEvents: async (page = 1) => {
+    set({ loadingSecurityEvents: true, error: null });
+    try {
+      const result = await settingsService.fetchSecurityEvents({ page, limit: 10 });
+      set({
+        securityEvents: result.events || [],
+        securityEventsPagination: result.pagination || { page, limit: 10, total: 0, totalPages: 1 },
+        loadingSecurityEvents: false,
+      });
+    } catch (err) {
+      set({ error: err.message, loadingSecurityEvents: false });
+      throw err;
+    }
   },
 
   fetchRolePreferences: async (role) => {
@@ -275,8 +300,8 @@ export const useSettingsStore = create((set, get) => ({
   changePassword: async (data) => {
     set({ changingPassword: true, error: null });
     try {
-      await settingsService.changePassword(data);
-      const now = new Date().toISOString();
+      const result = await settingsService.changePassword(data);
+      const now = result.lastPasswordChange;
       set((state) => ({
         settings: {
           ...state.settings,
@@ -294,19 +319,47 @@ export const useSettingsStore = create((set, get) => ({
     }
   },
 
-  toggleTwoFactor: async (enabled) => {
+  beginTwoFactorSetup: async () => {
     set({ saving: true });
     try {
-      await settingsService.toggleTwoFactor(enabled);
-      set((state) => ({
-        settings: {
-          ...state.settings,
-          security: { ...state.settings.security, twoFactorEnabled: enabled },
-        },
-        saving: false,
-      }));
+      const setup = await settingsService.beginTwoFactorSetup();
+      set({ saving: false });
+      return setup;
     } catch (err) {
       set({ error: err.message, saving: false });
+      throw err;
+    }
+  },
+
+  confirmTwoFactorSetup: async (code) => {
+    set({ saving: true });
+    try {
+      const security = await settingsService.confirmTwoFactorSetup(code);
+      set((state) => ({
+        settings: { ...state.settings, security: { ...state.settings.security, ...security } },
+        pristineSettings: { ...state.pristineSettings, security: { ...state.pristineSettings.security, ...security } },
+        saving: false,
+      }));
+      get().fetchSecurityEvents(1).catch(() => {});
+    } catch (err) {
+      set({ error: err.message, saving: false });
+      throw err;
+    }
+  },
+
+  disableTwoFactor: async (code) => {
+    set({ saving: true });
+    try {
+      const security = await settingsService.disableTwoFactor(code);
+      set((state) => ({
+        settings: { ...state.settings, security: { ...state.settings.security, ...security } },
+        pristineSettings: { ...state.pristineSettings, security: { ...state.pristineSettings.security, ...security } },
+        saving: false,
+      }));
+      get().fetchSecurityEvents(1).catch(() => {});
+    } catch (err) {
+      set({ error: err.message, saving: false });
+      throw err;
     }
   },
 

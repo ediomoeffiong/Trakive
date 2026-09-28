@@ -1,7 +1,7 @@
 /**
  * @file SessionsDevicesList.jsx
  * @description Active sessions & connected devices list with multi-device support,
- * 10-per-page pagination for past sessions, and 3-device login limit notice.
+ * 10-per-page pagination for past sessions, and 7-device login limit notice.
  */
 
 import { useEffect } from 'react';
@@ -395,16 +395,16 @@ const SessionsDevicesList = () => {
                     fontWeight: 700,
                     padding: '0.15rem 0.6rem',
                     borderRadius: 99,
-                    background: currentSessions.length >= 3 ? '#fef3c7' : 'var(--color-primary-50)',
-                    color: currentSessions.length >= 3 ? '#b45309' : 'var(--color-primary-700)',
-                    border: `1px solid ${currentSessions.length >= 3 ? '#fde68a' : 'var(--color-primary-200)'}`,
+                    background: currentSessions.length >= 7 ? '#fef3c7' : 'var(--color-primary-50)',
+                    color: currentSessions.length >= 7 ? '#b45309' : 'var(--color-primary-700)',
+                    border: `1px solid ${currentSessions.length >= 7 ? '#fde68a' : 'var(--color-primary-200)'}`,
                   }}
                 >
-                  {currentSessions.length} / 3 active
+                  {currentSessions.length} / 7 active
                 </span>
               </div>
               <p style={{ fontSize: '0.875rem', color: 'var(--color-neutral-500)', margin: '0.2rem 0 0' }}>
-                Devices currently signed in to your account (maximum 3 allowed)
+                Devices currently signed in to your account (maximum 7 allowed)
               </p>
             </div>
           </div>
@@ -445,7 +445,7 @@ const SessionsDevicesList = () => {
           </p>
         )}
 
-        {/* 3-Device Limit Information Banner */}
+        {/* Device limit and inactivity policy banner */}
         <div
           style={{
             marginTop: '1.25rem',
@@ -462,8 +462,8 @@ const SessionsDevicesList = () => {
             <RiInformationLine />
           </div>
           <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-neutral-600)', lineHeight: 1.5 }}>
-            <strong style={{ color: 'var(--color-neutral-800)' }}>Device Limit Policy:</strong> You can stay signed in on up to <strong>3 devices</strong> concurrently.
-            If you reach 3 devices, you must sign out from one of your active devices before signing in on a new device.
+            <strong style={{ color: 'var(--color-neutral-800)' }}>Device & Session Policy:</strong> You can stay signed in on up to <strong>7 devices</strong> concurrently.
+            If you reach 7 devices, you must sign out from one before signing in on a new device. Devices are automatically signed out after 1 week of inactivity.
           </p>
         </div>
       </div>
@@ -512,7 +512,9 @@ const SessionsDevicesList = () => {
           </div>
         </div>
 
-        {loadingSessions ? (
+        {sessionsError && !loadingSessions ? (
+          <SessionsError message={sessionsError} onRetry={() => fetchSessions(currentPage).catch(() => {})} loading={loadingSessions} />
+        ) : loadingSessions ? (
           <SessionsListSkeleton />
         ) : otherSessions.length === 0 ? (
           <NoPastSessions />

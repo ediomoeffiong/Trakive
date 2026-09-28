@@ -29,6 +29,13 @@ const loginSchema = {
   }),
 };
 
+const twoFactorLoginSchema = {
+  body: Joi.object({
+    challengeToken: Joi.string().required(),
+    code: Joi.string().pattern(/^\d{6}$/).required(),
+  }),
+};
+
 const refreshSchema = {
   body: Joi.object({
     refreshToken: Joi.string().required(),
@@ -68,6 +75,7 @@ const verifyEmailSchema = {
 module.exports = {
   registerSchema,
   loginSchema,
+  twoFactorLoginSchema,
   refreshSchema,
   changePasswordSchema,
   forgotPasswordSchema,

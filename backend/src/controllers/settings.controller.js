@@ -44,10 +44,39 @@ const SettingsController = {
 
   changePassword: asyncHandler(async (req, res) => {
     const { currentPassword, newPassword } = req.body;
-    const result = await SettingsService.changePassword(req.user.id, currentPassword, newPassword);
+    const result = await SettingsService.changePassword(req.user.id, currentPassword, newPassword, getRefreshToken(req), {
+      ipAddress: extractClientIp(req), userAgent: req.get('User-Agent'),
+    });
     return sendSuccess(res, {
       message: result.message || 'Password changed successfully',
+      data: { lastPasswordChange: result.lastPasswordChange },
     });
+  }),
+
+  beginTwoFactorSetup: asyncHandler(async (req, res) => {
+    const result = await SettingsService.beginTwoFactorSetup(req.user.id);
+    return sendSuccess(res, { message: 'Two-factor setup started', data: result });
+  }),
+
+  confirmTwoFactorSetup: asyncHandler(async (req, res) => {
+    const result = await SettingsService.confirmTwoFactorSetup(req.user.id, req.body.code, {
+      ipAddress: extractClientIp(req), userAgent: req.get('User-Agent'),
+    });
+    return sendSuccess(res, { message: 'Two-factor authentication enabled', data: result });
+  }),
+
+  disableTwoFactor: asyncHandler(async (req, res) => {
+    const result = await SettingsService.disableTwoFactor(req.user.id, req.body.code, {
+      ipAddress: extractClientIp(req), userAgent: req.get('User-Agent'),
+    });
+    return sendSuccess(res, { message: 'Two-factor authentication disabled', data: result });
+  }),
+
+  getSecurityEvents: asyncHandler(async (req, res) => {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const result = await SettingsService.getSecurityEvents(req.user.id, { page, limit });
+    return sendSuccess(res, { message: 'Security events retrieved', data: result });
   }),
 
   getRolePreferences: asyncHandler(async (req, res) => {
@@ -72,6 +101,7 @@ const SettingsController = {
     const result = await SettingsService.getSessions(req.user.id, req.headers['x-refresh-token'], {
       ipAddress: extractClientIp(req),
       userAgent: req.get('User-Agent'),
+      currentSessionId: req.sessionId,
       page,
       limit,
     });
@@ -82,7 +112,9 @@ const SettingsController = {
   }),
 
   revokeSession: asyncHandler(async (req, res) => {
-    const result = await SettingsService.revokeSession(req.user.id, req.params.sessionId);
+    const result = await SettingsService.revokeSession(req.user.id, req.params.sessionId, {
+      ipAddress: extractClientIp(req), userAgent: req.get('User-Agent'),
+    });
     return sendSuccess(res, {
       message: 'Session revoked successfully',
       data: result,
@@ -90,7 +122,9 @@ const SettingsController = {
   }),
 
   revokeOtherSessions: asyncHandler(async (req, res) => {
-    const result = await SettingsService.revokeOtherSessions(req.user.id, getRefreshToken(req));
+    const result = await SettingsService.revokeOtherSessions(req.user.id, getRefreshToken(req), {
+      ipAddress: extractClientIp(req), userAgent: req.get('User-Agent'),
+    });
     return sendSuccess(res, {
       message: 'Other sessions revoked successfully',
       data: result,

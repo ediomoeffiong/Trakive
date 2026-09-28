@@ -61,9 +61,8 @@ export const defaultSettings = {
 
   security: {
     twoFactorEnabled:    false,
-    ssoEnabled:          false,
-    lastPasswordChange:  '2026-06-12T10:00:00Z',
-    connectedProviders:  [], // future: ['google', 'microsoft', 'github']
+    twoFactorEnabledAt:  null,
+    lastPasswordChange:  null,
   },
 
   notifications: {

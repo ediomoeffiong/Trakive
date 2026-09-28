@@ -10,7 +10,6 @@ import {
   RiRefreshLine,
   RiFileDownloadLine,
   RiInformationLine,
-  RiFlashlightLine,
   RiShieldCheckLine,
 } from 'react-icons/ri';
 
@@ -22,7 +21,6 @@ export default function OnboardingBanner({
   isRefreshing,
   onOpenGuide,
   onExportSummary,
-  onSwitchToPendingTab,
 }) {
   return (
     <motion.div
@@ -87,27 +85,6 @@ export default function OnboardingBanner({
               <RiCheckboxMultipleLine /> CWG PLC & FifthLab
             </span>
 
-            {pendingCount > 0 && (
-              <span
-                onClick={onSwitchToPendingTab}
-                style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 800,
-                  letterSpacing: '0.04em',
-                  background: '#fef08a',
-                  color: '#854d0e',
-                  padding: '0.25rem 0.65rem',
-                  borderRadius: '99px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.3rem',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-                }}
-              >
-                <RiFlashlightLine /> {pendingCount} Pending Verification
-              </span>
-            )}
           </div>
 
           <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '1.65rem', fontWeight: 900, lineHeight: 1.25, color: '#ffffff', letterSpacing: '-0.02em' }}>

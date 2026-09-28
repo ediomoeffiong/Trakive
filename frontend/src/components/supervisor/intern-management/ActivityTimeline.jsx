@@ -19,8 +19,8 @@ import InternEmptyState from './InternEmptyStates';
 import { InternTimelineLoader } from './InternSkeletonLoaders';
 
 const TYPE_CONFIG = {
-  task_submitted: { icon: RiTaskLine, color: '#0284c7', bg: '#e0f2fe', badgeText: 'Submitted' },
-  task_assigned: { icon: RiUserAddLine, color: '#0891b2', bg: '#ecfeff', badgeText: 'Assigned' },
+  task_submitted: { icon: RiTaskLine, color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)', badgeText: 'Submitted' },
+  task_assigned: { icon: RiUserAddLine, color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)', badgeText: 'Assigned' },
   review_received: { icon: RiStarLine, color: '#059669', bg: '#ecfdf5', badgeText: 'Review' },
   onboarding_approved: { icon: RiCheckboxCircleLine, color: '#10b981', bg: '#d1fae5', badgeText: 'Onboarding' },
   document_uploaded: { icon: RiFileTextLine, color: '#d97706', bg: '#fffbeb', badgeText: 'Document' },
@@ -75,7 +75,7 @@ const ActivityTimeline = ({ activities = [], isLoading = false }) => {
             top: '24px',
             bottom: '8px',
             width: '2px',
-            background: 'linear-gradient(to bottom, #0284c7, #e0f2fe)',
+            background: 'linear-gradient(to bottom, var(--color-primary-500), var(--color-primary-100))',
             borderRadius: '99px',
             zIndex: 0,
           }}

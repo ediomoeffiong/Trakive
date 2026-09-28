@@ -2,6 +2,7 @@ const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { verifyAccessToken } = require('../utils/token.utils');
 const UserModel = require('../models/user.model');
+const { query } = require('../config/db');
 
 /**
  * Role normalization mapping for Trakive roles
@@ -40,6 +41,30 @@ const authenticate = asyncHandler(async (req, res, next) => {
     throw ApiError.unauthorized('Invalid authentication token');
   }
 
+  // Access tokens are tied to a stable refresh-token family. Revoking a device
+  // invalidates that family, so its next API request is rejected immediately
+  // instead of remaining authenticated until the short-lived JWT expires.
+  if (!decoded.sessionId) {
+    // Existing clients will transparently use their refresh token once and
+    // receive a session-bound access token through the normal 401 retry flow.
+    throw ApiError.unauthorized('Session token must be refreshed');
+  }
+
+  const sessionResult = await query(
+    `SELECT 1
+     FROM refresh_tokens
+     WHERE user_id = $1
+       AND family_id = $2
+       AND is_revoked = false
+       AND expires_at > NOW()
+       AND COALESCE(last_seen_at, created_at) > NOW() - INTERVAL '7 days'
+     LIMIT 1`,
+    [decoded.userId, decoded.sessionId],
+  );
+  if (!sessionResult.rows[0]) {
+    throw ApiError.unauthorized('Session has been signed out');
+  }
+
   const user = await UserModel.findByIdWithRoleAndPermissions(decoded.userId);
   if (!user) {
     throw ApiError.unauthorized('Authenticated user no longer exists');
@@ -62,6 +87,7 @@ const authenticate = asyncHandler(async (req, res, next) => {
     status: user.status,
     is_email_verified: user.is_email_verified,
   };
+  req.sessionId = decoded.sessionId || null;
 
   next();
 });

@@ -15,6 +15,9 @@ import {
   RiCalendarCheckLine,
   RiArrowRightLine,
   RiAddCircleLine,
+  RiFileList3Line,
+  RiRefreshLine,
+  RiArrowLeftLine,
 } from 'react-icons/ri';
 import { useInternManagementStore } from '../../store/useInternManagementStore';
 import { ROUTES } from '../../constants';
@@ -48,20 +51,20 @@ const OverviewTab = ({ profile, progress, isLoadingProgress }) => (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
       {[
         {
-          icon: RiTaskLine, color: '#0284c7', bg: '#e0f2fe',
-          label: 'Current Task', value: profile?.currentTask ?? '—', sub: 'In progress',
+          icon: RiTaskLine, color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)',
+          label: 'Current Task', value: profile?.currentTask ?? 'No active task', sub: profile?.currentTask ? 'In progress' : 'Nothing currently assigned',
         },
         {
           icon: RiCalendarCheckLine, color: '#059669', bg: '#ecfdf5',
-          label: 'Internship Duration', value: profile?.duration ?? '—', sub: `${profile?.startDate} to ${profile?.endDate}`,
+          label: 'Internship Duration', value: profile?.duration && profile.duration !== 'N/A' ? profile.duration : 'Dates not set', sub: profile?.startDate !== 'N/A' ? `${profile?.startDate} to ${profile?.endDate || 'Ongoing'}` : null,
         },
         {
-          icon: RiCheckboxCircleLine, color: '#0891b2', bg: '#ecfeff',
-          label: 'Batch', value: profile?.batch ?? '—', sub: profile?.contractType,
+          icon: RiCheckboxCircleLine, color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)',
+          label: 'Batch', value: profile?.batch ?? 'Not assigned', sub: profile?.contractType,
         },
         {
           icon: RiAlertLine, color: '#d97706', bg: '#fffbeb',
-          label: 'University', value: profile?.university ? profile.university.split(' ').slice(0, 2).join(' ') : '—',
+          label: 'Institution', value: profile?.university || 'Not provided',
           sub: profile?.major,
         },
       ].map((item, idx) => {
@@ -120,7 +123,7 @@ const OverviewTab = ({ profile, progress, isLoadingProgress }) => (
 const taskStatusStyle = (status = '') => {
   const normalized = String(status).toLowerCase();
   if (['completed', 'done', 'reviewed'].includes(normalized)) return { bg: '#dcfce7', text: '#15803d', label: 'Completed' };
-  if (['ongoing', 'in_progress', 'in-progress'].includes(normalized)) return { bg: '#e0f2fe', text: '#0369a1', label: 'In Progress' };
+  if (['ongoing', 'in_progress', 'in-progress'].includes(normalized)) return { bg: 'var(--color-primary-50)', text: 'var(--color-primary-700)', label: 'In Progress' };
   if (['blocked', 'not_done'].includes(normalized)) return { bg: '#fee2e2', text: '#b91c1c', label: 'Blocked' };
   return { bg: '#fef3c7', text: '#b45309', label: 'Pending' };
 };
@@ -176,7 +179,7 @@ const TasksTab = ({ profile, tasks, plans, isLoading, onAssignTask, onViewAllTas
       </div>
     ) : tasks.length === 0 ? (
       <div style={{ textAlign: 'center', padding: '2.5rem 1rem', background: 'var(--color-neutral-50)', borderRadius: '0.875rem', border: '1px dashed var(--color-neutral-200)' }}>
-        <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', margin: '0 auto 1rem' }}>
+        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--color-primary-50)', color: 'var(--color-primary-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', margin: '0 auto 1rem' }}>
           <RiTaskLine />
         </div>
         <p style={{ margin: '0 0 0.35rem', fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-neutral-900)' }}>No tasks assigned yet</p>
@@ -218,7 +221,7 @@ const TasksTab = ({ profile, tasks, plans, isLoading, onAssignTask, onViewAllTas
 );
 
 // ── Onboarding Placeholder Tab ────────────────────────────────────────────────
-const OnboardingTab = ({ profile, progress, onOpenOnboarding }) => (
+const OnboardingTab = ({ profile, progress, documents, isLoading, onOpenOnboarding }) => (
   <motion.div
     variants={tabPanelVariants}
     initial="initial"
@@ -236,16 +239,42 @@ const OnboardingTab = ({ profile, progress, onOpenOnboarding }) => (
         Onboarding Progress
       </h4>
       <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-500)' }}>
-        Full onboarding approval workflow will be available in the Onboarding module.
+        Review the intern's submitted requirements and continue approvals in the Onboarding workspace.
       </p>
+    </div>
+
+    <div style={{ border: '1px solid var(--color-neutral-200)', borderRadius: '0.875rem', overflow: 'hidden', marginBottom: '1.5rem' }}>
+      <div style={{ padding: '0.875rem 1rem', background: 'var(--color-neutral-50)', borderBottom: '1px solid var(--color-neutral-200)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <RiFileList3Line style={{ color: 'var(--color-primary-700)' }} />
+        <strong style={{ fontSize: '0.875rem', color: 'var(--color-neutral-900)' }}>Requirements</strong>
+      </div>
+      {isLoading ? (
+        <div style={{ padding: '1.25rem', color: 'var(--color-neutral-500)', fontSize: '0.875rem' }}>Loading onboarding requirements…</div>
+      ) : documents.length === 0 ? (
+        <div style={{ padding: '1.25rem', color: 'var(--color-neutral-500)', fontSize: '0.875rem' }}>No onboarding requirements have been submitted yet.</div>
+      ) : documents.map((document) => {
+        const verified = document.status === 'Verified';
+        const missing = document.status === 'Missing';
+        return (
+          <div key={document.id} style={{ padding: '0.875rem 1rem', borderBottom: '1px solid var(--color-neutral-100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-neutral-900)' }}>{document.name}</p>
+              <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>{document.type}{document.uploadedAt && document.uploadedAt !== 'N/A' ? ` · ${document.uploadedAt}` : ''}</p>
+            </div>
+            <span style={{ flexShrink: 0, padding: '0.25rem 0.625rem', borderRadius: 999, fontSize: '0.72rem', fontWeight: 800, background: verified ? '#dcfce7' : missing ? '#f3f4f6' : '#fef3c7', color: verified ? '#15803d' : missing ? '#4b5563' : '#b45309' }}>
+              {document.status}
+            </span>
+          </div>
+        );
+      })}
     </div>
 
     {/* Progress summary */}
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
       {[
-        { label: 'Overall Onboarding', value: `${progress?.onboardingCompletion?.percentage ?? profile?.onboardingProgress ?? 0}%`, color: '#0284c7', bg: '#e0f2fe' },
+        { label: 'Overall Onboarding', value: `${progress?.onboardingCompletion?.percentage ?? profile?.onboardingProgress ?? 0}%`, color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)' },
         { label: 'Modules Completed', value: progress ? `${progress.onboardingCompletion.completed}/${progress.onboardingCompletion.total}` : '—', color: '#059669', bg: '#ecfdf5' },
-        { label: 'Reviews Passed', value: progress ? `${progress.reviewCompletion.completed}/${progress.reviewCompletion.total}` : '—', color: '#0891b2', bg: '#ecfeff' },
+        { label: 'Reviews Passed', value: progress ? `${progress.reviewCompletion.completed}/${progress.reviewCompletion.total}` : '—', color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)' },
       ].map((item, i) => (
         <div
           key={i}
@@ -288,8 +317,10 @@ const InternProfilePage = () => {
     performance,
     tasks,
     weeklyPlans,
+    loaded,
     activeTab,
     loading,
+    errors,
     loadInternProfile,
     loadInternProgress,
     loadInternDocuments,
@@ -309,33 +340,36 @@ const InternProfilePage = () => {
     if (internId) {
       loadInternProfile(internId);
       loadInternProgress(internId);
+      loadInternTasks(internId);
+      loadInternPerformance(internId);
     }
     return () => resetProfileData();
-  }, [internId]);
+  }, [internId, loadInternProfile, loadInternProgress, loadInternTasks, loadInternPerformance, resetProfileData]);
 
   // Lazy-load tab data on tab change
   useEffect(() => {
     if (!internId) return;
     switch (activeTab) {
       case 'performance':
-        if (!performance) loadInternPerformance(internId);
+        if (!loaded.performance) loadInternPerformance(internId);
         break;
       case 'tasks':
-        if (tasks.length === 0) loadInternTasks(internId);
+        if (!loaded.tasks) loadInternTasks(internId);
         break;
+      case 'onboarding':
       case 'documents':
-        if (documents.length === 0) loadInternDocuments(internId);
+        if (!loaded.documents) loadInternDocuments(internId);
         break;
       case 'activity':
-        if (activity.length === 0) loadInternActivity(internId);
+        if (!loaded.activity) loadInternActivity(internId);
         break;
       case 'notes':
-        if (notes.length === 0) loadNotes(internId);
+        if (!loaded.notes) loadNotes(internId);
         break;
       default:
         break;
     }
-  }, [activeTab, internId]);
+  }, [activeTab, internId, loaded, loadInternPerformance, loadInternTasks, loadInternDocuments, loadInternActivity, loadNotes]);
 
   const taskQuery = `intern=${encodeURIComponent(internId || '')}`;
 
@@ -344,6 +378,22 @@ const InternProfilePage = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '3rem' }}>
         <InternProfileHeaderLoader />
         <InternTabsLoader />
+      </div>
+    );
+  }
+
+  if (errors.profile || (!loading.profile && !internProfile)) {
+    return (
+      <div style={{ minHeight: '55vh', display: 'grid', placeItems: 'center', padding: '2rem' }}>
+        <div className="card" style={{ width: '100%', maxWidth: 520, padding: '2rem', textAlign: 'center', border: '1px solid var(--color-neutral-200)', borderRadius: '1rem' }}>
+          <div style={{ width: 56, height: 56, display: 'grid', placeItems: 'center', margin: '0 auto 1rem', borderRadius: '50%', background: '#fef2f2', color: '#dc2626', fontSize: '1.5rem' }}><RiAlertLine /></div>
+          <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.125rem', color: 'var(--color-neutral-900)' }}>Intern profile unavailable</h2>
+          <p style={{ margin: '0 0 1.25rem', color: 'var(--color-neutral-500)', fontSize: '0.875rem' }}>{errors.profile || 'This intern could not be found or is no longer assigned to you.'}</p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button className="btn btn-secondary" onClick={() => navigate(ROUTES.SUPERVISOR_INTERNS)}><RiArrowLeftLine /> Back to interns</button>
+            <button className="btn btn-primary" onClick={() => loadInternProfile(internId)}><RiRefreshLine /> Try again</button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -357,7 +407,7 @@ const InternProfilePage = () => {
       style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '5rem' }}
     >
       {/* Profile Header */}
-      <InternProfileHeader profile={internProfile} performance={performance} />
+      <InternProfileHeader profile={internProfile} performance={performance} progress={progress} />
 
       {/* Tab Navigation */}
       <InternProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
@@ -401,6 +451,8 @@ const InternProfilePage = () => {
             <OnboardingTab
               profile={internProfile}
               progress={progress}
+              documents={documents}
+              isLoading={loading.documents}
               onOpenOnboarding={() => navigate(`${ROUTES.SUPERVISOR_ONBOARDING}?${taskQuery}`)}
             />
           )}

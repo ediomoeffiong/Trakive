@@ -41,6 +41,16 @@ const AuthController = {
     });
   }),
 
+  verifyTwoFactorLogin: asyncHandler(async (req, res) => {
+    const result = await AuthService.verifyTwoFactorLogin(
+      req.body.challengeToken,
+      req.body.code,
+      extractClientIp(req),
+      req.get('User-Agent'),
+    );
+    return sendSuccess(res, { statusCode: 200, message: 'Login successful', data: result });
+  }),
+
   refresh: asyncHandler(async (req, res) => {
     const { refreshToken } = req.body;
     const ipAddress = extractClientIp(req);

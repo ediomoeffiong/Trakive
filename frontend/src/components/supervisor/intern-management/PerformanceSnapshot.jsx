@@ -22,7 +22,7 @@ import { InternTabsLoader } from './InternSkeletonLoaders';
 // ── Review Status styles ──────────────────────────────────────────────────────
 const REVIEW_STATUS = {
   Completed: { bg: '#dcfce7', text: '#15803d' },
-  Scheduled: { bg: '#e0f2fe', text: '#0369a1' },
+  Scheduled: { bg: 'var(--color-primary-50)', text: 'var(--color-primary-700)' },
   Pending: { bg: '#fef3c7', text: '#b45309' },
 };
 
@@ -30,7 +30,7 @@ const REVIEW_STATUS = {
 const ScoreDisplay = ({ score, maxScore = 5, trend, trendDelta }) => {
   const pct = Math.round((score / maxScore) * 100);
   const TrendIcon = trend === 'up' ? RiArrowUpLine : trend === 'down' ? RiArrowDownLine : RiSubtractLine;
-  const trendColor = trend === 'up' ? '#10b981' : trend === 'down' ? '#ef4444' : '#6366f1';
+  const trendColor = trend === 'up' ? '#10b981' : trend === 'down' ? '#ef4444' : 'var(--color-primary-600)';
 
   return (
     <motion.div
@@ -38,7 +38,7 @@ const ScoreDisplay = ({ score, maxScore = 5, trend, trendDelta }) => {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.35 }}
       style={{
-        background: 'linear-gradient(135deg, #075985 0%, #0284c7 100%)',
+        background: 'var(--brand-blue)',
         borderRadius: '1rem',
         padding: '1.5rem',
         color: '#ffffff',
@@ -91,7 +91,7 @@ const ScoreDisplay = ({ score, maxScore = 5, trend, trendDelta }) => {
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
             style={{
               height: '100%',
-              background: 'linear-gradient(90deg, #818cf8, #a5f3fc)',
+              background: 'linear-gradient(90deg, #ffffff, var(--color-primary-100))',
               borderRadius: '99px',
             }}
           />
@@ -131,7 +131,7 @@ const CompetencyBars = ({ competencies }) => (
                 background: c.score >= 4.5
                   ? 'linear-gradient(90deg, #10b981, #059669)'
                   : c.score >= 4.0
-                  ? 'linear-gradient(90deg, #0284c7, #00b4d8)'
+                  ? 'linear-gradient(90deg, var(--color-primary-600), var(--color-primary-500))'
                   : 'linear-gradient(90deg, #f59e0b, #fbbf24)',
                 borderRadius: '99px',
               }}
@@ -187,7 +187,7 @@ const ReviewCard = ({ review, index }) => {
           {review.status === 'Completed' ? (
             <RiCheckboxCircleLine style={{ color: '#10b981', fontSize: '1rem' }} />
           ) : (
-            <RiTimeLine style={{ color: '#6366f1', fontSize: '1rem' }} />
+            <RiTimeLine style={{ color: 'var(--color-primary-600)', fontSize: '1rem' }} />
           )}
           <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--color-neutral-900)' }}>
             {review.period}
@@ -245,10 +245,10 @@ const PerformanceSnapshot = ({ performance, isLoading }) => {
         <CompetencyBars competencies={performance.competencies} />
       </div>
 
-      {/* Strengths & Improvements */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+      {/* Strengths & Improvements are only shown when a real review provided them. */}
+      {(performance.strengths.length > 0 || performance.areasForImprovement.length > 0) && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
         {/* Strengths */}
-        <motion.div
+        {performance.strengths.length > 0 && <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.1 }}
@@ -279,10 +279,10 @@ const PerformanceSnapshot = ({ performance, isLoading }) => {
               </span>
             ))}
           </div>
-        </motion.div>
+        </motion.div>}
 
         {/* Areas for Improvement */}
-        <motion.div
+        {performance.areasForImprovement.length > 0 && <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.15 }}
@@ -313,8 +313,8 @@ const PerformanceSnapshot = ({ performance, isLoading }) => {
               </span>
             ))}
           </div>
-        </motion.div>
-      </div>
+        </motion.div>}
+      </div>}
 
       {/* Trend Chart */}
       {performance.trendData && performance.trendData.length > 0 && (
@@ -337,16 +337,16 @@ const PerformanceSnapshot = ({ performance, isLoading }) => {
             <LineChart data={performance.trendData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-neutral-100)" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <YAxis domain={[3.5, 5]} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <YAxis domain={[0, 5]} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <Tooltip content={<ChartTooltip />} />
-              <ReferenceLine y={4.0} stroke="#e0e7ff" strokeDasharray="4 2" />
+              <ReferenceLine y={4.0} stroke="var(--color-primary-100)" strokeDasharray="4 2" />
               <Line
                 type="monotone"
                 dataKey="score"
-                stroke="#0284c7"
+                stroke="var(--color-primary-500)"
                 strokeWidth={2.5}
-                dot={{ fill: '#0284c7', r: 4, strokeWidth: 2, stroke: '#fff' }}
-                activeDot={{ r: 6, stroke: '#0284c7', strokeWidth: 2, fill: '#fff' }}
+                dot={{ fill: 'var(--color-primary-500)', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                activeDot={{ r: 6, stroke: 'var(--color-primary-500)', strokeWidth: 2, fill: '#fff' }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -367,9 +367,11 @@ const PerformanceSnapshot = ({ performance, isLoading }) => {
           Review History
         </h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-          {performance.recentReviews.map((review, idx) => (
-            <ReviewCard key={review.id} review={review} index={idx} />
-          ))}
+          {performance.recentReviews.length > 0
+            ? performance.recentReviews.map((review, idx) => (
+                <ReviewCard key={review.id} review={review} index={idx} />
+              ))
+            : <p style={{ margin: 0, padding: '1.25rem', textAlign: 'center', color: 'var(--color-neutral-500)', fontSize: '0.875rem', background: 'var(--color-neutral-50)', borderRadius: '0.75rem' }}>No completed reviews yet.</p>}
         </div>
       </div>
     </div>

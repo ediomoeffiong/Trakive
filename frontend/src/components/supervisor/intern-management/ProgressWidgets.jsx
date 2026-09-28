@@ -5,7 +5,7 @@
  * and attendance using animated progress bars and circular indicators.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   RiTaskLine,
@@ -18,7 +18,7 @@ import {
 import { InternProgressLoader } from './InternSkeletonLoaders';
 
 // ── Animated Circular Progress ────────────────────────────────────────────────
-const CircularProgress = ({ percentage, size = 80, strokeWidth = 7, color = '#0284c7', trackColor = '#e0f2fe' }) => {
+const CircularProgress = ({ percentage, size = 80, strokeWidth = 7, color = 'var(--color-primary-500)', trackColor = 'var(--color-primary-100)' }) => {
   const [displayed, setDisplayed] = useState(0);
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -186,9 +186,9 @@ const ProgressWidgets = ({ progress, isLoading }) => {
       {/* Row 1: Circular Overview */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
         {/* Overall Progress */}
-        <WidgetCard icon={RiPieChartLine} iconColor="#0284c7" iconBg="#e0f2fe" title="Overall Progress" index={0}>
+        <WidgetCard icon={RiPieChartLine} iconColor="var(--color-primary-600)" iconBg="var(--color-primary-50)" title="Overall Progress" index={0}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            <CircularProgress percentage={overallProgress} color="#0284c7" trackColor="#e0f2fe" />
+            <CircularProgress percentage={overallProgress} color="var(--color-primary-500)" trackColor="var(--color-primary-100)" />
             <div>
               <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-neutral-700)', fontWeight: 500, lineHeight: 1.4 }}>
                 {overallProgress >= 80
@@ -223,7 +223,7 @@ const ProgressWidgets = ({ progress, isLoading }) => {
                 {attendance.present}/{attendance.total}
               </p>
               <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-neutral-500)' }}>
-                🔥 {attendance.streak} day streak
+                {attendance.total > 0 ? `${attendance.present} credited day${attendance.present === 1 ? '' : 's'}` : 'No attendance records yet'}
               </p>
             </div>
           </div>
@@ -233,10 +233,10 @@ const ProgressWidgets = ({ progress, isLoading }) => {
       {/* Row 2: Linear Progress Bars */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
         {/* Onboarding Progress */}
-        <WidgetCard icon={RiCheckboxMultipleLine} iconColor="#0891b2" iconBg="#ecfeff" title="Onboarding Progress" index={3}>
+        <WidgetCard icon={RiCheckboxMultipleLine} iconColor="var(--color-primary-600)" iconBg="var(--color-primary-50)" title="Onboarding Progress" index={3}>
           <AnimatedBar
             percentage={onboardingCompletion.percentage}
-            color="linear-gradient(90deg, #0891b2, #22d3ee)"
+            color="linear-gradient(90deg, var(--color-primary-600), var(--color-primary-400))"
             label={`${onboardingCompletion.completed} of ${onboardingCompletion.total} modules`}
             sublabel={onboardingCompletion.percentage === 100 ? '✅ Fully onboarded' : `${onboardingCompletion.total - onboardingCompletion.completed} modules remaining`}
           />
@@ -255,7 +255,7 @@ const ProgressWidgets = ({ progress, isLoading }) => {
 
       {/* Row 3: Milestones */}
       {milestones && milestones.length > 0 && (
-        <WidgetCard icon={RiCheckboxMultipleLine} iconColor="#0284c7" iconBg="#e0f2fe" title="Internship Milestones" index={5}>
+        <WidgetCard icon={RiCheckboxMultipleLine} iconColor="var(--color-primary-600)" iconBg="var(--color-primary-50)" title="Internship Milestones" index={5}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
             {milestones.map((m) => (
               <MilestoneItem key={m.id} milestone={m} />

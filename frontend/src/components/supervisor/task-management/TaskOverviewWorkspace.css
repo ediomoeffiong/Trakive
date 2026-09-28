@@ -126,6 +126,7 @@
   cursor: pointer;
 }
 
+.task-overview__text-button { font-size: 0.7rem; }
 .task-overview__text-button:hover { color: #006d83; }
 .task-overview__text-button svg, .task-overview__wide-button svg, .task-overview__row-action svg { transition: transform 160ms ease; }
 .task-overview__text-button:hover svg, .task-overview__wide-button:hover svg, .task-overview__task-row:hover .task-overview__row-action svg { transform: translateX(3px); }

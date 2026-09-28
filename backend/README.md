@@ -63,6 +63,9 @@ cp .env.example .env
 | `DB_SSL`                     | `false`                 | Enable SSL (Required for Supabase)                       |
 | `DB_SSL_REJECT_UNAUTHORIZED` | `true`                  | Enforce strict SSL certificate verification              |
 | `DB_MAX_CONNECTIONS`         | `20`                    | Max Pool Connections                                     |
+| `JWT_SECRET`                 | _Required in production_ | Signs access tokens and short-lived 2FA challenges       |
+| `JWT_REFRESH_SECRET`         | _Required in production_ | Signs refresh tokens                                     |
+| `MFA_ENCRYPTION_KEY`         | _Required in production_ | Encrypts authenticator secrets at rest                    |
 | `RATE_LIMIT_WINDOW_MS`       | `900000`                | Rate limiter window in ms (15 minutes)                   |
 | `RATE_LIMIT_MAX_REQUESTS`    | `100`                   | Max requests per window                                  |
 

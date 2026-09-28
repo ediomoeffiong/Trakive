@@ -5,7 +5,6 @@
 
 import api from './api';
 import { defaultSettings } from '../data/settings';
-import { mockCurrentSessions, mockOtherSessions, mockSessions } from '../data/sessions';
 import { ROLE_PREFERENCES_MAP } from '../data/preferences';
 import { useAppStore } from '../store/useAppStore';
 import { getAccessToken, getRefreshToken } from '../utils/authSession';
@@ -26,9 +25,6 @@ const normalizeNotificationSettings = (notifications = {}) => ({
 });
 
 let _settings = clone(defaultSettings);
-let _currentSessions = [...mockCurrentSessions];
-let _otherSessions = [...mockOtherSessions];
-let _sessions = [...mockSessions];
 let _rolePrefs = {};
 
 const hasRealBackendToken = () => {
@@ -106,8 +102,8 @@ export const fetchSettings = async () => {
       _settings = clone(settings);
       writeLocal('all', settings);
       return clone(settings);
-    } catch {
-      // Fall through to durable local settings for offline/demo resilience.
+    } catch (error) {
+      throw new Error(error.response?.data?.message || error.message || 'Unable to load settings');
     }
   }
   await delay();
@@ -116,83 +112,24 @@ export const fetchSettings = async () => {
 };
 
 export const fetchSessions = async ({ page = 1, limit = 10 } = {}) => {
-  if (hasRealBackendToken()) {
-    try {
-      const result = dataOf(await api.get('/settings/sessions', {
-        params: { page, limit },
-        headers: { 'X-Refresh-Token': getRefreshToken() || '' },
-      }));
-      if (result && typeof result === 'object' && Array.isArray(result.currentSessions)) {
-        return result;
-      }
-      if (Array.isArray(result)) {
-        return {
-          currentSessions: result.filter((s) => s.isCurrent),
-          otherSessions: result.filter((s) => !s.isCurrent),
-          pagination: { page: 1, limit: 10, total: result.filter((s) => !s.isCurrent).length, totalPages: 1 },
-        };
-      }
-    } catch (error) {
-      throw new Error(error.response?.data?.message || error.message || 'Unable to load active sessions');
-    }
-  }
-  await delay();
-  const rawCurrent = readLocal('current_sessions', _currentSessions);
-  const storedOther = readLocal('other_sessions', _otherSessions);
-
-  const isProd = import.meta.env.PROD || false;
-  // In production, do not count localhost sign-ins in current active sessions
-  const eligibleCurrent = (rawCurrent || []).filter((session) => {
-    if (isProd) {
-      const ip = String(session.ip || '').toLowerCase();
-      const loc = String(session.location || '').toLowerCase();
-      return ip !== 'localhost' && ip !== '127.0.0.1' && ip !== '::1' && ip !== '::ffff:127.0.0.1' && !loc.includes('local development');
-    }
-    return true;
-  });
-
-  // Normalize current sessions to guarantee 1 isCurrent = true and max 3 active devices
-  let foundCurrent = false;
-  const normalizedCurrent = eligibleCurrent.slice(0, 3).map((session, index) => {
-    const isThisCurrent = session.isCurrent || index === 0;
-    if (isThisCurrent && !foundCurrent) {
-      foundCurrent = true;
-      return {
-        ...session,
-        isCurrent: true,
-        status: 'active',
-        lastActive: new Date().toISOString(),
-      };
-    }
-    return {
-      ...session,
-      isCurrent: false,
-      status: 'active',
-    };
-  });
-
-  if (normalizedCurrent.length > 0 && !foundCurrent) {
-    normalizedCurrent[0].isCurrent = true;
-    normalizedCurrent[0].status = 'active';
+  if (!hasRealBackendToken()) {
+    throw new Error('Live session history is unavailable while using local mock authentication.');
   }
 
-  writeLocal('current_sessions', normalizedCurrent);
+  try {
+    const result = dataOf(await api.get('/settings/sessions', {
+      params: { page, limit },
+      headers: { 'X-Refresh-Token': getRefreshToken() || '' },
+    }));
 
-  const total = storedOther.length;
-  const totalPages = Math.ceil(total / limit) || 1;
-  const start = (page - 1) * limit;
-  const paginatedOther = storedOther.slice(start, start + limit);
+    if (!result || typeof result !== 'object' || !Array.isArray(result.currentSessions) || !Array.isArray(result.otherSessions)) {
+      throw new Error('Invalid sessions response from server');
+    }
 
-  return {
-    currentSessions: clone(normalizedCurrent),
-    otherSessions: clone(paginatedOther),
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages,
-    },
-  };
+    return result;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || error.message || 'Unable to load active sessions');
+  }
 };
 
 export const fetchRolePreferences = async (role) => {
@@ -252,9 +189,11 @@ export const verifyEmailChange = async (otp, newEmail) => {
 export const changePassword = async ({ currentPassword, newPassword }) => {
   if (hasRealBackendToken()) {
     try {
-      await api.post('/settings/change-password', { currentPassword, newPassword });
-      saveLocalCategory('security', { lastPasswordChange: new Date().toISOString() });
-      return { message: 'Password changed successfully.' };
+      const result = dataOf(await api.post('/settings/change-password', { currentPassword, newPassword }, {
+        headers: { 'X-Refresh-Token': getRefreshToken() || '' },
+      }));
+      saveLocalCategory('security', { lastPasswordChange: result.lastPasswordChange });
+      return { message: 'Password changed successfully.', ...result };
     } catch (error) {
       throw new Error(error.response?.data?.message || error.message || 'Unable to change password');
     }
@@ -266,81 +205,56 @@ export const changePassword = async ({ currentPassword, newPassword }) => {
   if (newPassword.length < 8) {
     throw new Error('New password must be at least 8 characters.');
   }
-  saveLocalCategory('security', { lastPasswordChange: new Date().toISOString() });
-  return { message: 'Password changed successfully.' };
+  const lastPasswordChange = new Date().toISOString();
+  saveLocalCategory('security', { lastPasswordChange });
+  return { message: 'Password changed successfully.', lastPasswordChange };
 };
 
-export const toggleTwoFactor = async (enabled) => {
-  if (hasRealBackendToken()) {
-    try {
-      const security = dataOf(await api.put('/settings/category/security', { twoFactorEnabled: enabled }));
-      return saveLocalCategory('security', security);
-    } catch (error) {
-      throw new Error(error.response?.data?.message || error.message || 'Unable to update two-factor settings');
-    }
-  }
-  await delay();
-  return saveLocalCategory('security', { twoFactorEnabled: enabled });
+export const beginTwoFactorSetup = async () => {
+  if (!hasRealBackendToken()) throw new Error('Two-factor authentication requires a live account.');
+  return dataOf(await api.post('/settings/two-factor/setup'));
+};
+
+export const confirmTwoFactorSetup = async (code) => {
+  if (!hasRealBackendToken()) throw new Error('Two-factor authentication requires a live account.');
+  const security = dataOf(await api.post('/settings/two-factor/confirm', { code }));
+  return saveLocalCategory('security', security);
+};
+
+export const disableTwoFactor = async (code) => {
+  if (!hasRealBackendToken()) throw new Error('Two-factor authentication requires a live account.');
+  const security = dataOf(await api.post('/settings/two-factor/disable', { code }));
+  return saveLocalCategory('security', security);
+};
+
+export const fetchSecurityEvents = async ({ page = 1, limit = 10 } = {}) => {
+  if (!hasRealBackendToken()) throw new Error('Security history requires a live account.');
+  return dataOf(await api.get('/settings/security-events', { params: { page, limit } }));
 };
 
 export const revokeSession = async (sessionId) => {
-  if (hasRealBackendToken()) {
-    await api.delete(`/settings/sessions/${sessionId}`);
-  } else {
-    await delay();
+  if (!hasRealBackendToken()) {
+    throw new Error('Live session controls are unavailable while using local mock authentication.');
   }
-  const current = readLocal('current_sessions', _currentSessions);
-  const other = readLocal('other_sessions', _otherSessions);
-  const targetIndex = current.findIndex((s) => s.id === sessionId);
-  if (targetIndex !== -1) {
-    const [revoked] = current.splice(targetIndex, 1);
-    const moved = {
-      ...revoked,
-      isCurrent: false,
-      status: 'revoked',
-      revokedAt: new Date().toISOString(),
-    };
-    other.unshift(moved);
-    _currentSessions = [...current];
-    _otherSessions = [...other];
-    writeLocal('current_sessions', _currentSessions);
-    writeLocal('other_sessions', _otherSessions);
-  }
-  _sessions = [..._currentSessions, ..._otherSessions];
+
+  await api.delete(`/settings/sessions/${sessionId}`);
   return { id: sessionId };
 };
 
 export const revokeOtherSessions = async () => {
-  if (hasRealBackendToken()) {
-    await api.delete('/settings/sessions/others', { data: { refreshToken: getRefreshToken() } });
-  } else {
-    await delay();
+  if (!hasRealBackendToken()) {
+    throw new Error('Live session controls are unavailable while using local mock authentication.');
   }
-  const current = readLocal('current_sessions', _currentSessions);
-  const other = readLocal('other_sessions', _otherSessions);
-  const activeCurrent = current.filter((s) => s.isCurrent);
-  const toRevoke = current.filter((s) => !s.isCurrent);
 
-  const revokedItems = toRevoke.map((s) => ({
-    ...s,
-    isCurrent: false,
-    status: 'revoked',
-    revokedAt: new Date().toISOString(),
+  const result = dataOf(await api.delete('/settings/sessions/others', {
+    data: { refreshToken: getRefreshToken() },
   }));
-
-  _currentSessions = activeCurrent.length > 0 ? activeCurrent : (current.slice(0, 1) || []);
-  _otherSessions = [...revokedItems, ...other];
-  writeLocal('current_sessions', _currentSessions);
-  writeLocal('other_sessions', _otherSessions);
-  _sessions = [..._currentSessions, ..._otherSessions];
-  return { revokedCount: toRevoke.length };
+  return result;
 };
 
 export const updateSettingsCategory = async (category, updates) => {
   if (category === 'account') return updateAccountSettings(updates);
-  if (category === 'security' && Object.prototype.hasOwnProperty.call(updates, 'twoFactorEnabled')) {
-    return toggleTwoFactor(updates.twoFactorEnabled);
-  }
+  if (category === 'security') throw new Error('Security settings require their verified security flow.');
 
   const normalizedUpdates = category === 'notifications'
     ? normalizeNotificationSettings(updates)
@@ -383,7 +297,10 @@ export const settingsService = {
   requestEmailChange,
   verifyEmailChange,
   changePassword,
-  toggleTwoFactor,
+  beginTwoFactorSetup,
+  confirmTwoFactorSetup,
+  disableTwoFactor,
+  fetchSecurityEvents,
   revokeSession,
   revokeOtherSessions,
   updateSettingsCategory,

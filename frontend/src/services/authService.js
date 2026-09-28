@@ -15,6 +15,8 @@ const MOCK_AUTH_ENABLED = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOC
 const CUSTOM_USERS_KEY = 'trakive_custom_users';
 const PASSWORD_OVERRIDES_KEY = 'trakive_mock_password_overrides';
 const PENDING_RESET_EMAIL_KEY = 'trakive_pending_reset_email';
+const MAX_ACTIVE_DEVICES = 7;
+const SESSION_INACTIVITY_MS = 7 * 24 * 60 * 60 * 1000;
 
 const safeParseJson = (value, fallback) => {
   try {
@@ -171,9 +173,12 @@ const getMockLogin = async (email, password) => {
   const currentKey = `trakive_settings_${user.id}_current_sessions`;
   const storedCurrent = safeParseJson(localStorage.getItem(currentKey), null);
   if (storedCurrent && Array.isArray(storedCurrent)) {
-    const otherActiveDevices = storedCurrent.filter((s) => !s.isCurrent);
-    if (otherActiveDevices.length >= 3) {
-      throw new Error('Maximum active device limit reached (3 devices). Please log out from one of your active devices before logging in.');
+    const activeDevices = storedCurrent.filter((session) => {
+      const lastActive = new Date(session.lastActive || session.createdAt || 0).getTime();
+      return session.status !== 'revoked' && lastActive > Date.now() - SESSION_INACTIVITY_MS;
+    });
+    if (activeDevices.length >= MAX_ACTIVE_DEVICES) {
+      throw new Error(`Maximum active device limit reached (${MAX_ACTIVE_DEVICES} devices). Please log out from one of your active devices before logging in.`);
     }
   }
 
@@ -195,6 +200,9 @@ export const authService = {
     try {
       const res = await api.post('/auth/login', { email, password });
       const payload = res.data?.data || res.data || {};
+      if (payload.twoFactorRequired && payload.challengeToken) {
+        return { twoFactorRequired: true, challengeToken: payload.challengeToken };
+      }
       const user = payload.user || payload;
       const tokens = payload.tokens || {};
       const token = tokens.accessToken || payload.token || user.token;
@@ -231,6 +239,19 @@ export const authService = {
       resetSessionExpiredFlag();
       resetApiSessionState();
       return getMockLogin(email, password);
+    }
+  },
+
+  verifyTwoFactorLogin: async ({ challengeToken, code }) => {
+    try {
+      const res = await api.post('/auth/login/two-factor', { challengeToken, code });
+      const result = normalizeBackendAuthPayload(res);
+      if (!result.user?.id || !result.token) throw new Error('Invalid login response from server');
+      resetSessionExpiredFlag();
+      resetApiSessionState();
+      return result;
+    } catch (err) {
+      throw new Error(formatUserFriendlyError(err, 'The authentication code is invalid or expired.'));
     }
   },
 

@@ -1,8 +1,8 @@
 /**
  * @file internManagementService.js
  * @description Service abstraction for the Supervisor Intern Management module.
- * All methods return Promises with artificial delays to simulate backend responses.
- * Replace mock data imports with real API calls (axios) to connect to the backend.
+ * Uses the live backend for supervisor-facing intern data. Mock data is only
+ * available when the explicit development mock-auth flag is enabled.
  */
 
 import api from './api';
@@ -54,6 +54,7 @@ const hasRealBackendToken = () => {
   const token = getAccessToken();
   return Boolean(token && !String(token).startsWith('mock-') && !String(token).startsWith('mock-jwt-token'));
 };
+const mockModeEnabled = () => !import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
 
 const extractItems = (payload) => {
   const data = unwrapApiData(payload);
@@ -71,7 +72,7 @@ const isCompletedStatus = (value) =>
 const isOpenTaskStatus = (value) =>
   !['completed', 'done', 'cancelled', 'archived'].includes(String(value || '').toLowerCase());
 
-const normalizeScore = (value, fallback = 'N/A') => {
+const normalizeScore = (value, fallback = null) => {
   const num = Number(value);
   return Number.isFinite(num) && num > 0 ? Number(num.toFixed(1)) : fallback;
 };
@@ -221,7 +222,15 @@ const enrichInternsWithLiveData = (interns = [], weeklyPlans = [], onboardingRec
 
 const activeInternship = (data = {}) => {
   const records = data.internships || data.internship_records || data.internshipRecords || [];
-  return records.find((record) => record.status === 'active') || records[0] || null;
+  return records.find((record) => ['active', 'onboarding'].includes(String(record.status).toLowerCase())) || records[0] || null;
+};
+
+const internStatusLabel = (value) => {
+  const normalized = String(value || '').toLowerCase();
+  if (normalized === 'active') return 'Active';
+  if (normalized === 'completed') return 'Completed';
+  if (normalized === 'terminated') return 'Needs Help';
+  return 'Pending Review';
 };
 
 const buildProfile = (data = {}, internId) => {
@@ -256,31 +265,34 @@ const buildProfile = (data = {}, internId) => {
     id: data.user_id || data.id || internId,
     internId: data.user_id || data.id || internId,
     name,
-    email: data.email || `${name.toLowerCase().replace(/\s+/g, '.')}@thefifthlab.com`,
-    phone: data.phone || 'N/A',
-    department: normalizeDepartmentForPerson(data, data.department_name || data.department || 'FifthLab'),
+    email: data.email || null,
+    phone: data.phone || null,
+    department: normalizeDepartmentForPerson(data, data.department_name || data.department || null),
     role: 'Intern',
-    status: data.intern_status === 'active' ? 'Active' : (data.intern_status === 'completed' ? 'Completed' : 'Pending Review'),
-    performanceScore: normalizeScore(data.performance_score || data.average_score, '4.5'),
-    onboardingProgress: data.onboarding_ready ? 100 : Number(data.onboarding_progress || data.onboarding_step || 80),
-    university: data.institution || data.university || 'N/A',
-    institution: data.institution || data.university || 'N/A',
-    major: data.field_of_study || data.major || 'N/A',
-    fieldOfStudy: data.field_of_study || data.major || 'N/A',
-    academicYear: data.academic_year || data.academicYear || 'N/A',
+    status: internStatusLabel(data.intern_status),
+    performanceScore: normalizeScore(data.performance_score || data.average_score),
+    onboardingProgress: data.onboarding_ready ? 100 : clampPercent(data.onboarding_progress || data.onboarding_step || 0),
+    university: data.institution || data.university || null,
+    institution: data.institution || data.university || null,
+    major: data.field_of_study || data.major || null,
+    fieldOfStudy: data.field_of_study || data.major || null,
+    academicYear: data.academic_year || data.academicYear || null,
     emergencyContact: data.emergency_contact || {},
     skills: data.skills || [],
     avatar: data.avatar_url || data.avatar || null,
-    supervisor: data.supervisor_name || data.supervisor || 'Tochukwu Mgbemena',
-    location: currentInternship?.work_location || data.work_location || 'Remote / Office',
-    contractType: data.contract_type || currentInternship?.contract_type || 'Internship',
-    stipend: data.stipend || 'N/A',
+    supervisor: data.supervisor_name || data.supervisor || [data.supervisor_first_name, data.supervisor_last_name].filter(Boolean).join(' ') || null,
+    supervisorEmail: data.supervisor_email || null,
+    location: currentInternship?.work_location || currentInternship?.record_work_location || data.record_work_location || data.work_location || null,
+    workHours: currentInternship?.work_hours || data.record_work_hours || data.work_hours || null,
+    daysPerWeek: currentInternship?.days_per_week || data.record_days_per_week || data.days_per_week || null,
+    contractType: data.contract_type || currentInternship?.contract_type || null,
+    stipend: data.stipend || null,
     startDate: startDate || 'N/A',
     endDate: endDate || 'N/A',
     duration: getDurationLabel(startDate, endDate),
-    batch: data.batch_name || currentInternship?.batch_name || (startDate && startDate !== 'N/A' ? `Batch ${new Date(startDate).getFullYear()}` : 'FifthLab Batch'),
-    currentTask: data.current_task || 'No active task yet',
-    lastActivity: data.last_active_at ? formatDate(data.last_active_at) : 'recently',
+    batch: data.batch_name || currentInternship?.batch_name || (startDate && startDate !== 'N/A' ? `Batch ${new Date(startDate).getFullYear()}` : null),
+    currentTask: data.current_task || null,
+    lastActivity: data.last_active_at ? formatDate(data.last_active_at) : null,
     datesVerified: Boolean(currentInternship?.dates_verified || data.dates_verified),
     internships,
   });
@@ -498,10 +510,16 @@ export const internManagementService = {
    */
   async fetchInternProfile(internId) {
     try {
-      const res = await api.get(`/interns/${internId}`);
-      const data = unwrapApiData(res);
+      const [profileResponse, historyResponse] = await Promise.all([
+        api.get(`/interns/${internId}`),
+        api.get(`/interns/${internId}/history`).catch(() => null),
+      ]);
+      const data = unwrapApiData(profileResponse);
       if (data) {
-        const profile = buildProfile(data, internId);
+        const history = historyResponse ? unwrapApiData(historyResponse) : null;
+        const historyRecords = Array.isArray(history?.internships) ? history.internships : [];
+        const profile = buildProfile({ ...data, internships: historyRecords }, internId);
+        profile.assignmentHistory = Array.isArray(history?.assignment_history) ? history.assignment_history : [];
         try {
           const plans = await getInternWeeklyPlans(profile.id);
           const latestTask = plans.flatMap((plan) => plan.tasks).find((task) =>
@@ -561,33 +579,41 @@ export const internManagementService = {
    */
   async fetchInternProgress(internId) {
     try {
-      const plans = await getInternWeeklyPlans(internId);
+      const [plans, onboarding, performanceResponse] = await Promise.all([
+        getInternWeeklyPlans(internId),
+        getInternOnboardingRecord(internId),
+        api.get('/analytics/performance', { params: { internId } }).catch(() => null),
+      ]);
       const tasks = plans.flatMap((plan) => plan.tasks);
       const completedTasks = tasks.filter((task) => ['completed', 'done'].includes(String(task.status).toLowerCase())).length;
-      const onboarding = await getInternOnboardingRecord(internId);
-      const onboardingItems = onboarding?.steps || onboarding?.documents || [];
+      const onboardingItems = getOnboardingItems(onboarding || {});
       const onboardingCompleted = onboardingItems.filter((item) =>
         ['approved', 'verified', 'completed'].includes(String(item.status || item.reviewStatus).toLowerCase())
       ).length;
       const reviewedPlans = plans.filter((plan) => plan.reviewedAt || plan.status === 'reviewed').length;
-      const onboardingTotal = onboardingItems.length || 4;
+      const onboardingTotal = onboardingItems.length;
       const taskPct = tasks.length ? Math.round((completedTasks / tasks.length) * 100) : 0;
       const onboardingPct = onboardingItems.length
         ? Math.round((onboardingCompleted / onboardingItems.length) * 100)
         : Number(onboarding?.progress || 0);
       const reviewPct = plans.length ? Math.round((reviewedPlans / plans.length) * 100) : 0;
+      const performancePayload = performanceResponse ? unwrapApiData(performanceResponse) : null;
+      const performanceRow = performancePayload?.interns?.find((item) => String(item.intern_id) === String(internId));
+      const attendancePct = clampPercent(performanceRow?.attendance_rate || 0);
+      const attendanceTotal = Number(performanceRow?.total_attendance || 0);
+      const attendedDays = attendanceTotal > 0 ? Math.round((attendancePct / 100) * attendanceTotal) : 0;
 
       return {
         progress: {
           taskCompletion: { completed: completedTasks, total: tasks.length, percentage: taskPct },
           onboardingCompletion: {
-            completed: onboardingItems.length ? onboardingCompleted : Math.round((onboardingPct / 100) * onboardingTotal),
+            completed: onboardingItems.length ? onboardingCompleted : 0,
             total: onboardingTotal,
             percentage: onboardingPct,
           },
-          reviewCompletion: { completed: reviewedPlans, total: Math.max(plans.length, 1), percentage: reviewPct },
+          reviewCompletion: { completed: reviewedPlans, total: plans.length, percentage: reviewPct },
           overallProgress: Math.round((taskPct + onboardingPct + reviewPct) / 3),
-          attendance: { present: 0, total: 0, percentage: 0, streak: 0 },
+          attendance: { present: attendedDays, total: attendanceTotal, percentage: attendancePct },
           milestones: [
             { id: 'onboarding', title: 'Onboarding completed', completed: onboardingPct === 100, date: onboardingPct === 100 ? 'Complete' : null },
             { id: 'first-task', title: 'First task assigned', completed: tasks.length > 0, date: tasks[0]?.weekStart ? formatDate(tasks[0].weekStart) : null },
@@ -634,7 +660,7 @@ export const internManagementService = {
   async fetchInternDocuments(internId) {
     try {
       const onboarding = await getInternOnboardingRecord(internId);
-      const docs = (onboarding?.documents || onboarding?.steps || []).flatMap((item, index) => {
+      const docs = getOnboardingItems(onboarding || {}).flatMap((item, index) => {
         const uploaded = item.uploadedDocuments || item.documents || [];
         if (uploaded.length > 0) {
           return uploaded.map((doc) => ({
@@ -701,7 +727,7 @@ export const internManagementService = {
           date: plan.reviewedAt,
         }));
       const onboarding = await getInternOnboardingRecord(internId);
-      const onboardingEvents = (onboarding?.documents || onboarding?.steps || [])
+      const onboardingEvents = getOnboardingItems(onboarding || {})
         .filter((item) => ['approved', 'verified', 'completed'].includes(String(item.status || item.reviewStatus).toLowerCase()))
         .map((item, index) => ({
           id: `onboarding-${item.id || index}`,
@@ -735,30 +761,46 @@ export const internManagementService = {
    */
   async fetchInternPerformance(internId) {
     try {
-      const plans = await getInternWeeklyPlans(internId);
+      const [plans, analyticsResponse] = await Promise.all([
+        getInternWeeklyPlans(internId),
+        api.get('/analytics/performance', { params: { internId } }).catch(() => null),
+      ]);
       const reviewed = plans.filter((plan) => plan.reviewedAt || plan.status === 'reviewed');
       const tasks = plans.flatMap((plan) => plan.tasks);
       const completed = tasks.filter((task) => ['completed', 'done'].includes(String(task.status).toLowerCase())).length;
-      const completionScore = tasks.length ? Math.max(1, Math.min(5, Number(((completed / tasks.length) * 5).toFixed(1)))) : 0;
-      const responsivenessScore = reviewed.length ? 4.5 : (plans.length ? 3.8 : 0);
-      const averageScore = Number(((completionScore || 4) + (responsivenessScore || 4)) / 2).toFixed(1);
+      const analytics = analyticsResponse ? unwrapApiData(analyticsResponse) : null;
+      const row = analytics?.interns?.find((item) => String(item.intern_id) === String(internId));
+      const completionScore = row?.task_completion_rate != null
+        ? Number((Number(row.task_completion_rate) / 20).toFixed(1))
+        : (tasks.length ? Number(((completed / tasks.length) * 5).toFixed(1)) : null);
+      const ratingScore = row?.average_task_rating != null ? Number(row.average_task_rating) : null;
+      const attendanceScore = row?.attendance_rate != null ? Number((Number(row.attendance_rate) / 20).toFixed(1)) : null;
+      const overallScore = row?.overall_score != null ? Number((Number(row.overall_score) / 20).toFixed(1)) : null;
+      const availableScores = [ratingScore, completionScore].filter((score) => Number.isFinite(score));
+      const averageScore = overallScore ?? (availableScores.length
+        ? Number((availableScores.reduce((sum, score) => sum + score, 0) / availableScores.length).toFixed(1))
+        : null);
       return {
         performance: {
           averageScore,
           maxScore: 5,
-          trend: reviewed.length > 1 ? 'up' : 'stable',
-          trendDelta: reviewed.length > 1 ? '+0.2' : '0.0',
+          trend: Number(row?.productivity_growth_pct || 0) > 0 ? 'up' : Number(row?.productivity_growth_pct || 0) < 0 ? 'down' : 'stable',
+          trendDelta: row ? `${Number(row.productivity_growth_pct || 0) >= 0 ? '+' : ''}${Math.round(Number(row.productivity_growth_pct || 0))}%` : '—',
           competencies: [
-            { name: 'Task Completion', score: completionScore || 4 },
-            { name: 'Weekly Reporting', score: responsivenessScore || 4 },
-            { name: 'Onboarding Readiness', score: tasks.length ? 4.2 : 3.8 },
-          ],
-          strengths: completed > 0 ? ['Completes assigned work', 'Keeps weekly plan active'] : ['Ready for assignment'],
-          areasForImprovement: tasks.length > completed ? ['Close remaining weekly tasks'] : ['Continue documenting progress'],
-          trendData: plans.slice(0, 6).reverse().map((plan) => ({
-            month: plan.weekStart ? formatDate(plan.weekStart).split(',')[0] : 'Week',
-            score: plan.stats?.total ? Number(((plan.stats.completed / plan.stats.total) * 5).toFixed(1)) : 4,
-          })),
+            { name: 'Task Completion', score: completionScore },
+            { name: 'Review Rating', score: ratingScore },
+            ...(row?.attendance_score_enabled ? [{ name: 'Attendance', score: attendanceScore }] : []),
+          ].filter((item) => Number.isFinite(item.score)),
+          strengths: [],
+          areasForImprovement: [],
+          trendData: plans
+            .filter((plan) => Number(plan.stats?.total || 0) > 0)
+            .slice(0, 6)
+            .reverse()
+            .map((plan) => ({
+              month: plan.weekStart ? formatDate(plan.weekStart).split(',')[0] : 'Week',
+              score: Number(((plan.stats.completed / plan.stats.total) * 5).toFixed(1)),
+            })),
           recentReviews: reviewed.slice(0, 5).map((plan) => ({
             id: plan.id,
             period: `Week of ${formatDate(plan.weekStart)}`,
@@ -814,8 +856,10 @@ export const internManagementService = {
         return { note: saved };
       } catch (error) {
         logWarn('Failed to save supervisor note to API:', error);
+        if (!mockModeEnabled()) throw error;
       }
     }
+    if (!mockModeEnabled()) throw new Error('A live backend session is required to save notes.');
     await delay(400);
     if (!notesStore[internId]) notesStore[internId] = [];
 
@@ -858,8 +902,10 @@ export const internManagementService = {
         return { success: true };
       } catch (error) {
         logWarn('Failed to delete supervisor note from API:', error);
+        if (!mockModeEnabled()) throw error;
       }
     }
+    if (!mockModeEnabled()) throw new Error('A live backend session is required to delete notes.');
     await delay(300);
     if (notesStore[internId]) {
       notesStore[internId] = notesStore[internId].filter((n) => n.id !== noteId);
@@ -881,8 +927,10 @@ export const internManagementService = {
         return { note };
       } catch (error) {
         logWarn('Failed to update supervisor note pin through API:', error);
+        if (!mockModeEnabled()) throw error;
       }
     }
+    if (!mockModeEnabled()) throw new Error('A live backend session is required to update notes.');
     await delay(200);
     let updated = null;
     if (notesStore[internId]) {

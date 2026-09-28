@@ -187,17 +187,19 @@ const AttendanceDashboard = () => {
             </span>
 
             {/* Day Type Badge */}
-            <span style={{
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              backgroundColor: isPhysicalDay ? 'rgba(34, 197, 94, 0.35)' : dayType === 'online' ? 'rgba(14, 165, 233, 0.35)' : 'rgba(255, 255, 255, 0.25)',
-              border: '1px solid rgba(255, 255, 255, 0.4)',
-              padding: '0.25rem 0.65rem',
-              borderRadius: '999px',
-              color: '#ffffff',
-            }}>
-              {isPhysicalDay ? '📍 Physical Office Workday' : dayType === 'online' ? '💻 Online Work Day' : '🎉 Holiday / Closure'}
-            </span>
+            {(isPhysicalDay || dayType === 'online') && (
+              <span style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                backgroundColor: isPhysicalDay ? 'rgba(34, 197, 94, 0.35)' : 'rgba(14, 165, 233, 0.35)',
+                border: '1px solid rgba(255, 255, 255, 0.4)',
+                padding: '0.25rem 0.65rem',
+                borderRadius: '999px',
+                color: '#ffffff',
+              }}>
+                {isPhysicalDay ? '📍 Physical Office Workday' : '💻 Online Work Day'}
+              </span>
+            )}
           </div>
 
           <h2 style={{ margin: '0 0 0.35rem 0', fontSize: '1.75rem', fontWeight: 800, color: '#ffffff' }}>

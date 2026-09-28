@@ -32,6 +32,14 @@ export const useInternManagementStore = create(
       performance: null,
       tasks: [],
       weeklyPlans: [],
+      loaded: {
+        progress: false,
+        documents: false,
+        notes: false,
+        activity: false,
+        performance: false,
+        tasks: false,
+      },
 
       // ── Filters ───────────────────────────────────────────────────────────
       filters: {
@@ -144,6 +152,7 @@ export const useInternManagementStore = create(
           const res = await internManagementService.fetchInternProgress(internId);
           set((s) => ({
             progress: res.progress,
+            loaded: { ...s.loaded, progress: true },
             loading: { ...s.loading, progress: false },
           }));
         } catch (err) {
@@ -167,6 +176,7 @@ export const useInternManagementStore = create(
           const res = await internManagementService.fetchInternDocuments(internId);
           set((s) => ({
             documents: res.documents,
+            loaded: { ...s.loaded, documents: true },
             loading: { ...s.loading, documents: false },
           }));
         } catch (err) {
@@ -190,6 +200,7 @@ export const useInternManagementStore = create(
           const res = await internManagementService.fetchInternActivity(internId);
           set((s) => ({
             activity: res.activities,
+            loaded: { ...s.loaded, activity: true },
             loading: { ...s.loading, activity: false },
           }));
         } catch (err) {
@@ -213,6 +224,7 @@ export const useInternManagementStore = create(
           const res = await internManagementService.fetchInternPerformance(internId);
           set((s) => ({
             performance: res.performance,
+            loaded: { ...s.loaded, performance: true },
             loading: { ...s.loading, performance: false },
           }));
         } catch (err) {
@@ -238,6 +250,7 @@ export const useInternManagementStore = create(
           set((s) => ({
             tasks: res.tasks || [],
             weeklyPlans: res.plans || [],
+            loaded: { ...s.loaded, tasks: true },
             loading: { ...s.loading, tasks: false },
           }));
         } catch (err) {
@@ -261,6 +274,7 @@ export const useInternManagementStore = create(
           const res = await internManagementService.fetchSupervisorNotes(internId);
           set((s) => ({
             notes: res.notes,
+            loaded: { ...s.loaded, notes: true },
             loading: { ...s.loading, notes: false },
           }));
         } catch (err) {
@@ -456,6 +470,14 @@ export const useInternManagementStore = create(
           performance: null,
           tasks: [],
           weeklyPlans: [],
+          loaded: {
+            progress: false,
+            documents: false,
+            notes: false,
+            activity: false,
+            performance: false,
+            tasks: false,
+          },
           activeTab: 'overview',
         });
       },

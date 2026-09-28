@@ -128,6 +128,29 @@ const AuditLogModel = {
     const res = await query(sql, values);
     return parseInt(res.rows[0].count, 10);
   },
+
+  async findSecurityEvents(userId, { limit = 10, offset = 0 } = {}) {
+    const actions = [
+      'USER_LOGIN', 'USER_LOGIN_FAILED', 'PASSWORD_CHANGED',
+      'TWO_FACTOR_ENABLED', 'TWO_FACTOR_DISABLED', 'SESSION_REVOKED',
+    ];
+    const [eventsResult, countResult] = await Promise.all([
+      query(
+        `SELECT id, action, details, ip_address, user_agent, created_at
+         FROM audit_logs
+         WHERE user_id = $1 AND action = ANY($2::text[])
+         ORDER BY created_at DESC
+         LIMIT $3 OFFSET $4`,
+        [userId, actions, limit, offset],
+      ),
+      query(
+        `SELECT COUNT(*)::int AS count FROM audit_logs
+         WHERE user_id = $1 AND action = ANY($2::text[])`,
+        [userId, actions],
+      ),
+    ]);
+    return { events: eventsResult.rows, total: countResult.rows[0]?.count || 0 };
+  },
 };
 
 module.exports = AuditLogModel;
