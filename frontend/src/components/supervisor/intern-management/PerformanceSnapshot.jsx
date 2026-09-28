@@ -28,9 +28,10 @@ const REVIEW_STATUS = {
 
 // ── Score Display ─────────────────────────────────────────────────────────────
 const ScoreDisplay = ({ score, maxScore = 5, trend, trendDelta }) => {
-  const pct = Math.round((score / maxScore) * 100);
+  const numericScore = Number.isFinite(Number(score)) ? Number(score) : 0;
+  const pct = Math.round((numericScore / maxScore) * 100);
   const TrendIcon = trend === 'up' ? RiArrowUpLine : trend === 'down' ? RiArrowDownLine : RiSubtractLine;
-  const trendColor = trend === 'up' ? '#10b981' : trend === 'down' ? '#ef4444' : 'var(--color-primary-600)';
+  const trendColor = trend === 'up' ? '#d1fae5' : trend === 'down' ? '#fee2e2' : '#ffffff';
 
   return (
     <motion.div
@@ -49,12 +50,12 @@ const ScoreDisplay = ({ score, maxScore = 5, trend, trendDelta }) => {
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.8125rem', color: '#94a3b8', fontWeight: 600 }}>
+          <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.8125rem', color: 'rgba(255,255,255,.86)', fontWeight: 700 }}>
             AVERAGE PERFORMANCE SCORE
           </p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem' }}>
-            <span style={{ fontSize: '3rem', fontWeight: 900, lineHeight: 1 }}>{score}</span>
-            <span style={{ fontSize: '1rem', color: '#94a3b8' }}>/ {maxScore}</span>
+            <span style={{ fontSize: '3rem', fontWeight: 900, lineHeight: 1 }}>{score ?? '—'}</span>
+            <span style={{ fontSize: '1rem', color: 'rgba(255,255,255,.8)' }}>/ {maxScore}</span>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
@@ -80,7 +81,7 @@ const ScoreDisplay = ({ score, maxScore = 5, trend, trendDelta }) => {
 
       {/* Score bar */}
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.375rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.375rem', fontSize: '0.75rem', color: 'rgba(255,255,255,.82)' }}>
           <span>Score progress</span>
           <span>{pct}%</span>
         </div>
@@ -115,7 +116,9 @@ const CompetencyBars = ({ competencies }) => (
       Competency Breakdown
     </h4>
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-      {competencies.map((c, idx) => (
+      {competencies.length === 0 ? (
+        <p style={{ margin: 0, padding: '1rem 0', color: 'var(--color-neutral-500)', fontSize: '0.825rem' }}>No scored competencies are available yet.</p>
+      ) : competencies.map((c, idx) => (
         <div key={c.name}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
             <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-neutral-700)' }}>{c.name}</span>

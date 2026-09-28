@@ -58,7 +58,7 @@ const InternProfileHeader = ({ profile, performance, progress }) => {
     <motion.section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="card"
+      className="card intern-detail-profile-card"
       style={{ borderRadius: '1.25rem', overflow: 'hidden', border: '1px solid var(--color-neutral-200)', boxShadow: '0 8px 32px rgba(0, 180, 216, 0.18)' }}
     >
       <div className="intern-profile-hero" style={{ padding: '1.5rem 1.75rem 1.75rem', background: 'var(--brand-blue)', color: '#fff' }}>
@@ -99,13 +99,13 @@ const InternProfileHeader = ({ profile, performance, progress }) => {
       </div>
 
       <div style={{ padding: '1.25rem 1.75rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem 2rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem 1.5rem', color: 'var(--color-neutral-600)', fontSize: '0.84rem' }}>
+        <div className="intern-detail-contact-row" style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem 2rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="intern-detail-contact-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem 1.5rem', color: 'var(--color-neutral-600)', fontSize: '0.84rem' }}>
             {profile.email && <a href={`mailto:${profile.email}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'var(--color-primary-700)', textDecoration: 'none', fontWeight: 650 }}><RiMailLine /> {profile.email}</a>}
             {profile.phone && <a href={`tel:${profile.phone}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'inherit', textDecoration: 'none' }}><RiPhoneLine /> {profile.phone}</a>}
             <span>{present(profile.university, 'Institution not provided')}{profile.major ? ` · ${profile.major}` : ''}</span>
           </div>
-          <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
+          <div className="intern-detail-header-actions" style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
             <ActionButton icon={RiCheckboxCircleLine} onClick={() => navigate(`${ROUTES.SUPERVISOR_ONBOARDING}?intern=${encodeURIComponent(profile.id)}`)}>Review onboarding</ActionButton>
             <ActionButton primary icon={RiTaskLine} onClick={() => navigate(`${ROUTES.SUPERVISOR_TASKS}?action=new&intern=${encodeURIComponent(profile.id)}`)}>Assign task</ActionButton>
           </div>

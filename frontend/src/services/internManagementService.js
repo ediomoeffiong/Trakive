@@ -1,60 +1,17 @@
 /**
  * @file internManagementService.js
  * @description Service abstraction for the Supervisor Intern Management module.
- * Uses the live backend for supervisor-facing intern data. Mock data is only
- * available when the explicit development mock-auth flag is enabled.
+ * Uses the live backend exclusively for supervisor-facing intern data.
  */
 
-import api from './api';
-import { weeklyPlanService } from './weeklyPlanService';
-import { reviewService } from './reviewService';
-import { mockUsers } from '../data/mockUsers';
-import { mockInternProgress } from '../data/internProgress';
-import { mockInternDocuments } from '../data/internDocuments';
-import { mockSupervisorNotes } from '../data/supervisorNotes';
-import { mockInternActivity } from '../data/internActivity';
-import { mockInternPerformance } from '../data/internPerformance';
+import api, { getWithDedup } from './api';
 import { normalizeDepartmentForPerson, normalizePersonRecord } from '../utils/people';
-import { getAccessToken } from '../utils/authSession';
 
 const logWarn = (...args) => {
   if (!import.meta.env.PROD) console.warn(...args);
 };
 
-// ── Simulated network delay ──────────────────────────────────────────────────
-const DELAY_MS = 600;
-const delay = (ms = DELAY_MS) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// In-memory mutable store for notes (simulates a database)
-const NOTES_STORAGE_KEY = 'trakive_supervisor_intern_notes';
-
-const safeParse = (value, fallback) => {
-  try {
-    return value ? JSON.parse(value) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const loadNotesStore = () => {
-  if (typeof localStorage === 'undefined') return JSON.parse(JSON.stringify(mockSupervisorNotes));
-  return safeParse(localStorage.getItem(NOTES_STORAGE_KEY), JSON.parse(JSON.stringify(mockSupervisorNotes)));
-};
-
-const saveNotesStore = (store) => {
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(store));
-  }
-};
-
-let notesStore = loadNotesStore();
-
 const unwrapApiData = (payload) => payload?.data?.data ?? payload?.data ?? payload;
-const hasRealBackendToken = () => {
-  const token = getAccessToken();
-  return Boolean(token && !String(token).startsWith('mock-') && !String(token).startsWith('mock-jwt-token'));
-};
-const mockModeEnabled = () => !import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
 
 const extractItems = (payload) => {
   const data = unwrapApiData(payload);
@@ -213,7 +170,7 @@ const enrichInternsWithLiveData = (interns = [], weeklyPlans = [], onboardingRec
 
     return {
       ...intern,
-      currentTask: currentTask || intern.currentTask || (onboardingProgress === 100 ? 'Ready for internship tasks' : 'Completing onboarding'),
+      currentTask: currentTask || intern.currentTask || null,
       performanceScore: getPerformanceScoreFromPlans(plans, intern.performanceScore),
       onboardingProgress,
     };
@@ -290,7 +247,7 @@ const buildProfile = (data = {}, internId) => {
     startDate: startDate || 'N/A',
     endDate: endDate || 'N/A',
     duration: getDurationLabel(startDate, endDate),
-    batch: data.batch_name || currentInternship?.batch_name || (startDate && startDate !== 'N/A' ? `Batch ${new Date(startDate).getFullYear()}` : null),
+    batch: data.batch_name || currentInternship?.batch_name || null,
     currentTask: data.current_task || null,
     lastActivity: data.last_active_at ? formatDate(data.last_active_at) : null,
     datesVerified: Boolean(currentInternship?.dates_verified || data.dates_verified),
@@ -299,14 +256,16 @@ const buildProfile = (data = {}, internId) => {
 };
 
 const getInternWeeklyPlans = async (internId) => {
-  const response = await weeklyPlanService.supervisorView({ intern_id: internId, limit: 50 });
+  const response = await getWithDedup('/weekly-plans', { params: { intern_id: internId, limit: 50 } });
   const data = unwrapApiData(response);
   const items = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
   return items.map(normalizeWeeklyPlan).sort((a, b) => new Date(b.weekStart || 0) - new Date(a.weekStart || 0));
 };
 
 const getInternOnboardingRecord = async (internId) => {
-  const queue = await reviewService.fetchOnboardingApprovals();
+  const response = await api.get('/onboarding/supervisor/queue');
+  const data = unwrapApiData(response);
+  const queue = Array.isArray(data) ? data : [];
   return queue.find((item) =>
     [item.internId, item.intern_id, item.user_id].some((value) => String(value) === String(internId))
   ) || null;
@@ -407,30 +366,20 @@ export const internManagementService = {
         const profile = buildProfile(item, item.user_id || item.id);
         return {
           ...profile,
-          currentTask: item.current_task || profile.currentTask || (item.onboarding_ready ? 'Active Internship' : 'Completing Onboarding'),
+          currentTask: item.current_task || profile.currentTask || null,
         };
       });
 
-      const [weeklyResponse, onboardingRecords] = await Promise.all([
-        weeklyPlanService.supervisorView({ limit: 100 }).catch(() => []),
-        reviewService.fetchOnboardingApprovals().catch(() => []),
+      const [weeklyResponse, onboardingResponse] = await Promise.all([
+        api.get('/weekly-plans', { params: { limit: 100 } }),
+        api.get('/onboarding/supervisor/queue'),
       ]);
+      const onboardingPayload = unwrapApiData(onboardingResponse);
+      const onboardingRecords = Array.isArray(onboardingPayload) ? onboardingPayload : [];
       rawResult = enrichInternsWithLiveData(rawResult, extractItems(weeklyResponse), onboardingRecords);
     } catch (err) {
       logWarn('Failed to fetch real interns from backend API:', err);
-      rawResult = [];
-    }
-
-    if (rawResult.length === 0) {
-      if (!import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true') {
-        const customUsers = safeParse(typeof localStorage !== 'undefined' ? localStorage.getItem('trakive_custom_users') : null, []);
-        const allUsers = [...mockUsers, ...customUsers];
-        const internUsers = allUsers.filter((u) => {
-          const role = String(u.role || u.role_name || '').toLowerCase();
-          return role === 'intern';
-        });
-        rawResult = internUsers.map((u) => buildProfile(u, u.id));
-      }
+      throw err;
     }
 
     let result = rawResult;
@@ -512,7 +461,7 @@ export const internManagementService = {
     try {
       const [profileResponse, historyResponse] = await Promise.all([
         api.get(`/interns/${internId}`),
-        api.get(`/interns/${internId}/history`).catch(() => null),
+        api.get(`/interns/${internId}/history`),
       ]);
       const data = unwrapApiData(profileResponse);
       if (data) {
@@ -533,42 +482,9 @@ export const internManagementService = {
       }
     } catch (e) {
       logWarn('Failed to fetch real intern profile from API:', e);
+      throw e;
     }
-
-    try {
-      const { interns } = await this.fetchInternList();
-      let found = interns.find((i) => String(i.id) === String(internId) || String(i.internId) === String(internId));
-      if (!found && (!import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true')) {
-        const customUsers = safeParse(typeof localStorage !== 'undefined' ? localStorage.getItem('trakive_custom_users') : null, []);
-        const allUsers = [...mockUsers, ...customUsers];
-        const match = allUsers.find((u) => String(u.id) === String(internId));
-        if (match) {
-          found = buildProfile(match, internId);
-        }
-      }
-      if (found) {
-        return { profile: found };
-      }
-    } catch (err) {
-      logWarn('Failed fallback intern resolution:', err);
-    }
-
-    if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
-      throw new Error(`Intern profile "${internId}" not found.`);
-    }
-
-    const fallbackProfile = buildProfile({
-      id: internId,
-      first_name: 'Intern',
-      last_name: 'Profile',
-      email: 'intern@thefifthlab.com',
-      department_name: 'FifthLab',
-      intern_status: 'active',
-      start_date: '2026-03-01',
-      end_date: '2026-09-01',
-    }, internId);
-
-    return { profile: fallbackProfile };
+    throw new Error(`Intern profile "${internId}" not found.`);
   },
 
 
@@ -582,7 +498,7 @@ export const internManagementService = {
       const [plans, onboarding, performanceResponse] = await Promise.all([
         getInternWeeklyPlans(internId),
         getInternOnboardingRecord(internId),
-        api.get('/analytics/performance', { params: { internId } }).catch(() => null),
+        api.get('/analytics/performance', { params: { internId } }),
       ]);
       const tasks = plans.flatMap((plan) => plan.tasks);
       const completedTasks = tasks.filter((task) => ['completed', 'done'].includes(String(task.status).toLowerCase())).length;
@@ -623,11 +539,7 @@ export const internManagementService = {
       };
     } catch (e) {
       logWarn('Failed to fetch real progress data:', e);
-      if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
-        return { progress: null };
-      }
-      await delay(350);
-      return { progress: mockInternProgress[internId] || null };
+      throw e;
     }
   },
 
@@ -648,7 +560,7 @@ export const internManagementService = {
       };
     } catch (e) {
       logWarn('Failed to fetch real intern tasks:', e);
-      return { tasks: [], plans: [] };
+      throw e;
     }
   },
 
@@ -671,6 +583,7 @@ export const internManagementService = {
             uploadedAt: formatDate(doc.uploadedAt || doc.created_at || item.uploadedAt),
             status: ['approved', 'verified', 'completed'].includes(String(doc.status || item.status).toLowerCase()) ? 'Verified' : 'Pending Review',
             url: doc.url || doc.file_url,
+            hasFile: true,
           }));
         }
         return {
@@ -682,19 +595,13 @@ export const internManagementService = {
           status: ['approved', 'verified', 'completed'].includes(String(item.status || item.reviewStatus).toLowerCase())
             ? 'Verified'
             : (item.status ? 'Pending Review' : 'Missing'),
+          hasFile: false,
         };
       });
-      if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
-        return { documents: docs };
-      }
-      return { documents: docs.length ? docs : (mockInternDocuments[internId] || []) };
+      return { documents: docs };
     } catch (e) {
       logWarn('Failed to fetch real intern documents:', e);
-      if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
-        return { documents: [] };
-      }
-      await delay(300);
-      return { documents: mockInternDocuments[internId] || [] };
+      throw e;
     }
   },
 
@@ -740,17 +647,10 @@ export const internManagementService = {
 
       const activities = [...taskEvents, ...reviewEvents, ...onboardingEvents]
         .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-      if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
-        return { activities };
-      }
-      return { activities: activities.length ? activities : (mockInternActivity[internId] || []) };
+      return { activities };
     } catch (e) {
       logWarn('Failed to fetch real intern activity:', e);
-      if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
-        return { activities: [] };
-      }
-      await delay(400);
-      return { activities: mockInternActivity[internId] || [] };
+      throw e;
     }
   },
 
@@ -763,7 +663,7 @@ export const internManagementService = {
     try {
       const [plans, analyticsResponse] = await Promise.all([
         getInternWeeklyPlans(internId),
-        api.get('/analytics/performance', { params: { internId } }).catch(() => null),
+        api.get('/analytics/performance', { params: { internId } }),
       ]);
       const reviewed = plans.filter((plan) => plan.reviewedAt || plan.status === 'reviewed');
       const tasks = plans.flatMap((plan) => plan.tasks);
@@ -814,11 +714,7 @@ export const internManagementService = {
       };
     } catch (e) {
       logWarn('Failed to fetch real performance data:', e);
-      if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
-        return { performance: null };
-      }
-      await delay(350);
-      return { performance: mockInternPerformance[internId] || null };
+      throw e;
     }
   },
 
@@ -828,19 +724,8 @@ export const internManagementService = {
    * @returns {Promise<{ notes: Array }>}
    */
   async fetchSupervisorNotes(internId) {
-    if (hasRealBackendToken()) {
-      try {
-        const notes = unwrapApiData(await api.get(`/interns/${internId}/notes`));
-        return { notes: Array.isArray(notes) ? notes : [] };
-      } catch (error) {
-        logWarn('Failed to fetch supervisor notes from API:', error);
-      }
-    }
-    if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'true') {
-      return { notes: [] };
-    }
-    await delay(300);
-    return { notes: notesStore[internId] || [] };
+    const notes = unwrapApiData(await api.get(`/interns/${internId}/notes`));
+    return { notes: Array.isArray(notes) ? notes : [] };
   },
 
   /**
@@ -850,43 +735,8 @@ export const internManagementService = {
    * @returns {Promise<{ note: object }>}
    */
   async saveNote(internId, note) {
-    if (hasRealBackendToken()) {
-      try {
-        const saved = unwrapApiData(await api.post(`/interns/${internId}/notes`, note));
-        return { note: saved };
-      } catch (error) {
-        logWarn('Failed to save supervisor note to API:', error);
-        if (!mockModeEnabled()) throw error;
-      }
-    }
-    if (!mockModeEnabled()) throw new Error('A live backend session is required to save notes.');
-    await delay(400);
-    if (!notesStore[internId]) notesStore[internId] = [];
-
-    const now = new Date().toISOString();
-
-    if (note.id) {
-      // Update existing note
-      notesStore[internId] = notesStore[internId].map((n) =>
-        n.id === note.id ? { ...n, ...note, updatedAt: now } : n,
-      );
-      const updated = notesStore[internId].find((n) => n.id === note.id);
-      saveNotesStore(notesStore);
-      return { note: updated };
-    } else {
-      // Create new note
-      const newNote = {
-        id: `note-${internId}-${Date.now()}`,
-        internId,
-        createdAt: now,
-        updatedAt: now,
-        isPinned: false,
-        ...note,
-      };
-      notesStore[internId].unshift(newNote);
-      saveNotesStore(notesStore);
-      return { note: newNote };
-    }
+    const saved = unwrapApiData(await api.post(`/interns/${internId}/notes`, note));
+    return { note: saved };
   },
 
   /**
@@ -896,21 +746,7 @@ export const internManagementService = {
    * @returns {Promise<{ success: boolean }>}
    */
   async deleteNote(internId, noteId) {
-    if (hasRealBackendToken()) {
-      try {
-        await api.delete(`/interns/${internId}/notes/${noteId}`);
-        return { success: true };
-      } catch (error) {
-        logWarn('Failed to delete supervisor note from API:', error);
-        if (!mockModeEnabled()) throw error;
-      }
-    }
-    if (!mockModeEnabled()) throw new Error('A live backend session is required to delete notes.');
-    await delay(300);
-    if (notesStore[internId]) {
-      notesStore[internId] = notesStore[internId].filter((n) => n.id !== noteId);
-      saveNotesStore(notesStore);
-    }
+    await api.delete(`/interns/${internId}/notes/${noteId}`);
     return { success: true };
   },
 
@@ -921,29 +757,8 @@ export const internManagementService = {
    * @returns {Promise<{ note: object }>}
    */
   async togglePinNote(internId, noteId) {
-    if (hasRealBackendToken()) {
-      try {
-        const note = unwrapApiData(await api.patch(`/interns/${internId}/notes/${noteId}/pin`));
-        return { note };
-      } catch (error) {
-        logWarn('Failed to update supervisor note pin through API:', error);
-        if (!mockModeEnabled()) throw error;
-      }
-    }
-    if (!mockModeEnabled()) throw new Error('A live backend session is required to update notes.');
-    await delay(200);
-    let updated = null;
-    if (notesStore[internId]) {
-      notesStore[internId] = notesStore[internId].map((n) => {
-        if (n.id === noteId) {
-          updated = { ...n, isPinned: !n.isPinned, updatedAt: new Date().toISOString() };
-          return updated;
-        }
-        return n;
-      });
-      saveNotesStore(notesStore);
-    }
-    return { note: updated };
+    const note = unwrapApiData(await api.patch(`/interns/${internId}/notes/${noteId}/pin`));
+    return { note };
   },
 };
 

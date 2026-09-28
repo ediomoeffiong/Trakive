@@ -31,6 +31,7 @@ import {
   SupervisorNotes,
 } from '../../components/supervisor/intern-management';
 import { InternProfileHeaderLoader, InternTabsLoader } from '../../components/supervisor/intern-management/InternSkeletonLoaders';
+import './InternProfile.css';
 
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
@@ -45,10 +46,21 @@ const tabPanelVariants = {
 };
 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
-const OverviewTab = ({ profile, progress, isLoadingProgress }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+const DataError = ({ message, onRetry }) => (
+  <div className="intern-detail-data-error" role="alert">
+    <div className="intern-detail-data-error__icon"><RiAlertLine /></div>
+    <div>
+      <strong>Couldn’t load this section</strong>
+      <p>{message || 'The server did not return the requested intern data.'}</p>
+    </div>
+    <button type="button" className="btn btn-secondary" onClick={onRetry}><RiRefreshLine /> Retry</button>
+  </div>
+);
+
+const OverviewTab = ({ profile, progress, isLoadingProgress, error, onRetry }) => (
+  <div className="intern-detail-overview">
     {/* Quick Info Cards */}
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+    <div className="intern-detail-summary-grid">
       {[
         {
           icon: RiTaskLine, color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)',
@@ -60,7 +72,7 @@ const OverviewTab = ({ profile, progress, isLoadingProgress }) => (
         },
         {
           icon: RiCheckboxCircleLine, color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)',
-          label: 'Batch', value: profile?.batch ?? 'Not assigned', sub: profile?.contractType,
+          label: 'Cohort', value: profile?.batch ?? 'Not assigned', sub: profile?.contractType,
         },
         {
           icon: RiAlertLine, color: '#d97706', bg: '#fffbeb',
@@ -75,15 +87,7 @@ const OverviewTab = ({ profile, progress, isLoadingProgress }) => (
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, delay: idx * 0.05 }}
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '1.125rem',
-              border: '1px solid var(--color-neutral-200)',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '0.875rem',
-            }}
+            className="intern-detail-summary-card"
           >
             <div
               style={{
@@ -116,7 +120,7 @@ const OverviewTab = ({ profile, progress, isLoadingProgress }) => (
     </div>
 
     {/* Progress Section */}
-    <ProgressWidgets progress={progress} isLoading={isLoadingProgress} />
+    {error ? <DataError message={error} onRetry={onRetry} /> : <ProgressWidgets progress={progress} isLoading={isLoadingProgress} />}
   </div>
 );
 
@@ -135,12 +139,7 @@ const TasksTab = ({ profile, tasks, plans, isLoading, onAssignTask, onViewAllTas
     initial="initial"
     animate="animate"
     exit="exit"
-    style={{
-      background: '#fff',
-      borderRadius: '1rem',
-      padding: '2rem',
-      border: '1px solid var(--color-neutral-200)',
-    }}
+    className="intern-detail-surface intern-detail-tasks"
   >
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
       <div>
@@ -227,12 +226,7 @@ const OnboardingTab = ({ profile, progress, documents, isLoading, onOpenOnboardi
     initial="initial"
     animate="animate"
     exit="exit"
-    style={{
-      background: '#fff',
-      borderRadius: '1rem',
-      padding: '2rem',
-      border: '1px solid var(--color-neutral-200)',
-    }}
+    className="intern-detail-surface intern-detail-onboarding"
   >
     <div style={{ marginBottom: '1.5rem' }}>
       <h4 style={{ margin: '0 0 0.375rem 0', fontWeight: 800, color: 'var(--color-neutral-900)' }}>
@@ -273,8 +267,8 @@ const OnboardingTab = ({ profile, progress, documents, isLoading, onOpenOnboardi
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
       {[
         { label: 'Overall Onboarding', value: `${progress?.onboardingCompletion?.percentage ?? profile?.onboardingProgress ?? 0}%`, color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)' },
-        { label: 'Modules Completed', value: progress ? `${progress.onboardingCompletion.completed}/${progress.onboardingCompletion.total}` : '—', color: '#059669', bg: '#ecfdf5' },
-        { label: 'Reviews Passed', value: progress ? `${progress.reviewCompletion.completed}/${progress.reviewCompletion.total}` : '—', color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)' },
+        { label: 'Requirements Verified', value: progress ? `${progress.onboardingCompletion.completed}/${progress.onboardingCompletion.total}` : '—', color: '#059669', bg: '#ecfdf5' },
+        { label: 'Weekly Reviews', value: progress ? `${progress.reviewCompletion.completed}/${progress.reviewCompletion.total}` : '—', color: 'var(--color-primary-600)', bg: 'var(--color-primary-50)' },
       ].map((item, i) => (
         <div
           key={i}
@@ -373,6 +367,21 @@ const InternProfilePage = () => {
 
   const taskQuery = `intern=${encodeURIComponent(internId || '')}`;
 
+  const retryActiveTab = () => {
+    if (!internId) return;
+    const loaders = {
+      tasks: loadInternTasks,
+      performance: loadInternPerformance,
+      onboarding: loadInternDocuments,
+      documents: loadInternDocuments,
+      activity: loadInternActivity,
+      notes: loadNotes,
+    };
+    loaders[activeTab]?.(internId);
+  };
+
+  const activeTabError = activeTab === 'onboarding' ? errors.documents : errors[activeTab];
+
   if (loading.profile && !internProfile) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '3rem' }}>
@@ -404,13 +413,17 @@ const InternProfilePage = () => {
       initial="initial"
       animate="animate"
       exit="exit"
-      style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '5rem' }}
+      className="intern-detail-page"
     >
       {/* Profile Header */}
       <InternProfileHeader profile={internProfile} performance={performance} progress={progress} />
 
       {/* Tab Navigation */}
-      <InternProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
+      <InternProfileTabs
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        counts={{ tasks: tasks.length, documents: documents.length, notes: notes.length }}
+      />
 
       {/* Tab Panel Content */}
       <AnimatePresence mode="wait">
@@ -426,10 +439,14 @@ const InternProfilePage = () => {
               profile={internProfile}
               progress={progress}
               isLoadingProgress={loading.progress}
+              error={errors.progress}
+              onRetry={() => loadInternProgress(internId)}
             />
           )}
 
-          {activeTab === 'tasks' && (
+          {activeTab !== 'overview' && activeTabError ? (
+            <DataError message={activeTabError} onRetry={retryActiveTab} />
+          ) : activeTab === 'tasks' && (
             <TasksTab
               profile={internProfile}
               tasks={tasks}
@@ -440,14 +457,14 @@ const InternProfilePage = () => {
             />
           )}
 
-          {activeTab === 'performance' && (
+          {!activeTabError && activeTab === 'performance' && (
             <PerformanceSnapshot
               performance={performance}
               isLoading={loading.performance}
             />
           )}
 
-          {activeTab === 'onboarding' && (
+          {!activeTabError && activeTab === 'onboarding' && (
             <OnboardingTab
               profile={internProfile}
               progress={progress}
@@ -457,21 +474,21 @@ const InternProfilePage = () => {
             />
           )}
 
-          {activeTab === 'documents' && (
+          {!activeTabError && activeTab === 'documents' && (
             <DocumentsOverview
               documents={documents}
               isLoading={loading.documents}
             />
           )}
 
-          {activeTab === 'activity' && (
+          {!activeTabError && activeTab === 'activity' && (
             <ActivityTimeline
               activities={activity}
               isLoading={loading.activity}
             />
           )}
 
-          {activeTab === 'notes' && (
+          {!activeTabError && activeTab === 'notes' && (
             <SupervisorNotes
               notes={notes}
               isLoading={loading.notes}

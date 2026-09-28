@@ -25,9 +25,10 @@ export const PROFILE_TABS = [
   { id: 'notes',       label: 'Notes',       icon: RiStickyNoteLine },
 ];
 
-const InternProfileTabs = ({ activeTab, onTabChange }) => {
+const InternProfileTabs = ({ activeTab, onTabChange, counts = {} }) => {
   return (
     <div
+      className="intern-detail-tabs"
       style={{
         background: '#ffffff',
         borderRadius: '1rem',
@@ -40,6 +41,7 @@ const InternProfileTabs = ({ activeTab, onTabChange }) => {
       }}
     >
       <div
+        className="intern-detail-tabs__list"
         style={{
           display: 'flex',
           gap: '0.25rem',
@@ -82,6 +84,9 @@ const InternProfileTabs = ({ activeTab, onTabChange }) => {
             >
               <Icon style={{ fontSize: '1.05rem', flexShrink: 0 }} />
               {tab.label}
+              {Number(counts[tab.id] || 0) > 0 && (
+                <span className="intern-detail-tab-count">{counts[tab.id]}</span>
+              )}
 
               {isActive && (
                 <motion.div

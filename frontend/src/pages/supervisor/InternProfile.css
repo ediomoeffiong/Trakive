@@ -1,0 +1,213 @@
+.intern-detail-page {
+  width: 100%;
+  max-width: 1440px;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 0 0 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.intern-detail-profile-card {
+  background: var(--color-neutral-0, #fff);
+}
+
+.intern-detail-tabs {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 20;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07) !important;
+}
+
+.intern-detail-tabs__list {
+  padding: 0.4rem 0;
+}
+
+.intern-detail-tabs__list button {
+  border-bottom-color: transparent !important;
+  border-radius: 0.65rem;
+}
+
+.intern-detail-tabs__list button[aria-selected='true'] {
+  color: var(--color-primary-700) !important;
+  background: var(--color-primary-50) !important;
+}
+
+.intern-detail-tabs__list button:hover {
+  color: var(--color-primary-700) !important;
+  background: var(--color-neutral-50) !important;
+}
+
+.intern-detail-tab-count {
+  min-width: 1.25rem;
+  height: 1.25rem;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  color: var(--color-primary-700);
+  background: var(--color-primary-100);
+  font-size: 0.675rem;
+  font-weight: 800;
+}
+
+.intern-detail-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.intern-detail-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.intern-detail-summary-card {
+  min-width: 0;
+  min-height: 104px;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 0.875rem;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.035);
+}
+
+.intern-detail-summary-card p {
+  overflow-wrap: anywhere;
+}
+
+.intern-detail-surface {
+  width: 100%;
+  min-width: 0;
+  padding: clamp(1rem, 2.4vw, 1.75rem);
+  background: #fff;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 1rem;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.045);
+}
+
+.intern-detail-data-error {
+  min-height: 150px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  color: var(--color-neutral-700);
+  background: #fff;
+  border: 1px solid #fecaca;
+  border-radius: 1rem;
+}
+
+.intern-detail-data-error__icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 0.75rem;
+  color: #dc2626;
+  background: #fef2f2;
+  font-size: 1.25rem;
+}
+
+.intern-detail-data-error strong {
+  display: block;
+  color: var(--color-neutral-900);
+  font-size: 0.925rem;
+}
+
+.intern-detail-data-error p {
+  margin: 0.25rem 0 0;
+  font-size: 0.825rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 1100px) {
+  .intern-detail-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .intern-detail-page {
+    gap: 0.875rem;
+    padding-bottom: 2.5rem;
+  }
+
+  .intern-detail-tabs {
+    top: 0.35rem;
+    margin-inline: -0.25rem;
+    border-radius: 0.75rem !important;
+  }
+
+  .intern-detail-tabs__list button {
+    min-height: 48px;
+    padding: 0.8rem 0.875rem !important;
+  }
+
+  .intern-detail-profile-card > div:last-child {
+    padding: 1rem !important;
+  }
+
+  .intern-detail-contact-row,
+  .intern-detail-contact-list,
+  .intern-detail-header-actions {
+    width: 100%;
+  }
+
+  .intern-detail-header-actions .btn {
+    flex: 1 1 145px;
+    justify-content: center;
+  }
+
+  .intern-detail-data-error {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .intern-detail-data-error .btn {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .intern-detail-summary-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .intern-detail-summary-card {
+    min-height: auto;
+  }
+
+  .intern-detail-profile-card,
+  .intern-detail-surface,
+  .intern-detail-data-error {
+    border-radius: 0.75rem !important;
+  }
+
+  .intern-detail-profile-card .intern-profile-identity h1 {
+    font-size: 1.3rem !important;
+    overflow-wrap: anywhere;
+  }
+
+  .intern-detail-profile-card .intern-profile-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .intern-detail-tasks > div:first-child,
+  .intern-detail-onboarding > div:first-child {
+    align-items: stretch !important;
+  }
+
+  .intern-detail-tasks .btn,
+  .intern-detail-onboarding > .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -6,6 +6,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import api from '../../../services/api';
 import {
   RiFileTextLine,
   RiFilePdfLine,
@@ -14,7 +15,6 @@ import {
   RiFileShieldLine,
   RiEyeLine,
   RiDownloadLine,
-  RiUploadLine,
   RiCheckboxCircleLine,
   RiTimeLine,
   RiAlertLine,
@@ -57,30 +57,37 @@ const DocumentsOverview = ({ documents = [], isLoading = false }) => {
     );
   }
 
-  const handleView = (doc) => {
-    if (doc.url) {
-      window.open(doc.url, '_blank', 'noopener,noreferrer');
-      return;
-    }
-    toast.error('No preview file is available for this document yet.');
+  const resolveDownload = async (doc) => {
+    if (!doc.hasFile) throw new Error('No file has been uploaded for this requirement.');
+    const response = await api.get(`/documents/${doc.id}/download`);
+    const result = response?.data?.data ?? response?.data;
+    const url = result?.url || result?.downloadUrl || doc.url;
+    if (!url) throw new Error('The server did not return a document URL.');
+    return { url, fileName: result?.fileName || doc.name };
   };
 
-  const handleDownload = (doc) => {
-    if (doc.url) {
+  const handleView = async (doc) => {
+    try {
+      const { url } = await resolveDownload(doc);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      toast.error(error.message || 'Unable to open this document.');
+    }
+  };
+
+  const handleDownload = async (doc) => {
+    try {
+      const { url, fileName } = await resolveDownload(doc);
       const link = document.createElement('a');
-      link.href = doc.url;
-      link.download = doc.name || 'document';
+      link.href = url;
+      link.download = fileName || 'document';
       link.rel = 'noopener noreferrer';
       document.body.appendChild(link);
       link.click();
       link.remove();
-      return;
+    } catch (error) {
+      toast.error(error.message || 'Unable to download this document.');
     }
-    toast.error('No downloadable file is available for this document yet.');
-  };
-
-  const handleReplace = (doc) => {
-    toast.success(`Opening file upload to replace ${doc.name}...`);
   };
 
   return (
@@ -102,14 +109,6 @@ const DocumentsOverview = ({ documents = [], isLoading = false }) => {
             {documents.length} document{documents.length !== 1 ? 's' : ''} on file
           </p>
         </div>
-        <button
-          className="btn btn-primary"
-          style={{ fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-          onClick={() => toast.success('Opening document upload...')}
-        >
-          <RiUploadLine />
-          Upload Document
-        </button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -198,7 +197,7 @@ const DocumentsOverview = ({ documents = [], isLoading = false }) => {
                 </span>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
+                {doc.hasFile && <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
                   <button
                     className="btn btn-ghost btn-icon"
                     title="View document"
@@ -215,15 +214,7 @@ const DocumentsOverview = ({ documents = [], isLoading = false }) => {
                   >
                     <RiDownloadLine />
                   </button>
-                  <button
-                    className="btn btn-ghost btn-icon"
-                    title="Replace document"
-                    onClick={() => handleReplace(doc)}
-                    style={{ fontSize: '1rem', padding: '0.375rem', color: '#d97706' }}
-                  >
-                    <RiUploadLine />
-                  </button>
-                </div>
+                </div>}
               </motion.div>
             );
           })}
