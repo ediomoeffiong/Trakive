@@ -41,10 +41,11 @@ Local development uses `AUTH_PROVIDER=local` and `VITE_AUTH_PROVIDER=local`. Sup
    - `https://trakive.vercel.app/reset-password`
    - local testing only: `http://localhost:5173/verify-email` and `http://localhost:5173/reset-password`
 4. Configure the confirmation template to return to `/verify-email`.
-5. Configure the recovery template to return to `/reset-password`.
-6. Configure the magic-link/email-OTP template to visibly include `{{ .Token }}`. The failed-login escalation verifies the six-digit email OTP, not a browser-only counter.
-7. Keep Supabase's email send and OTP throttles enabled. Trakive additionally permits at most three sends per login challenge and enforces a 60-second resend interval.
-8. Confirm that no role, permission, organization, department, or Trakive user ID is sourced from Supabase metadata.
+5. Configure the recovery template to visibly include the one-time code with `{{ .Token }}`. Trakive verifies this code before showing the new-password form, avoiding corporate email scanners consuming single-use recovery links.
+6. Keep the recovery confirmation URL as an optional fallback that returns to `/reset-password`.
+7. Configure the magic-link/email-OTP template to visibly include `{{ .Token }}`. The failed-login escalation verifies the six-digit email OTP, not a browser-only counter.
+8. Keep Supabase's email send and OTP throttles enabled. Trakive additionally permits at most three sends per login challenge and enforces a 60-second resend interval.
+9. Confirm that no role, permission, organization, department, or Trakive user ID is sourced from Supabase metadata.
 
 ## Existing-user activation
 

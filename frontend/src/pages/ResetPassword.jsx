@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useSearchParams } from 'react-router-dom';
-import { FiLock, FiArrowLeft, FiCheck } from 'react-icons/fi';
+import { FiLock, FiArrowLeft, FiCheck, FiKey } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 import { useAppStore } from '../store/useAppStore';
@@ -27,12 +27,14 @@ import {
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
   const resetFn = useAppStore((state) => state.resetPassword);
+  const verifyRecoveryCode = useAppStore((state) => state.verifyRecoveryCode);
   const authError = useAppStore((state) => state.error);
   const authLoading = useAppStore((state) => state.isLoading);
   const clearError = useAppStore((state) => state.clearError);
 
   const [isSuccess, setIsSuccess] = useState(false);
   const [recoveryState, setRecoveryState] = useState(isSupabaseAuth ? 'checking' : 'ready');
+  const [recoveryCode, setRecoveryCode] = useState('');
 
   const {
     register,
@@ -81,7 +83,7 @@ const ResetPassword = () => {
       if (!active) return;
       if (error || !acceptRecoverySession(data?.session)) {
         sessionStorage.removeItem(STORAGE_KEYS.PASSWORD_RECOVERY_USER);
-        setRecoveryState('invalid');
+        setRecoveryState(resetEmail ? 'code' : 'invalid');
       }
     });
 
@@ -89,7 +91,19 @@ const ResetPassword = () => {
       active = false;
       authListener.subscription.unsubscribe();
     };
-  }, [callbackType, hasCallbackCode]);
+  }, [callbackType, hasCallbackCode, resetEmail]);
+
+  const onVerifyRecoveryCode = async (event) => {
+    event.preventDefault();
+    if (!/^\d{6}$/.test(recoveryCode)) return;
+    try {
+      await verifyRecoveryCode(resetEmail, recoveryCode);
+      setRecoveryState('ready');
+      toast.success('Recovery code verified.');
+    } catch {
+      // Handled in store error state.
+    }
+  };
 
   const onSubmit = async (data) => {
     try {
@@ -124,6 +138,45 @@ const ResetPassword = () => {
         <Link to={ROUTES.FORGOT_PASSWORD} className="w-full no-underline">
           <Button size="lg" style={{ width: '100%' }}>Request a New Link</Button>
         </Link>
+      </AuthCard>
+    );
+  }
+
+  if (recoveryState === 'code') {
+    return (
+      <AuthCard>
+        <AuthHeader
+          title="Enter Recovery Code"
+          subtitle={`Enter the 6-digit code sent to ${resetEmail}.`}
+        />
+        {authError && <ErrorMessage message={authError} />}
+        <form onSubmit={onVerifyRecoveryCode} noValidate className="flex flex-col gap-4">
+          <Input
+            id="recovery-code"
+            label="Recovery Code"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            placeholder="000000"
+            leftAddon={<FiKey style={{ color: '#0096c7' }} />}
+            value={recoveryCode}
+            onChange={(event) => setRecoveryCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+            disabled={authLoading}
+          />
+          <Button
+            type="submit"
+            size="lg"
+            loading={authLoading}
+            disabled={recoveryCode.length !== 6}
+            style={{ width: '100%' }}
+          >
+            Verify Code
+          </Button>
+        </form>
+        <p style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.8125rem' }}>
+          <Link to={ROUTES.FORGOT_PASSWORD} onClick={clearError}>Request a new code</Link>
+        </p>
       </AuthCard>
     );
   }

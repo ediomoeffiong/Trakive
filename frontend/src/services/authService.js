@@ -10,6 +10,7 @@ import { isOrganizationEmail, ORG_EMAIL_REQUIRED_MESSAGE } from '../utils/helper
 import { formatUserFriendlyError, resetSessionExpiredFlag } from '../utils/errorHandling';
 import { isSupabaseAuth } from '../config/authProvider';
 import { supabase } from '../config/supabase';
+import { STORAGE_KEYS } from '../constants';
 import { getRefreshToken, persistAuthTokens } from '../utils/authSession';
 
 // Never allow a production outage to turn into a mock login. Local mock auth is
@@ -450,6 +451,21 @@ export const authService = {
       message: 'Password reset link sent to your email address.',
       resetEmail: email,
     };
+  },
+
+  verifyRecoveryCode: async ({ email, code }) => {
+    if (!isSupabaseAuth) throw new Error('Recovery codes are only available with Supabase authentication.');
+    const token = String(code || '').replace(/\s+/g, '');
+    const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'recovery' });
+    if (error || !data?.session?.user?.id) {
+      throw new Error(error?.message || 'The recovery code is invalid or expired.');
+    }
+    persistAuthTokens({
+      accessToken: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+    });
+    sessionStorage.setItem(STORAGE_KEYS.PASSWORD_RECOVERY_USER, data.session.user.id);
+    return { success: true };
   },
 
   /**

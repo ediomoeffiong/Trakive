@@ -56,12 +56,21 @@ const ForgotPassword = () => {
     return (
       <AuthCard>
         <SuccessMessage
-          title="Reset link sent"
+          title={isSupabaseAuth ? 'Recovery code sent' : 'Reset link sent'}
           message={isSupabaseAuth
-            ? `We sent a secure password recovery link to ${submittedEmail}. You must open that link before setting a new password.`
+            ? `We sent a one-time recovery code to ${submittedEmail}. Enter it to securely continue.`
             : `We have sent secure password reset instructions to ${submittedEmail}. Please check your inbox.`}
         >
-          {!isSupabaseAuth && (
+          {isSupabaseAuth ? (
+            <Link
+              to={`${ROUTES.RESET_PASSWORD}?email=${encodeURIComponent(submittedEmail)}`}
+              className="w-full no-underline"
+            >
+              <Button size="lg" style={{ width: '100%' }}>
+                Enter Recovery Code
+              </Button>
+            </Link>
+          ) : (
             <Link
               to={`${ROUTES.RESET_PASSWORD}?email=${encodeURIComponent(submittedEmail)}${resetToken ? `&token=${encodeURIComponent(resetToken)}` : ''}`}
               className="w-full no-underline"

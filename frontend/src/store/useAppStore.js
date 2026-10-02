@@ -241,6 +241,18 @@ const createAuthSlice = (set, get) => ({
     }
   },
 
+  verifyRecoveryCode: async (email, code) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await authService.verifyRecoveryCode({ email, code });
+      set({ isLoading: false });
+      return response;
+    } catch (err) {
+      set({ error: err.message, isLoading: false });
+      throw err;
+    }
+  },
+
   resetPassword: async (data) => {
     set({ isLoading: true, error: null });
     try {

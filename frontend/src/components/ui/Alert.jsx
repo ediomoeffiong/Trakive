@@ -56,7 +56,7 @@ const VARIANT_STYLES = {
  * @param {string}  [props.className]
  * @param {React.ReactNode} props.children  Alert message body
  */
-const Alert = ({ variant = 'info', title, children, onClose, icon, className = '' }) => {
+const Alert = ({ variant = 'info', title, children, onClose, icon, className = '', style, ...props }) => {
   const [visible, setVisible] = useState(true);
   const s = VARIANT_STYLES[variant] ?? VARIANT_STYLES.info;
   const Icon = icon ? null : s.icon;
@@ -76,6 +76,7 @@ const Alert = ({ variant = 'info', title, children, onClose, icon, className = '
           transition={{ duration: 0.2 }}
           role="alert"
           className={className}
+          {...props}
           style={{
             display: 'flex',
             alignItems: 'flex-start',
@@ -87,6 +88,7 @@ const Alert = ({ variant = 'info', title, children, onClose, icon, className = '
             padding: '0.875rem 1rem',
             position: 'relative',
             overflow: 'hidden',
+            ...style,
           }}
         >
           {/* Icon */}
