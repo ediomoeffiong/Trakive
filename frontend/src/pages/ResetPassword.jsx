@@ -46,6 +46,8 @@ const ResetPassword = () => {
   const passwordVal = watch('password');
   const resetEmail = searchParams.get('email') || '';
   const resetToken = searchParams.get('token') || '';
+  const callbackType = searchParams.get('type');
+  const hasCallbackCode = searchParams.has('code');
 
   useEffect(() => {
     if (!isSupabaseAuth) return undefined;
@@ -54,32 +56,40 @@ const ResetPassword = () => {
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     const isRecoveryCallback =
       hashParams.get('type') === 'recovery' ||
-      searchParams.get('type') === 'recovery' ||
-      searchParams.has('code');
+      callbackType === 'recovery' ||
+      hasCallbackCode;
 
-    const acceptRecoverySession = (session) => {
+    const acceptRecoverySession = (session, fromRecoveryEvent = false) => {
       if (!active || !session?.user?.id) return false;
       const markedUserId = sessionStorage.getItem(STORAGE_KEYS.PASSWORD_RECOVERY_USER);
-      if (!isRecoveryCallback && markedUserId !== session.user.id) return false;
+      if (
+        !fromRecoveryEvent &&
+        !isRecoveryCallback &&
+        markedUserId !== 'pending' &&
+        markedUserId !== session.user.id
+      ) return false;
       sessionStorage.setItem(STORAGE_KEYS.PASSWORD_RECOVERY_USER, session.user.id);
       setRecoveryState('ready');
       return true;
     };
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') acceptRecoverySession(session);
+      if (event === 'PASSWORD_RECOVERY') acceptRecoverySession(session, true);
     });
 
     supabase.auth.getSession().then(({ data, error }) => {
-      if (!active || recoveryState === 'ready') return;
-      if (error || !acceptRecoverySession(data?.session)) setRecoveryState('invalid');
+      if (!active) return;
+      if (error || !acceptRecoverySession(data?.session)) {
+        sessionStorage.removeItem(STORAGE_KEYS.PASSWORD_RECOVERY_USER);
+        setRecoveryState('invalid');
+      }
     });
 
     return () => {
       active = false;
       authListener.subscription.unsubscribe();
     };
-  }, [searchParams, recoveryState]);
+  }, [callbackType, hasCallbackCode]);
 
   const onSubmit = async (data) => {
     try {

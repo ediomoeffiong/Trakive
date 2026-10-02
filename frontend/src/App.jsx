@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { isSupabaseAuth } from './config/authProvider';
 import { supabase } from './config/supabase';
 import { useAppStore } from './store/useAppStore';
-import { STORAGE_KEYS } from './constants';
+import { ROUTES, STORAGE_KEYS } from './constants';
 import { persistAuthTokens } from './utils/authSession';
 
 function App() {
@@ -18,6 +18,21 @@ function App() {
       store.setAuthResolved(true);
       return undefined;
     }
+
+    // Supabase consumes recovery parameters while initializing the client. Mark
+    // the callback before getSession() can clean the URL so the reset page can
+    // distinguish it from an ordinary authenticated session.
+    const callbackHash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const callbackQuery = new URLSearchParams(window.location.search);
+    const isRecoveryCallback = window.location.pathname === ROUTES.RESET_PASSWORD && (
+      callbackHash.get('type') === 'recovery' ||
+      callbackQuery.get('type') === 'recovery' ||
+      callbackQuery.has('code')
+    );
+    if (isRecoveryCallback) {
+      sessionStorage.setItem(STORAGE_KEYS.PASSWORD_RECOVERY_USER, 'pending');
+    }
+
     store.restoreSession();
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
