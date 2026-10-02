@@ -42,8 +42,8 @@ const ActivateAccount = () => {
   return (
     <AuthCard>
       <AuthHeader
-        title="Activate your existing account"
-        subtitle="Keep your current Trakive profile, role, and records. Create a production password and verify your work email once."
+        title="Set up your existing account"
+        subtitle="Create a password and verify your work email. Your current profile, role, and records will stay the same."
       />
 
       {authError && <ErrorMessage message={authError} />}
@@ -62,7 +62,7 @@ const ActivateAccount = () => {
 
         <Input
           id="activation-password"
-          label="New production password"
+          label="Create password"
           type={showPassword ? 'text' : 'password'}
           placeholder="Create a strong password"
           leftAddon={<FiLock style={{ color: '#0096c7' }} />}

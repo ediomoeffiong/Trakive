@@ -27,7 +27,6 @@ import {
 } from '../components/ui';
 
 import { getRoleDefaultRoute, orgEmailRegisterOptions } from '../utils';
-import { isSupabaseAuth } from '../config/authProvider';
 
 const DEMO_ACCOUNTS = [
   {
@@ -249,22 +248,48 @@ const Login = () => {
         </div>
       )}
 
-      {authError && !challengeToken && <ErrorMessage message={authError} />}
+      {authError && !challengeToken && !activationEmail && <ErrorMessage message={authError} />}
       {activationEmail && (
-        <div style={{ marginTop: '-0.5rem', marginBottom: '1rem', fontSize: '0.875rem', color: '#475569' }}>
-          <span>Keep your existing Trakive profile and set up a production password. </span>
-          <Link
-            to={`${ROUTES.ACTIVATE_ACCOUNT}?email=${encodeURIComponent(activationEmail)}`}
-            onClick={clearError}
-            style={{ color: '#0077b6', fontWeight: 700, textDecoration: 'none' }}
-          >
-            Activate existing account
-          </Link>
-          <span>. Already completed setup? </span>
-          <Link to={ROUTES.FORGOT_PASSWORD} onClick={clearError} style={{ color: '#0077b6', fontWeight: 700, textDecoration: 'none' }}>
-            Reset your password
-          </Link>
-          <span>.</span>
+        <div
+          role="status"
+          style={{
+            marginBottom: '1rem',
+            padding: '0.875rem',
+            borderRadius: '0.625rem',
+            backgroundColor: '#f0f9ff',
+            border: '1px solid #bae6fd',
+            color: '#334155',
+          }}
+        >
+          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0c4a6e', marginBottom: '0.3rem' }}>
+            Finish setting up your account
+          </div>
+          <p style={{ margin: '0 0 0.75rem', fontSize: '0.8125rem', lineHeight: 1.5 }}>
+            We found your existing Trakive profile. Create a password and verify your work email to sign in. Your profile and records will stay the same.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.65rem 0.9rem' }}>
+            <Link
+              to={`${ROUTES.ACTIVATE_ACCOUNT}?email=${encodeURIComponent(activationEmail)}`}
+              onClick={clearError}
+              style={{
+                padding: '0.5rem 0.75rem',
+                borderRadius: '0.5rem',
+                backgroundColor: '#0096c7',
+                color: '#ffffff',
+                fontSize: '0.8125rem',
+                fontWeight: 700,
+                textDecoration: 'none',
+              }}
+            >
+              Set up my account
+            </Link>
+            <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+              Already set it up?{' '}
+              <Link to={ROUTES.FORGOT_PASSWORD} onClick={clearError} style={{ color: '#0077b6', fontWeight: 700, textDecoration: 'none' }}>
+                Reset your password
+              </Link>
+            </span>
+          </div>
         </div>
       )}
 
@@ -522,18 +547,6 @@ const Login = () => {
           Create an Account
         </Link>
       </p>
-      {isSupabaseAuth && (
-        <p style={{ margin: '0.65rem 0 0', textAlign: 'center', fontSize: '0.8125rem', color: '#64748b' }}>
-          Had a Trakive account before the authentication upgrade?{' '}
-          <Link
-            to={`${ROUTES.ACTIVATE_ACCOUNT}${emailValue ? `?email=${encodeURIComponent(emailValue)}` : ''}`}
-            onClick={clearError}
-            style={{ color: '#0096c7', fontWeight: 700, textDecoration: 'none' }}
-          >
-            Activate it once
-          </Link>
-        </p>
-      )}
     </AuthCard>
   );
 };

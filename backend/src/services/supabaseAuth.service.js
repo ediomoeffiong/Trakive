@@ -223,7 +223,7 @@ const SupabaseAuthService = {
       if (existing && !existing.supabase_auth_id) {
         throw new ApiError(
           409,
-          'Your existing Trakive profile needs a one-time account setup before you can sign in.',
+          'This account needs to be set up before you can sign in.',
           { code: 'ACCOUNT_ACTIVATION_REQUIRED', email },
         );
       }
