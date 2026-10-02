@@ -5,6 +5,7 @@
 
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useIsAuthenticated, useCurrentUser, useAuthResolved } from '../../store/useAppStore';
+import { ROUTES } from '../../constants';
 import { getRoleDefaultRoute } from '../../utils';
 import { hasAuthTokens } from '../../utils/authSession';
 

@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { isSupabaseAuth } from './config/authProvider';
 import { supabase } from './config/supabase';
 import { useAppStore } from './store/useAppStore';
+import { STORAGE_KEYS } from './constants';
 import { persistAuthTokens } from './utils/authSession';
 
 function App() {
@@ -21,6 +22,9 @@ function App() {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         persistAuthTokens({ accessToken: session.access_token, refreshToken: session.refresh_token });
+        if (event === 'PASSWORD_RECOVERY' && session.user?.id) {
+          sessionStorage.setItem(STORAGE_KEYS.PASSWORD_RECOVERY_USER, session.user.id);
+        }
         if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
           setTimeout(() => useAppStore.getState().restoreSession(), 0);
         }

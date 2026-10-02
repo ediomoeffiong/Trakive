@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 
 import { useAppStore } from '../store/useAppStore';
 import { ROUTES } from '../constants';
+import { isSupabaseAuth } from '../config/authProvider';
 import { orgEmailRegisterOptions } from '../utils';
 import {
   AuthCard,
@@ -56,16 +57,20 @@ const ForgotPassword = () => {
       <AuthCard>
         <SuccessMessage
           title="Reset link sent"
-          message={`We have sent secure password reset instructions and a verification link to ${submittedEmail}. Please check your inbox.`}
+          message={isSupabaseAuth
+            ? `We sent a secure password recovery link to ${submittedEmail}. You must open that link before setting a new password.`
+            : `We have sent secure password reset instructions to ${submittedEmail}. Please check your inbox.`}
         >
-          <Link
-            to={`${ROUTES.RESET_PASSWORD}?email=${encodeURIComponent(submittedEmail)}${resetToken ? `&token=${encodeURIComponent(resetToken)}` : ''}`}
-            className="w-full no-underline"
-          >
-            <Button size="lg" style={{ width: '100%' }}>
-              Proceed to Reset Password
-            </Button>
-          </Link>
+          {!isSupabaseAuth && (
+            <Link
+              to={`${ROUTES.RESET_PASSWORD}?email=${encodeURIComponent(submittedEmail)}${resetToken ? `&token=${encodeURIComponent(resetToken)}` : ''}`}
+              className="w-full no-underline"
+            >
+              <Button size="lg" style={{ width: '100%' }}>
+                Proceed to Reset Password
+              </Button>
+            </Link>
+          )}
           <Link
             to={ROUTES.LOGIN}
             className="text-neutral-500 hover:text-neutral-700 text-sm font-semibold text-center mt-2 no-underline flex items-center justify-center gap-2"

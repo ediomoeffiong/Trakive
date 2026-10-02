@@ -16,6 +16,7 @@ export const STORAGE_KEYS = {
   REFRESH_TOKEN: 'trakive_refresh_token',
   SUPABASE_ACCESS_TOKEN: 'trakive_supabase_access_token',
   SUPABASE_REFRESH_TOKEN: 'trakive_supabase_refresh_token',
+  PASSWORD_RECOVERY_USER: 'trakive_password_recovery_user',
   USER: 'trakive_user',
   SIDEBAR_COLLAPSED: 'trakive_sidebar_collapsed',
   THEME: 'trakive_theme',
