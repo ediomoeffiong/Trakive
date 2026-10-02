@@ -17,6 +17,7 @@ const AuditLogModel = require('../models/auditLog.model');
 const { validateInternshipDates } = require('../validators/internshipDate.validator');
 const { resolveFifthLabDefaults } = require('../utils/fifthlabDefaults');
 const { createLoginChallenge, verifyLoginChallenge, verifyCode } = require('../utils/twoFactor.utils');
+const { assertAllowedEmail } = require('../utils/emailDomain');
 
 const MAX_ACTIVE_DEVICES = 7;
 const SESSION_INACTIVITY_MS = 7 * 24 * 60 * 60 * 1000;
@@ -38,7 +39,9 @@ const AuthService = {
   /**
    * User Registration
    */
-  async register(data, ipAddress = null, userAgent = null) {
+  async register(data, ipAddress = null, userAgent = null, providerContext = {}) {
+    const isSupabaseRegistration = providerContext.provider === 'supabase';
+    data = { ...data, email: assertAllowedEmail(data.email) };
     const existingUser = await UserModel.findByEmail(data.email);
     if (existingUser) {
       throw ApiError.conflict('User with this email already exists');
@@ -65,11 +68,7 @@ const AuthService = {
       lastName = parts.slice(1).join(' ') || 'User';
     }
 
-    const emailDomain = (data.email || '').split('@')[1]?.toLowerCase().trim();
-    const allowedDomains = ['thefifthlab.com', 'cwg-plc.com'];
-    if (!allowedDomains.includes(emailDomain)) {
-      throw ApiError.badRequest('Please enter your organization email (@cwg-plc.com or @thefifthlab.com). Other emails are not supported.');
-    }
+    const emailDomain = data.email.split('@')[1];
 
     let matchedOrg = null;
     if (emailDomain === 'thefifthlab.com') {
@@ -94,7 +93,11 @@ const AuthService = {
 
     const orgId = matchedOrg.id;
 
-    const password_hash = await hashPassword(data.password);
+    // Local auth retains its password hash. Supabase registrations receive an
+    // unusable random placeholder because Supabase is the production password authority.
+    const password_hash = isSupabaseRegistration
+      ? await hashPassword(crypto.randomBytes(48).toString('base64url'))
+      : await hashPassword(data.password);
     const initialStatus = 'active';
 
     const fifthLabDefaults = targetRoleName === 'intern'
@@ -117,6 +120,7 @@ const AuthService = {
       date_of_birth: data.date_of_birth || data.dateOfBirth || null,
       status: initialStatus,
       is_email_verified: false,
+      supabase_auth_id: providerContext.supabaseAuthId || null,
     });
 
     // If registering an intern, create default intern profile linked to department
@@ -155,7 +159,22 @@ const AuthService = {
       });
     }
 
-    // Create Email Verification Token
+    if (isSupabaseRegistration) {
+      const userProfile = await UserModel.findByIdWithRoleAndPermissions(newUser.id);
+      await AuditLogModel.log({
+        organizationId: userProfile.organization_id,
+        userId: userProfile.id,
+        action: 'SUPABASE_REGISTRATION',
+        entityType: 'users',
+        entityId: userProfile.id,
+        details: { email: userProfile.email, role: userProfile.role_name, verificationRequired: true },
+        ipAddress,
+        userAgent,
+      });
+      return { user: UserModel.sanitizeUser(userProfile), verificationRequired: true };
+    }
+
+    // Create Email Verification Token (local provider only)
     const verifyToken = generateRandomToken();
     const verifyTokenHash = hashToken(verifyToken);
     const verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
@@ -440,6 +459,14 @@ const AuthService = {
       user: { ...UserModel.sanitizeUser(userProfile), isFirstLogin },
       tokens: { accessToken, refreshToken },
     };
+  },
+
+  async verifyEmailOtpLogin() {
+    throw ApiError.badRequest('Email OTP escalation is only available with Supabase authentication');
+  },
+
+  async resendEmailOtpLogin() {
+    throw ApiError.badRequest('Email OTP escalation is only available with Supabase authentication');
   },
 
   /**

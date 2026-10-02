@@ -9,6 +9,13 @@ const DOCUMENT_UPLOAD_TYPES = Object.freeze({
   'image/png': ['.png'],
 });
 
+const TASK_DELIVERABLE_UPLOAD_TYPES = Object.freeze({
+  ...DOCUMENT_UPLOAD_TYPES,
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+});
+
 const PDF_UPLOAD_TYPES = Object.freeze({
   'application/pdf': ['.pdf'],
 });
@@ -56,6 +63,14 @@ function hasAllowedSignature(file) {
     return file.buffer[0] === 0xff && file.buffer[1] === 0xd8 && file.buffer[2] === 0xff;
   }
 
+  if (
+    file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+    file.mimetype === 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+  ) {
+    return file.buffer[0] === 0x50 && file.buffer[1] === 0x4b;
+  }
+
   return false;
 }
 
@@ -73,6 +88,7 @@ function assertSafeUpload(file, allowedTypes = DOCUMENT_UPLOAD_TYPES) {
 module.exports = {
   DOCUMENT_FILE_SIZE_LIMIT,
   DOCUMENT_UPLOAD_TYPES,
+  TASK_DELIVERABLE_UPLOAD_TYPES,
   PDF_UPLOAD_TYPES,
   createUploadFileFilter,
   assertSafeUpload,

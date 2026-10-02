@@ -6,6 +6,8 @@ const {
   registerSchema,
   loginSchema,
   twoFactorLoginSchema,
+  emailOtpLoginSchema,
+  resendEmailOtpLoginSchema,
   refreshSchema,
   changePasswordSchema,
   forgotPasswordSchema,
@@ -20,8 +22,10 @@ const router = express.Router();
 router.post('/register', authLimiter, validate(registerSchema), AuthController.register);
 router.post('/login', authLimiter, validate(loginSchema), AuthController.login);
 router.post('/login/two-factor', authLimiter, validate(twoFactorLoginSchema), AuthController.verifyTwoFactorLogin);
+router.post('/login/email-otp', authLimiter, validate(emailOtpLoginSchema), AuthController.verifyEmailOtpLogin);
+router.post('/login/email-otp/resend', authLimiter, validate(resendEmailOtpLoginSchema), AuthController.resendEmailOtpLogin);
 router.post('/refresh', validate(refreshSchema), AuthController.refresh);
-router.post('/logout', AuthController.logout);
+router.post('/logout', authenticate, AuthController.logout);
 router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), AuthController.forgotPassword);
 router.post('/reset-password', authLimiter, validate(resetPasswordSchema), AuthController.resetPassword);
 router.post('/verify-email', validate(verifyEmailSchema), AuthController.verifyEmail);

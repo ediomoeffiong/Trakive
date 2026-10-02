@@ -1,6 +1,6 @@
 const asyncHandler = require('../utils/asyncHandler');
 const { sendSuccess } = require('../utils/apiResponse');
-const AuthService = require('../services/auth.service');
+const AuthService = require('../services/authProvider.service');
 
 const extractClientIp = (req) => {
   const forwarded = req.headers['x-forwarded-for'];
@@ -51,6 +51,25 @@ const AuthController = {
     return sendSuccess(res, { statusCode: 200, message: 'Login successful', data: result });
   }),
 
+  verifyEmailOtpLogin: asyncHandler(async (req, res) => {
+    const result = await AuthService.verifyEmailOtpLogin(
+      req.body.challengeToken,
+      req.body.code,
+      extractClientIp(req),
+      req.get('User-Agent'),
+    );
+    return sendSuccess(res, { statusCode: 200, message: 'Email challenge verified', data: result });
+  }),
+
+  resendEmailOtpLogin: asyncHandler(async (req, res) => {
+    const result = await AuthService.resendEmailOtpLogin(
+      req.body.challengeToken,
+      extractClientIp(req),
+      req.get('User-Agent'),
+    );
+    return sendSuccess(res, { statusCode: 200, message: 'A new email code has been sent', data: result });
+  }),
+
   refresh: asyncHandler(async (req, res) => {
     const { refreshToken } = req.body;
     const ipAddress = extractClientIp(req);
@@ -66,7 +85,11 @@ const AuthController = {
 
   logout: asyncHandler(async (req, res) => {
     const { refreshToken } = req.body || {};
-    const result = await AuthService.logout(refreshToken);
+    const result = await AuthService.logout(refreshToken, {
+      user: req.user,
+      ipAddress: extractClientIp(req),
+      userAgent: req.get('User-Agent'),
+    });
     return sendSuccess(res, {
       statusCode: 200,
       message: result.message,

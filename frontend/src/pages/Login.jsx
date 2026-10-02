@@ -65,6 +65,8 @@ const Login = () => {
   const navigate = useNavigate();
   const loginFn = useAppStore((state) => state.login);
   const verifyTwoFactorLogin = useAppStore((state) => state.verifyTwoFactorLogin);
+  const verifyEmailOtpLogin = useAppStore((state) => state.verifyEmailOtpLogin);
+  const resendEmailOtpLogin = useAppStore((state) => state.resendEmailOtpLogin);
   const authError = useAppStore((state) => state.error);
   const authLoading = useAppStore((state) => state.isLoading);
   const clearError = useAppStore((state) => state.clearError);
@@ -73,6 +75,7 @@ const Login = () => {
   const [selectedDemoRole, setSelectedDemoRole] = useState(null);
   const [challengeToken, setChallengeToken] = useState('');
   const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [challengeRequirements, setChallengeRequirements] = useState({ emailOtpRequired: false, totpRequired: false });
 
   const {
     register,
@@ -111,8 +114,12 @@ const Login = () => {
   const onSubmit = async (data) => {
     try {
       const response = await loginFn({ email: data.email, password: data.password });
-      if (response.twoFactorRequired) {
+      if (response.twoFactorRequired || response.challengeRequired) {
         setChallengeToken(response.challengeToken);
+        setChallengeRequirements({
+          emailOtpRequired: Boolean(response.emailOtpRequired),
+          totpRequired: Boolean(response.totpRequired || response.twoFactorRequired),
+        });
         setTwoFactorCode('');
         return;
       }
@@ -128,7 +135,17 @@ const Login = () => {
     event.preventDefault();
     if (!/^\d{6}$/.test(twoFactorCode)) return;
     try {
-      const response = await verifyTwoFactorLogin(challengeToken, twoFactorCode);
+      const response = challengeRequirements.emailOtpRequired
+        ? await verifyEmailOtpLogin(challengeToken, twoFactorCode)
+        : await verifyTwoFactorLogin(challengeToken, twoFactorCode);
+      if (response.challengeRequired) {
+        setChallengeRequirements({
+          emailOtpRequired: Boolean(response.emailOtpRequired),
+          totpRequired: Boolean(response.totpRequired),
+        });
+        setTwoFactorCode('');
+        return;
+      }
       toast.success(`Welcome back, ${response.user.name}!`);
       navigate(getRoleDefaultRoute(response.user.role));
     } catch {
@@ -233,9 +250,13 @@ const Login = () => {
         <form onSubmit={handleTwoFactorSubmit} className="flex flex-col gap-4">
           <div style={{ textAlign: 'center', padding: '0.5rem 0 0.75rem' }}>
             <RiShieldCheckLine size={42} style={{ color: '#0096c7', margin: '0 auto 0.75rem' }} />
-            <h3 style={{ margin: 0, color: '#0f172a' }}>Two-factor verification</h3>
+            <h3 style={{ margin: 0, color: '#0f172a' }}>
+              {challengeRequirements.emailOtpRequired ? 'Email verification required' : 'Two-factor verification'}
+            </h3>
             <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
-              Enter the 6-digit code from your authenticator app.
+              {challengeRequirements.emailOtpRequired
+                ? 'Because of repeated failed sign-in attempts, enter the 6-digit code sent to your verified work email.'
+                : 'Enter the 6-digit code from your authenticator app.'}
             </p>
           </div>
           <Input
@@ -252,9 +273,21 @@ const Login = () => {
           <Button type="submit" size="lg" loading={authLoading} disabled={twoFactorCode.length !== 6} style={{ width: '100%' }}>
             Verify and sign in
           </Button>
+          {challengeRequirements.emailOtpRequired && (
+            <button
+              type="button"
+              onClick={async () => {
+                try { await resendEmailOtpLogin(challengeToken); toast.success('A new email code has been sent.'); } catch { /* store displays the error */ }
+              }}
+              disabled={authLoading}
+              style={{ border: 0, background: 'none', color: '#0096c7', cursor: 'pointer', fontWeight: 600 }}
+            >
+              Resend email code
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => { setChallengeToken(''); setTwoFactorCode(''); clearError(); }}
+            onClick={() => { setChallengeToken(''); setTwoFactorCode(''); setChallengeRequirements({ emailOtpRequired: false, totpRequired: false }); clearError(); }}
             style={{ border: 0, background: 'none', color: '#0096c7', cursor: 'pointer', fontWeight: 600 }}
           >
             Use a different account

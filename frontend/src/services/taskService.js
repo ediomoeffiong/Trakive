@@ -9,7 +9,13 @@ const normalizeTask = (raw = {}) => {
   if (!raw || typeof raw !== 'object') raw = {};
   const rawDue = raw.dueDate || raw.due_date;
   const dueDate = rawDue ? String(rawDue).slice(0, 10) : '';
-  const status = raw.status === 'todo' ? 'assigned' : (raw.status || 'assigned');
+  const statusMap = {
+    todo: 'assigned',
+    in_progress: 'in-progress',
+    in_review: 'under-review',
+    revision_requested: 'needs-revision',
+  };
+  const status = statusMap[raw.status] || raw.status || 'assigned';
 
   let remainingDays = 0;
   if (dueDate) {
@@ -65,10 +71,6 @@ const normalizeTask = (raw = {}) => {
 
 const responseData = (response) => response.data?.data ?? response.data;
 
-const unsupported = (feature) => {
-  throw new Error(`${feature} is not available from the server yet. No local data was saved.`);
-};
-
 export const taskService = {
   getTasks: async () => {
     const response = await api.get('/tasks', { params: { limit: 100 } });
@@ -86,11 +88,18 @@ export const taskService = {
     return normalizeTask(responseData(response));
   },
 
-  // The backend currently has no deliverable or discussion endpoints. Failing
-  // explicitly prevents the UI from reporting browser-only records as saved.
-  submitTaskDeliverable: async () => unsupported('Deliverable upload'),
-  getTaskComments: async () => unsupported('Task comments'),
-  addTaskComment: async () => unsupported('Task comments'),
+  submitTaskDeliverable: async (taskId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post(`/tasks/${taskId}/deliverables`, formData);
+    return responseData(response);
+  },
+  getTaskComments: async () => {
+    throw new Error('Task comments are not available from the server yet. No local data was saved.');
+  },
+  addTaskComment: async () => {
+    throw new Error('Task comments are not available from the server yet. No local data was saved.');
+  },
 };
 
 export default taskService;

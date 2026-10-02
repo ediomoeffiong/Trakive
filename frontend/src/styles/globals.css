@@ -1461,6 +1461,14 @@ a {
 }
 
 /* Text-size accessibility scale */
+.text-scale-extra-small {
+  font-size: 75%;
+}
+
+.text-scale-small {
+  font-size: 87.5%;
+}
+
 .text-scale-large {
   font-size: 112.5%;
 }

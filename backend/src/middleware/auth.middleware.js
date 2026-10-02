@@ -3,6 +3,9 @@ const asyncHandler = require('../utils/asyncHandler');
 const { verifyAccessToken } = require('../utils/token.utils');
 const UserModel = require('../models/user.model');
 const { query } = require('../config/db');
+const { isSupabaseAuth } = require('../utils/authProvider');
+const { getSupabasePublicClient } = require('../config/supabase');
+const { resolveSupabaseIdentity } = require('../services/supabaseIdentity.service');
 
 /**
  * Role normalization mapping for Trakive roles
@@ -29,6 +32,32 @@ const authenticate = asyncHandler(async (req, res, next) => {
   const token = authHeader.split(' ')[1];
   if (!token) {
     throw ApiError.unauthorized('Authentication token is missing');
+  }
+
+  if (isSupabaseAuth()) {
+    const { data, error } = await getSupabasePublicClient().auth.getUser(token);
+    if (error || !data?.user) throw ApiError.unauthorized('Invalid or expired Supabase access token');
+    const user = await resolveSupabaseIdentity(data.user, {
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
+    req.user = {
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      role_id: user.role_id,
+      role_name: user.role_name,
+      permissions: Array.isArray(user.permissions) ? user.permissions : [],
+      organization_id: user.organization_id,
+      department_id: user.department_id,
+      status: user.status,
+      is_email_verified: true,
+      supabase_auth_id: data.user.id,
+    };
+    req.authProvider = 'supabase';
+    req.authToken = token;
+    return next();
   }
 
   let decoded;
@@ -88,6 +117,7 @@ const authenticate = asyncHandler(async (req, res, next) => {
     is_email_verified: user.is_email_verified,
   };
   req.sessionId = decoded.sessionId || null;
+  req.authProvider = 'local';
 
   next();
 });

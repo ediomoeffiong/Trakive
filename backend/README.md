@@ -53,6 +53,8 @@ cp .env.example .env
 | :--------------------------- | :---------------------- | :------------------------------------------------------- |
 | `PORT`                       | `5000`                  | HTTP Server Port                                         |
 | `NODE_ENV`                   | `development`           | Environment mode (`development` / `production` / `test`) |
+| `AUTH_PROVIDER`              | `local`                 | Explicit auth provider: `local` or `supabase`             |
+| `FRONTEND_URL`               | `http://localhost:5173` | Auth email redirect origin                                |
 | `CORS_ORIGIN`                | `http://localhost:5173` | Allowed CORS origin                                      |
 | `DATABASE_URL`               | _Optional_              | Full Supabase PostgreSQL connection string               |
 | `DB_HOST`                    | `localhost`             | PostgreSQL Database Host                                 |
@@ -66,6 +68,10 @@ cp .env.example .env
 | `JWT_SECRET`                 | _Required in production_ | Signs access tokens and short-lived 2FA challenges       |
 | `JWT_REFRESH_SECRET`         | _Required in production_ | Signs refresh tokens                                     |
 | `MFA_ENCRYPTION_KEY`         | _Required in production_ | Encrypts authenticator secrets at rest                    |
+| `AUTH_CHALLENGE_ENCRYPTION_KEY` | _Required for Supabase auth_ | Encrypts pending challenged Supabase sessions        |
+| `SUPABASE_URL`               | _Required for Supabase auth_ | Supabase project URL                                  |
+| `SUPABASE_PUBLISHABLE_KEY`   | _Required for Supabase auth_ | Public/publishable project credential                  |
+| `SUPABASE_SERVICE_ROLE_KEY`  | _Server only_            | Supabase administrative credential                         |
 | `RATE_LIMIT_WINDOW_MS`       | `900000`                | Rate limiter window in ms (15 minutes)                   |
 | `RATE_LIMIT_MAX_REQUESTS`    | `100`                   | Max requests per window                                  |
 

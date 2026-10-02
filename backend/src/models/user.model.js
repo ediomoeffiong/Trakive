@@ -9,7 +9,7 @@ const UserModel = {
 
   async findById(id) {
     const res = await query(
-      'SELECT id, organization_id, department_id, role_id, email, first_name, last_name, phone, avatar_url, date_of_birth, gender, address, city, state, country, bio, status, is_email_verified, email_verified_at, last_login_at, created_at, updated_at FROM users WHERE id = $1 AND deleted_at IS NULL',
+      'SELECT id, supabase_auth_id, organization_id, department_id, role_id, email, first_name, last_name, phone, avatar_url, date_of_birth, gender, address, city, state, country, bio, status, is_email_verified, email_verified_at, last_login_at, created_at, updated_at FROM users WHERE id = $1 AND deleted_at IS NULL',
       [id]
     );
     return res.rows[0] || null;
@@ -18,7 +18,7 @@ const UserModel = {
   async findByIdWithRoleAndPermissions(id) {
     const sql = `
       SELECT 
-        u.id, u.organization_id, u.department_id, u.role_id, u.email,
+        u.id, u.supabase_auth_id, u.organization_id, u.department_id, u.role_id, u.email,
         u.first_name, u.last_name, u.phone, u.avatar_url,
         u.date_of_birth, u.gender, u.address, u.city, u.state, u.country, u.bio,
         u.status,
@@ -46,10 +46,40 @@ const UserModel = {
 
   async findByEmail(email) {
     const res = await query(
-      'SELECT id, organization_id, department_id, role_id, email, first_name, last_name, phone, avatar_url, date_of_birth, gender, address, city, state, country, bio, status, is_email_verified, email_verified_at, last_login_at, created_at, updated_at FROM users WHERE email = $1 AND deleted_at IS NULL',
+      'SELECT id, supabase_auth_id, organization_id, department_id, role_id, email, first_name, last_name, phone, avatar_url, date_of_birth, gender, address, city, state, country, bio, status, is_email_verified, email_verified_at, last_login_at, created_at, updated_at FROM users WHERE LOWER(email) = $1 AND deleted_at IS NULL',
       [email.toLowerCase()]
     );
     return res.rows[0] || null;
+  },
+
+  async findBySupabaseAuthId(supabaseAuthId) {
+    const result = await query(
+      'SELECT id FROM users WHERE supabase_auth_id = $1 AND deleted_at IS NULL',
+      [supabaseAuthId]
+    );
+    return result.rows[0] ? this.findByIdWithRoleAndPermissions(result.rows[0].id) : null;
+  },
+
+  async linkSupabaseIdentity(userId, supabaseAuthId, verifiedEmail) {
+    const normalizedEmail = String(verifiedEmail || '').trim().toLowerCase();
+    const result = await query(
+      `UPDATE users
+       SET supabase_auth_id = $2,
+           is_email_verified = true,
+           email_verified_at = COALESCE(email_verified_at, NOW()),
+           updated_at = NOW()
+       WHERE id = $1
+         AND LOWER(email) = $3
+         AND deleted_at IS NULL
+         AND (supabase_auth_id IS NULL OR supabase_auth_id = $2)
+         AND NOT EXISTS (
+           SELECT 1 FROM users other
+           WHERE other.supabase_auth_id = $2 AND other.id <> $1
+         )
+       RETURNING id`,
+      [userId, supabaseAuthId, normalizedEmail]
+    );
+    return result.rows[0] ? this.findByIdWithRoleAndPermissions(result.rows[0].id) : null;
   },
 
   async findByEmailWithPassword(email) {
@@ -78,14 +108,16 @@ const UserModel = {
     avatar_url = null,
     status = 'active',
     is_email_verified = false,
+    supabase_auth_id = null,
   }) {
     const sql = `
       INSERT INTO users (
         organization_id, department_id, role_id, email, password_hash,
-        first_name, last_name, phone, date_of_birth, avatar_url, status, is_email_verified
+        first_name, last_name, phone, date_of_birth, avatar_url, status, is_email_verified,
+        supabase_auth_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-      RETURNING id, organization_id, department_id, role_id, email, first_name, last_name, phone, date_of_birth, avatar_url, status, is_email_verified, email_verified_at, created_at, updated_at;
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      RETURNING id, supabase_auth_id, organization_id, department_id, role_id, email, first_name, last_name, phone, date_of_birth, avatar_url, status, is_email_verified, email_verified_at, created_at, updated_at;
     `;
     const values = [
       organization_id,
@@ -100,6 +132,7 @@ const UserModel = {
       avatar_url,
       status,
       is_email_verified,
+      supabase_auth_id,
     ];
     const res = await query(sql, values);
     return res.rows[0];

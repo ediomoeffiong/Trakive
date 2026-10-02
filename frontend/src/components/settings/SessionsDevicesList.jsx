@@ -30,6 +30,7 @@ import {
 } from '../../store/useSettingsStore';
 import Button from '../ui/Button';
 import { SessionsListSkeleton } from './SettingsSkeletons';
+import { isSupabaseAuth } from '../../config/authProvider';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const formatRelative = (isoStr) => {
@@ -327,7 +328,7 @@ const SessionsDevicesList = () => {
   const pagination = useOtherSessionsPagination();
 
   useEffect(() => {
-    fetchSessions(1).catch(() => {});
+    if (!isSupabaseAuth) fetchSessions(1).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -362,6 +363,15 @@ const SessionsDevicesList = () => {
   const totalPages = pagination.totalPages || 1;
   const pageStart = totalOther === 0 ? 0 : (currentPage - 1) * (pagination.limit || 10) + 1;
   const pageEnd = Math.min(currentPage * (pagination.limit || 10), totalOther);
+
+  if (isSupabaseAuth) {
+    return <div className="card" style={{ padding: '1.75rem', display: 'grid', gap: '0.75rem' }}>
+      <h3 style={{ margin: 0 }}>Sessions are managed by Supabase</h3>
+      <p style={{ margin: 0, color: 'var(--color-neutral-600)', lineHeight: 1.6 }}>
+        Trakive does not show or revoke individual devices in production because Supabase does not expose a reliable per-device session list for this application. Use Sign out to end this browser session. Password changes sign out other sessions where supported.
+      </p>
+    </div>;
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

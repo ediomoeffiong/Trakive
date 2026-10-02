@@ -188,7 +188,7 @@ const AuthLayout = () => {
               boxShadow: '0 0 8px #22c55e',
             }}
           />
-          Enterprise Single Sign-On &bull; CWG Secure Workspace
+          CWG Secure Workspace
         </div>
       </motion.div>
     </div>

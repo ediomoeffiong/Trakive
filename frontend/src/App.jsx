@@ -2,9 +2,35 @@ import { RouterProvider } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import router from './routes';
 import { useAppearanceSync } from './hooks/useAppearanceSync';
+import { useEffect } from 'react';
+import { isSupabaseAuth } from './config/authProvider';
+import { supabase } from './config/supabase';
+import { useAppStore } from './store/useAppStore';
+import { persistAuthTokens } from './utils/authSession';
 
 function App() {
   useAppearanceSync();
+
+  useEffect(() => {
+    const store = useAppStore.getState();
+    if (!isSupabaseAuth) {
+      store.setAuthResolved(true);
+      return undefined;
+    }
+    store.restoreSession();
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        persistAuthTokens({ accessToken: session.access_token, refreshToken: session.refresh_token });
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+          setTimeout(() => useAppStore.getState().restoreSession(), 0);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        useAppStore.getState().clearAuth();
+        useAppStore.getState().setAuthResolved(true);
+      }
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   return (
     <>

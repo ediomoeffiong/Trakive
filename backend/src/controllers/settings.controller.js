@@ -45,7 +45,7 @@ const SettingsController = {
   changePassword: asyncHandler(async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     const result = await SettingsService.changePassword(req.user.id, currentPassword, newPassword, getRefreshToken(req), {
-      ipAddress: extractClientIp(req), userAgent: req.get('User-Agent'),
+      ipAddress: extractClientIp(req), userAgent: req.get('User-Agent'), authToken: req.authToken,
     });
     return sendSuccess(res, {
       message: result.message || 'Password changed successfully',

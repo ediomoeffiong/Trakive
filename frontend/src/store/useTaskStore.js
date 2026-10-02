@@ -105,10 +105,10 @@ export const useTaskStore = create((set) => ({
     }
   },
 
-  submitDeliverable: async (taskId, fileMetadata) => {
+  submitDeliverable: async (taskId, file) => {
     set({ submittingDeliverable: true, error: null });
     try {
-      const newSubmission = await taskService.submitTaskDeliverable(taskId, fileMetadata);
+      const newSubmission = await taskService.submitTaskDeliverable(taskId, file);
       
       // Add submission locally and transition task status
       set((state) => {
@@ -138,12 +138,12 @@ export const useTaskStore = create((set) => ({
         category: 'task_submitted',
         title: 'Task Deliverable Submitted',
         shortDescription: 'Your deliverable was submitted for supervisor review.',
-        message: `Deliverable '${fileMetadata.name || 'file'}' was submitted. Your mentor will review and provide feedback.`,
+        message: `Deliverable '${file.name || 'file'}' was submitted. Your mentor will review and provide feedback.`,
         actionLabel: 'View Deliverable',
         actionRoute: `/dashboard/tasks/${taskId}`,
       });
     } catch (err) {
-      set({ error: err.message, submittingDeliverable: false });
+      set({ submittingDeliverable: false });
       throw err;
     }
   },

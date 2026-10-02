@@ -5,8 +5,10 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
+    "test": "node --test test/*.test.js",
     "dev": "nodemon src/server.js",
     "migrate": "node src/database/migrate.js",
+    "auth:revoke-legacy-sessions": "node src/database/revoke_legacy_production_sessions.js",
     "seed": "node src/database/seed.js",
     "seed:default-accounts": "node src/database/seed_default_accounts.js",
     "db:setup": "npm run migrate && npm run seed",
@@ -21,6 +23,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

@@ -16,6 +16,7 @@ import { AuthCard, AuthHeader, Button, ErrorMessage } from '../components/ui';
 const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
   const targetEmail = searchParams.get('email') || 'your-email@company.com';
+  const verificationError = searchParams.get('error_description') || searchParams.get('error');
 
   const resendFn = useAppStore((state) => state.resendVerificationEmail);
   const authError = useAppStore((state) => state.error);
@@ -79,6 +80,7 @@ const VerifyEmail = () => {
       />
 
       {authError && <ErrorMessage message={authError} />}
+      {verificationError && <ErrorMessage message={verificationError.replaceAll('+', ' ')} />}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
         <Button

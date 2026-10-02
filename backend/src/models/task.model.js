@@ -18,7 +18,46 @@ const TaskModel = {
       WHERE t.id = $1 AND t.deleted_at IS NULL;
     `;
     const res = await query(sql, [id]);
-    return res.rows[0] || null;
+    const task = res.rows[0] || null;
+    if (!task) return null;
+    task.submissions = await this.findSubmissionsByTaskId(id);
+    return task;
+  },
+
+  async findSubmissionsByTaskId(taskId) {
+    const res = await query(
+      `SELECT ts.*,
+              review.feedback,
+              review.reviewed_at AS feedback_date,
+              CONCAT_WS(' ', reviewer.first_name, reviewer.last_name) AS feedback_author
+       FROM task_submissions ts
+       LEFT JOIN LATERAL (
+         SELECT tr.feedback, tr.reviewed_at, tr.reviewer_id
+         FROM task_reviews tr
+         WHERE tr.submission_id = ts.id
+         ORDER BY tr.reviewed_at DESC
+         LIMIT 1
+       ) review ON true
+       LEFT JOIN users reviewer ON reviewer.id = review.reviewer_id
+       WHERE ts.task_id = $1
+       ORDER BY ts.submitted_at DESC`,
+      [taskId],
+    );
+    return res.rows;
+  },
+
+  async createSubmission({ task_id, intern_id, attachments, submission_text = null }) {
+    const res = await query(
+      `INSERT INTO task_submissions (
+         task_id, intern_id, submission_text, attachments, version, status
+       )
+       SELECT $1, $2, $3, $4::jsonb, COALESCE(MAX(version), 0) + 1, 'pending_review'
+       FROM task_submissions
+       WHERE task_id = $1
+       RETURNING *`,
+      [task_id, intern_id, submission_text, JSON.stringify(attachments || [])],
+    );
+    return res.rows[0];
   },
 
   async create({

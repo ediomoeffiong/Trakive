@@ -13,6 +13,7 @@ import { useSettingsStore }    from '../../store/useSettingsStore';
 import Input                   from '../ui/Input';
 import Button                  from '../ui/Button';
 import UnsavedChangesBar       from './UnsavedChangesBar';
+import { isSupabaseAuth }      from '../../config/authProvider';
 
 // ── Section header ─────────────────────────────────────────────────────────────
 const SectionHeader = ({ icon: Icon, title, description }) => (
@@ -174,7 +175,7 @@ const AccountSettingsForm = () => {
   }, [settings.account, reset]);
 
   const watchedEmail = watch('email');
-  const emailChanged = watchedEmail !== account.email;
+  const emailChanged = !isSupabaseAuth && watchedEmail !== account.email;
 
   const onSubmit = async (data) => {
     try {
@@ -241,8 +242,9 @@ const AccountSettingsForm = () => {
               label="Email Address"
               type="email"
               placeholder="you@example.com"
+              disabled={isSupabaseAuth}
               error={errors.email?.message}
-              hint={emailChanged ? '⚠️ Changing email requires verification' : undefined}
+              hint={isSupabaseAuth ? 'Your verified work email is managed by Supabase and cannot be changed here.' : emailChanged ? '⚠️ Changing email requires verification' : undefined}
               {...register('email', {
                 required: 'Email is required',
                 pattern: {
@@ -293,7 +295,7 @@ const AccountSettingsForm = () => {
 
       {/* Email Verification Modal */}
       <AnimatePresence>
-        {emailVerifyOpen && (
+        {!isSupabaseAuth && emailVerifyOpen && (
           <EmailVerifyModal
             email={pendingEmail}
             onClose={() => setEmailVerifyOpen(false)}

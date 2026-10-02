@@ -1,4 +1,5 @@
 import { STORAGE_KEYS } from '../constants';
+import { isSupabaseAuth } from '../config/authProvider';
 
 const safeParse = (value, fallback = null) => {
   try {
@@ -60,6 +61,7 @@ export const getPersistedAuthState = () => {
 
 export const getAccessToken = () => {
   if (typeof localStorage === 'undefined') return null;
+  if (isSupabaseAuth) return localStorage.getItem(STORAGE_KEYS.SUPABASE_ACCESS_TOKEN);
   const direct = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   if (isUsableAccessToken(direct)) return direct;
 
@@ -70,6 +72,7 @@ export const getAccessToken = () => {
 
 export const getRefreshToken = () => {
   if (typeof localStorage === 'undefined') return null;
+  if (isSupabaseAuth) return localStorage.getItem(STORAGE_KEYS.SUPABASE_REFRESH_TOKEN);
   const direct = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
   if (direct) return direct;
   return getPersistedAuthState()?.state?.user?.refreshToken || null;
@@ -98,6 +101,11 @@ export const hasAuthTokens = () => {
 
 export const persistAuthTokens = ({ accessToken, refreshToken } = {}) => {
   if (typeof localStorage === 'undefined') return;
+  if (isSupabaseAuth) {
+    if (accessToken) localStorage.setItem(STORAGE_KEYS.SUPABASE_ACCESS_TOKEN, accessToken);
+    if (refreshToken) localStorage.setItem(STORAGE_KEYS.SUPABASE_REFRESH_TOKEN, refreshToken);
+    return;
+  }
   if (accessToken) localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
   if (refreshToken) localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
 };
@@ -107,6 +115,8 @@ export const clearAuthTokens = () => {
   localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
   localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
   localStorage.removeItem(STORAGE_KEYS.USER);
+  localStorage.removeItem(STORAGE_KEYS.SUPABASE_ACCESS_TOKEN);
+  localStorage.removeItem(STORAGE_KEYS.SUPABASE_REFRESH_TOKEN);
 
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);

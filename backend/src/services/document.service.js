@@ -70,8 +70,8 @@ async function canAccessDocument(user, doc) {
 const DocumentService = {
   mapDocument,
 
-  async uploadDocument(file, body, requestingUser) {
-    assertSafeUpload(file, DOCUMENT_UPLOAD_TYPES);
+  async uploadDocument(file, body, requestingUser, allowedTypes = DOCUMENT_UPLOAD_TYPES) {
+    assertSafeUpload(file, allowedTypes);
     if (!requestingUser.organization_id) {
       throw ApiError.badRequest('User must belong to an organization before uploading documents');
     }

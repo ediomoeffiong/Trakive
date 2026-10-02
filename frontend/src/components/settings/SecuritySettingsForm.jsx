@@ -22,6 +22,12 @@ const eventLabel = (type) => ({
   USER_LOGIN: 'Successful login', USER_LOGIN_FAILED: 'Failed login attempt',
   PASSWORD_CHANGED: 'Password changed', TWO_FACTOR_ENABLED: 'Two-factor authentication enabled',
   TWO_FACTOR_DISABLED: 'Two-factor authentication disabled', SESSION_REVOKED: 'Session revoked',
+  SUPABASE_REGISTRATION: 'Supabase account registered', SUPABASE_LOGIN: 'Successful production login',
+  SUPABASE_IDENTITY_LINKED: 'Production identity linked', SUPABASE_EMAIL_VERIFIED: 'Work email verified',
+  LOGIN_ESCALATION_TRIGGERED: 'Additional email verification required', EMAIL_OTP_SENT: 'Email verification code sent',
+  EMAIL_OTP_VERIFICATION_FAILED: 'Email verification code failed', EMAIL_OTP_VERIFIED: 'Email verification completed',
+  TWO_FACTOR_LOGIN_FAILED: 'Authenticator verification failed',
+  SUPABASE_LOGOUT: 'Signed out', SUPABASE_PASSWORD_RECOVERY_REQUESTED: 'Password recovery requested',
 }[type] || String(type || 'Security activity').replaceAll('_', ' ').toLowerCase());
 
 const deviceName = (ua = '') => {

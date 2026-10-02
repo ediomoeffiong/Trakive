@@ -2,7 +2,8 @@ const crypto = require('crypto');
 const ApiError = require('../utils/apiError');
 const SettingsModel = require('../models/settings.model');
 const UserService = require('./user.service');
-const AuthService = require('./auth.service');
+const AuthService = require('./authProvider.service');
+const { isSupabaseAuth } = require('../utils/authProvider');
 const AuditLogModel = require('../models/auditLog.model');
 const QRCode = require('qrcode');
 const { createSetup, encryptSecret, verifyCode } = require('../utils/twoFactor.utils');
@@ -97,7 +98,10 @@ const SettingsService = {
   },
 
   async changePassword(userId, currentPassword, newPassword, currentRefreshToken, requestMeta = {}) {
-    const result = await AuthService.changePassword(userId, currentPassword, newPassword, currentRefreshToken);
+    const result = await AuthService.changePassword(
+      userId, currentPassword, newPassword,
+      isSupabaseAuth() ? requestMeta.authToken : currentRefreshToken
+    );
     const settingsRow = await SettingsModel.setPasswordChanged(userId);
     const profile = await UserService.getProfile(userId);
     await AuditLogModel.log({
@@ -190,6 +194,16 @@ const SettingsService = {
   },
 
   async getSessions(userId, currentRefreshToken, requestMeta = {}) {
+    if (isSupabaseAuth()) {
+      return {
+        provider: 'supabase',
+        currentSessions: [],
+        otherSessions: [],
+        sessionManagementAvailable: false,
+        message: 'Supabase manages authentication sessions. Exact per-device listing and revocation are not available.',
+        pagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
+      };
+    }
     const requestedPage = Math.max(1, parseInt(requestMeta.page, 10) || 1);
     const page = Math.min(MAX_SESSION_HISTORY_PAGES, requestedPage);
     const limit = Math.min(50, Math.max(1, parseInt(requestMeta.limit, 10) || 10));
@@ -258,6 +272,7 @@ const SettingsService = {
   },
 
   async revokeSession(userId, sessionId, requestMeta = {}) {
+    if (isSupabaseAuth()) throw ApiError.badRequest('Per-device session revocation is unavailable with Supabase authentication');
     const revoked = await SettingsModel.revokeSession(userId, sessionId);
     if (!revoked) throw ApiError.notFound('Session not found');
     const profile = await UserService.getProfile(userId);
@@ -270,6 +285,7 @@ const SettingsService = {
   },
 
   async revokeOtherSessions(userId, currentRefreshToken, requestMeta = {}) {
+    if (isSupabaseAuth()) throw ApiError.badRequest('Use Supabase sign-out to end other authentication sessions');
     const currentHash = currentRefreshToken
       ? crypto.createHash('sha256').update(currentRefreshToken).digest('hex')
       : null;

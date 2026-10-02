@@ -4,12 +4,15 @@
  */
 
 import { Navigate, Outlet } from 'react-router-dom';
-import { useIsAuthenticated } from '../../store/useAppStore';
+import { useIsAuthenticated, useAuthResolved } from '../../store/useAppStore';
 import { ROUTES } from '../../constants';
 import { hasAuthTokens } from '../../utils/authSession';
 
 const ProtectedRoute = () => {
   const isAuthenticated = useIsAuthenticated();
+  const authResolved = useAuthResolved();
+
+  if (!authResolved) return null;
 
   if (!isAuthenticated || !hasAuthTokens()) {
     return <Navigate to={ROUTES.LOGIN} replace />;

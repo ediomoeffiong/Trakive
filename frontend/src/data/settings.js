@@ -38,6 +38,8 @@ export const TIME_FORMATS = [
 
 /** Text size scale options */
 export const TEXT_SIZES = [
+  { value: 'extra-small',label: 'Extra Small',scale: 0.75, description: 'Minimum text size (75%)' },
+  { value: 'small',      label: 'Small',      scale: 0.875,description: 'Slightly smaller text (87.5%)' },
   { value: 'standard',   label: 'Standard',   scale: 1.0,  description: 'Default font size (100%)' },
   { value: 'large',      label: 'Large',       scale: 1.125,description: 'Slightly larger text (112.5%)' },
   { value: 'extra-large',label: 'Extra Large', scale: 1.25, description: 'Maximum text size (125%)' },
@@ -92,7 +94,7 @@ export const defaultSettings = {
   },
 
   accessibility: {
-    textSize:         'standard',  // 'standard' | 'large' | 'extra-large'
+    textSize:         'standard',  // 'extra-small' | 'small' | 'standard' | 'large' | 'extra-large'
     highContrast:     false,
     reducedMotion:    false,
     keyboardHelper:   false,

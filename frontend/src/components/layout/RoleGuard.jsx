@@ -4,7 +4,7 @@
  */
 
 import { Navigate, Outlet } from 'react-router-dom';
-import { useIsAuthenticated, useCurrentUser } from '../../store';
+import { useIsAuthenticated, useCurrentUser, useAuthResolved } from '../../store';
 import { ROUTES, USER_ROLES } from '../../constants';
 import { hasAuthTokens, clearAuthTokens } from '../../utils/authSession';
 import { useAppStore } from '../../store/useAppStore';
@@ -19,6 +19,9 @@ const ROLE_DEFAULT_ROUTES = {
 const RoleGuard = ({ allowedRoles = [] }) => {
   const isAuthenticated = useIsAuthenticated();
   const user = useCurrentUser();
+  const authResolved = useAuthResolved();
+
+  if (!authResolved) return null;
 
   if (!isAuthenticated || !hasAuthTokens()) {
     clearAuthTokens();

@@ -13,6 +13,7 @@ import { normalizePersonRecord } from '../utils/people';
 import { clearAuthTokens, hasAuthTokens, persistAuthTokens } from '../utils/authSession';
 import { formatUserFriendlyError, resetSessionExpiredFlag } from '../utils/errorHandling';
 import { resetApiSessionState } from '../services/api';
+import { isSupabaseAuth } from '../config/authProvider';
 
 // ── UI / Shell Slice ──────────────────────────────────────────────────────────
 const createUISlice = (set) => ({
@@ -36,10 +37,12 @@ const createAuthSlice = (set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
+  authResolved: !isSupabaseAuth,
   error: null,
 
   setUser: (user) => set({ user: normalizePersonRecord(user), isAuthenticated: !!user && hasAuthTokens(), error: null }),
   setLoading: (isLoading) => set({ isLoading }),
+  setAuthResolved: (authResolved) => set({ authResolved }),
   setError: (error) => set({ error }),
   clearError: () => set({ error: null }),
   clearAuth: () => {
@@ -75,7 +78,7 @@ const createAuthSlice = (set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await authService.login(credentials);
-      if (response.twoFactorRequired) {
+      if (response.twoFactorRequired || response.challengeRequired) {
         set({ isLoading: false, error: null });
         return response;
       }
@@ -86,7 +89,10 @@ const createAuthSlice = (set, get) => ({
       });
       resetSessionExpiredFlag();
       resetApiSessionState();
-      set({ user, isAuthenticated: hasAuthTokens(), isLoading: false });
+      if (isSupabaseAuth && user) {
+        delete user.accessToken; delete user.refreshToken; delete user.token;
+      }
+      set({ user, isAuthenticated: hasAuthTokens(), isLoading: false, authResolved: true });
 
       // Dispatch security notification
       const userRole = user?.role;
@@ -117,16 +123,66 @@ const createAuthSlice = (set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await authService.verifyTwoFactorLogin({ challengeToken, code });
+      if (response.challengeRequired) {
+        set({ isLoading: false, error: null });
+        return response;
+      }
       const user = normalizePersonRecord(response.user);
       persistAuthTokens({ accessToken: response.token, refreshToken: response.refreshToken });
       resetSessionExpiredFlag();
       resetApiSessionState();
-      set({ user, isAuthenticated: hasAuthTokens(), isLoading: false });
+      if (isSupabaseAuth && user) { delete user.accessToken; delete user.refreshToken; delete user.token; }
+      set({ user, isAuthenticated: hasAuthTokens(), isLoading: false, authResolved: true });
       return { ...response, user };
     } catch (err) {
       const friendlyError = formatUserFriendlyError(err, 'The authentication code is invalid or expired.');
       set({ error: friendlyError, isLoading: false });
       throw new Error(friendlyError);
+    }
+  },
+
+  verifyEmailOtpLogin: async (challengeToken, code) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await authService.verifyEmailOtpLogin({ challengeToken, code });
+      if (response.challengeRequired) {
+        set({ isLoading: false, error: null });
+        return response;
+      }
+      const user = normalizePersonRecord(response.user);
+      persistAuthTokens({ accessToken: response.token, refreshToken: response.refreshToken });
+      if (isSupabaseAuth && user) { delete user.accessToken; delete user.refreshToken; delete user.token; }
+      resetSessionExpiredFlag(); resetApiSessionState();
+      set({ user, isAuthenticated: hasAuthTokens(), isLoading: false, authResolved: true });
+      return { ...response, user };
+    } catch (err) {
+      const friendlyError = formatUserFriendlyError(err, 'The email verification code is invalid or expired.');
+      set({ error: friendlyError, isLoading: false });
+      throw new Error(friendlyError);
+    }
+  },
+
+  resendEmailOtpLogin: async (challengeToken) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await authService.resendEmailOtpLogin(challengeToken);
+      set({ isLoading: false });
+      return response;
+    } catch (err) {
+      set({ error: err.message, isLoading: false });
+      throw err;
+    }
+  },
+
+  restoreSession: async () => {
+    set({ authResolved: false });
+    try {
+      const restored = await authService.restoreSession();
+      if (restored) set({ user: normalizePersonRecord(restored), isAuthenticated: hasAuthTokens(), authResolved: true });
+      else set({ user: null, isAuthenticated: false, authResolved: true });
+    } catch {
+      get().clearAuth();
+      set({ authResolved: true });
     }
   },
 
@@ -236,4 +292,5 @@ export const useTheme = () => useAppStore((s) => s.theme);
 export const useSpacing = () => useAppStore((s) => s.spacing);
 export const useSidebarBehavior = () => useAppStore((s) => s.sidebarBehavior);
 export const useAuthLoading = () => useAppStore((s) => s.isLoading);
+export const useAuthResolved = () => useAppStore((s) => s.authResolved);
 export const useAuthError = () => useAppStore((s) => s.error);

@@ -14,6 +14,8 @@ import {
   isRealBackendToken,
 } from '../utils/authSession';
 import { handleSessionExpired, formatUserFriendlyError } from '../utils/errorHandling';
+import { isSupabaseAuth } from '../config/authProvider';
+import { supabase } from '../config/supabase';
 
 const joinUrl = (base, path) => {
   if (!path) return base;
@@ -55,6 +57,31 @@ const getOrRefreshToken = (refreshToken) => {
       .finally(() => {
         refreshPromise = null;
       });
+  }
+  return refreshPromise;
+};
+
+const getOrRefreshSupabaseToken = () => {
+  if (!refreshPromise) {
+    refreshPromise = supabase.auth.getSession()
+      .then(async ({ data, error }) => {
+        if (error) throw error;
+        let session = data?.session;
+        if (!session || session.expires_at * 1000 <= Date.now() + 10_000) {
+          const refreshed = await supabase.auth.refreshSession();
+          if (refreshed.error) throw refreshed.error;
+          session = refreshed.data.session;
+        }
+        if (!session?.access_token) throw new Error('Supabase session has expired');
+        persistTokenPairInStore({ accessToken: session.access_token, refreshToken: session.refresh_token });
+        return session.access_token;
+      })
+      .catch((error) => {
+        isSessionExpired = true;
+        handleSessionExpired();
+        throw error;
+      })
+      .finally(() => { refreshPromise = null; });
   }
   return refreshPromise;
 };
@@ -115,6 +142,13 @@ api.interceptors.request.use(
 
     // Proactively check if access token is expired before sending request
     if (!isAuthEndpoint && token && isTokenExpired(token)) {
+      if (isSupabaseAuth) {
+        try {
+          token = await getOrRefreshSupabaseToken();
+        } catch {
+          return Promise.reject(new Error('Your session has expired. Please log in again to continue.'));
+        }
+      } else {
       const refreshToken = getRefreshToken();
       if (isRealBackendToken(refreshToken) && !isTokenExpired(refreshToken, 0)) {
         try {
@@ -126,6 +160,7 @@ api.interceptors.request.use(
         isSessionExpired = true;
         handleSessionExpired();
         return Promise.reject(new Error('Your session has expired. Please log in again to continue.'));
+      }
       }
     }
 
@@ -183,6 +218,17 @@ api.interceptors.response.use(
       }
 
       // 3. Attempt token refresh if a real refresh token is available
+      if (isSupabaseAuth) {
+        originalRequest._retry = true;
+        try {
+          const newAccessToken = await getOrRefreshSupabaseToken();
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          return api(originalRequest);
+        } catch {
+          error.message = 'Your session has expired. Please log in again to continue.';
+          return Promise.reject(error);
+        }
+      }
       const refreshToken = getRefreshToken();
       if (isRealBackendToken(refreshToken) && !isTokenExpired(refreshToken, 0)) {
         originalRequest._retry = true;

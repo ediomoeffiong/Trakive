@@ -8,6 +8,9 @@ import { mockUsers, DEFAULT_MOCK_PASSWORD } from '../data/mockUsers';
 import { normalizeDepartmentForPerson, normalizePersonRecord } from '../utils/people';
 import { isOrganizationEmail, ORG_EMAIL_REQUIRED_MESSAGE } from '../utils/helpers';
 import { formatUserFriendlyError, resetSessionExpiredFlag } from '../utils/errorHandling';
+import { isSupabaseAuth } from '../config/authProvider';
+import { supabase } from '../config/supabase';
+import { getRefreshToken, persistAuthTokens } from '../utils/authSession';
 
 // Never allow a production outage to turn into a mock login. Local mock auth is
 // available only when a developer explicitly opts into it.
@@ -200,6 +203,14 @@ export const authService = {
     try {
       const res = await api.post('/auth/login', { email, password });
       const payload = res.data?.data || res.data || {};
+      if (payload.challengeRequired && payload.challengeToken) {
+        return {
+          challengeRequired: true,
+          challengeToken: payload.challengeToken,
+          emailOtpRequired: Boolean(payload.emailOtpRequired),
+          totpRequired: Boolean(payload.totpRequired),
+        };
+      }
       if (payload.twoFactorRequired && payload.challengeToken) {
         return { twoFactorRequired: true, challengeToken: payload.challengeToken };
       }
@@ -209,6 +220,12 @@ export const authService = {
       const safeUser = normalizeUser(user, email, token, tokens);
 
       if (!safeUser?.id || !token) throw new Error('Invalid login response from server');
+
+      if (isSupabaseAuth) {
+        const { error } = await supabase.auth.setSession({ access_token: token, refresh_token: tokens.refreshToken });
+        if (error) throw error;
+        persistAuthTokens({ accessToken: token, refreshToken: tokens.refreshToken });
+      }
 
       resetSessionExpiredFlag();
       resetApiSessionState();
@@ -246,12 +263,46 @@ export const authService = {
     try {
       const res = await api.post('/auth/login/two-factor', { challengeToken, code });
       const result = normalizeBackendAuthPayload(res);
+      const payload = res.data?.data || res.data || {};
+      if (payload.challengeRequired) return payload;
       if (!result.user?.id || !result.token) throw new Error('Invalid login response from server');
+      if (isSupabaseAuth) {
+        const { error } = await supabase.auth.setSession({ access_token: result.token, refresh_token: result.refreshToken });
+        if (error) throw error;
+        persistAuthTokens({ accessToken: result.token, refreshToken: result.refreshToken });
+      }
       resetSessionExpiredFlag();
       resetApiSessionState();
       return result;
     } catch (err) {
       throw new Error(formatUserFriendlyError(err, 'The authentication code is invalid or expired.'));
+    }
+  },
+
+  verifyEmailOtpLogin: async ({ challengeToken, code }) => {
+    try {
+      const res = await api.post('/auth/login/email-otp', { challengeToken, code });
+      const payload = res.data?.data || res.data || {};
+      if (payload.challengeRequired) return payload;
+      const result = normalizeBackendAuthPayload(res);
+      if (!result.user?.id || !result.token) throw new Error('Invalid login response from server');
+      const { error } = await supabase.auth.setSession({ access_token: result.token, refresh_token: result.refreshToken });
+      if (error) throw error;
+      persistAuthTokens({ accessToken: result.token, refreshToken: result.refreshToken });
+      resetSessionExpiredFlag();
+      resetApiSessionState();
+      return result;
+    } catch (err) {
+      throw new Error(formatUserFriendlyError(err, 'The email verification code is invalid or expired.'));
+    }
+  },
+
+  resendEmailOtpLogin: async (challengeToken) => {
+    try {
+      const res = await api.post('/auth/login/email-otp/resend', { challengeToken });
+      return res.data?.data || res.data;
+    } catch (err) {
+      throw new Error(formatUserFriendlyError(err, 'Unable to resend the email code right now.'));
     }
   },
 
@@ -391,6 +442,15 @@ export const authService = {
    * Reset a real backend password in production.
    */
   resetPassword: async ({ password, email, token }) => {
+    if (isSupabaseAuth) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) throw new Error('This password recovery link is invalid or expired. Please request a new one.');
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw new Error(error.message);
+      await supabase.auth.signOut({ scope: 'others' });
+      await supabase.auth.signOut({ scope: 'local' });
+      return { success: true, message: 'Password has been reset successfully.' };
+    }
     if (token) {
       try {
         const res = await api.post('/auth/reset-password', {
@@ -438,7 +498,16 @@ export const authService = {
   /**
    * Mock Resend Email Verification.
    */
-  resendVerificationEmail: async (_email) => {
+  resendVerificationEmail: async (email) => {
+    if (isSupabaseAuth) {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/verify-email` },
+      });
+      if (error) throw new Error(error.message);
+      return { success: true, message: 'Verification link resent to your email address.' };
+    }
     await delay(1000);
     return {
       success: true,
@@ -450,7 +519,29 @@ export const authService = {
    * Mock Logout.
    */
   logout: async () => {
-    await delay(500);
+    if (isSupabaseAuth) {
+      try { await api.post('/auth/logout'); } catch { /* logout must still clear the browser session */ }
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      if (error) throw new Error(error.message);
+      resetApiSessionState();
+      return { success: true };
+    }
+    const refreshToken = getRefreshToken();
+    if (refreshToken && !refreshToken.startsWith('mock-')) {
+      await api.post('/auth/logout', { refreshToken });
+    } else {
+      await delay(500);
+    }
     return { success: true };
+  },
+
+  restoreSession: async () => {
+    if (!isSupabaseAuth) return null;
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data?.session) return null;
+    persistAuthTokens({ accessToken: data.session.access_token, refreshToken: data.session.refresh_token });
+    const res = await api.get('/auth/me');
+    const result = normalizeBackendAuthPayload(res, data.session.user?.email);
+    return result.user;
   },
 };

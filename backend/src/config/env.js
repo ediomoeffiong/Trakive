@@ -4,8 +4,18 @@ const dotenv = require('dotenv');
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
+if ((process.env.NODE_ENV || 'development') === 'production' && !process.env.AUTH_PROVIDER) {
+  throw new Error('AUTH_PROVIDER must be explicitly configured in production');
+}
+const authProvider = String(process.env.AUTH_PROVIDER || 'local').trim().toLowerCase();
+if (!['local', 'supabase'].includes(authProvider)) {
+  throw new Error(`Unsupported AUTH_PROVIDER '${authProvider}'. Expected 'local' or 'supabase'.`);
+}
+
 const config = {
   env: process.env.NODE_ENV || 'development',
+  authProvider,
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
   port: parseInt(process.env.PORT, 10) || 5000,
   corsOrigin: (() => {
     const origins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
@@ -38,10 +48,21 @@ const config = {
   },
   supabase: {
     url: process.env.SUPABASE_URL || '',
+    publishableKey: process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '',
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     storageBucket: process.env.SUPABASE_STORAGE_BUCKET || 'documents',
     signedUrlExpiresIn: parseInt(process.env.SUPABASE_SIGNED_URL_EXPIRES_IN, 10) || 300,
   },
+  authChallengeEncryptionKey: process.env.AUTH_CHALLENGE_ENCRYPTION_KEY || '',
 };
+
+if (config.authProvider === 'supabase') {
+  const missing = [];
+  if (!config.supabase.url) missing.push('SUPABASE_URL');
+  if (!config.supabase.publishableKey) missing.push('SUPABASE_PUBLISHABLE_KEY');
+  if (!config.supabase.serviceRoleKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+  if (!config.authChallengeEncryptionKey) missing.push('AUTH_CHALLENGE_ENCRYPTION_KEY');
+  if (missing.length) throw new Error(`Supabase authentication requires: ${missing.join(', ')}`);
+}
 
 module.exports = config;

@@ -235,9 +235,9 @@ export default function TaskDetails() {
     const iv = setInterval(() => {
       setUploadProgress(p => { if (p >= 90) { clearInterval(iv); return 90; } return p + 15; });
     }, 150);
-    submitDeliverable(currentTask.id, { name: file.name, size: (file.size / 1024 / 1024).toFixed(2) + ' MB' })
+    submitDeliverable(currentTask.id, file)
       .then(() => { clearInterval(iv); setUploadProgress(100); setUploadSuccess(true); setTimeout(() => { setUploadFile(null); setUploadSuccess(false); }, 3500); })
-      .catch(() => { clearInterval(iv); setUploadError('Upload failed. Please try again.'); });
+      .catch((err) => { clearInterval(iv); setUploadError(err.message || 'Upload failed. Please try again.'); });
   };
 
   const handleDrop = e => { e.preventDefault(); e.stopPropagation(); setDragActive(false); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); };
