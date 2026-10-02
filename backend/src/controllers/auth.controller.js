@@ -23,7 +23,23 @@ const AuthController = {
     const result = await AuthService.register(req.body, ipAddress, userAgent);
     return sendSuccess(res, {
       statusCode: 201,
-      message: 'User registered successfully',
+      message: result.migrationActivation
+        ? 'Check your inbox to finish activating your existing Trakive account.'
+        : 'User registered successfully',
+      data: result,
+    });
+  }),
+
+  activateExisting: asyncHandler(async (req, res) => {
+    const result = await AuthService.activateExisting(
+      req.body.email,
+      req.body.password,
+      extractClientIp(req),
+      req.get('User-Agent'),
+    );
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: 'Check your inbox to finish account activation. If you already activated this account, reset your password instead.',
       data: result,
     });
   }),

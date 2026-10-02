@@ -17,6 +17,7 @@ import { PublicRoute, RoleGuard } from '../components/layout';
 import Landing from '../pages/Landing';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
+import ActivateAccount from '../pages/ActivateAccount';
 import ForgotPassword from '../pages/ForgotPassword';
 import ResetPassword from '../pages/ResetPassword';
 import VerifyEmail from '../pages/VerifyEmail';
@@ -41,7 +42,6 @@ import AttendancePage from '../pages/AttendancePage';
 
 // Supervisor Pages
 import SupervisorDashboardPage from '../pages/supervisor/Dashboard';
-import SupervisorPlaceholderPage from '../pages/supervisor/PlaceholderPage';
 import SupervisorSettingsPage from '../pages/supervisor/SettingsPage';
 import InternManagementPage from '../pages/supervisor/InternManagement';
 import InternProfilePage from '../pages/supervisor/InternProfile';
@@ -106,6 +106,7 @@ const router = createBrowserRouter([
         children: [
           { path: ROUTES.LOGIN, element: <Login /> },
           { path: ROUTES.REGISTER, element: <Register /> },
+          { path: ROUTES.ACTIVATE_ACCOUNT, element: <ActivateAccount /> },
           { path: ROUTES.FORGOT_PASSWORD, element: <ForgotPassword /> },
           { path: ROUTES.RESET_PASSWORD, element: <ResetPassword /> },
           { path: ROUTES.VERIFY_EMAIL, element: <VerifyEmail /> },

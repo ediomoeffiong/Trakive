@@ -5,6 +5,7 @@ const { authLimiter } = require('../../middleware/security.middleware');
 const {
   registerSchema,
   loginSchema,
+  activateExistingSchema,
   twoFactorLoginSchema,
   emailOtpLoginSchema,
   resendEmailOtpLoginSchema,
@@ -20,6 +21,7 @@ const router = express.Router();
 
 // Public Authentication Routes
 router.post('/register', authLimiter, validate(registerSchema), AuthController.register);
+router.post('/activate-existing', authLimiter, validate(activateExistingSchema), AuthController.activateExisting);
 router.post('/login', authLimiter, validate(loginSchema), AuthController.login);
 router.post('/login/two-factor', authLimiter, validate(twoFactorLoginSchema), AuthController.verifyTwoFactorLogin);
 router.post('/login/email-otp', authLimiter, validate(emailOtpLoginSchema), AuthController.verifyEmailOtpLogin);

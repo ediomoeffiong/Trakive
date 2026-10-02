@@ -73,12 +73,6 @@ const updateStoredMockPassword = (email, password) => {
 
 const delay = (ms = 1000) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const getApiErrorMessage = (err, fallback) =>
-  err.response?.data?.message ||
-  err.response?.data?.error ||
-  err.message ||
-  fallback;
-
 const splitName = (name = '') => {
   const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
   return {
@@ -237,7 +231,10 @@ export const authService = {
       };
     } catch (err) {
       if (!MOCK_AUTH_ENABLED) {
-        throw new Error(formatUserFriendlyError(err, 'Login failed. Please check your credentials and try again.'));
+        const loginError = new Error(formatUserFriendlyError(err, 'Login failed. Please check your credentials and try again.'));
+        loginError.code = err.response?.data?.errors?.code;
+        loginError.email = err.response?.data?.errors?.email;
+        throw loginError;
       }
 
       // If backend responded with explicit auth failure message
@@ -256,6 +253,23 @@ export const authService = {
       resetSessionExpiredFlag();
       resetApiSessionState();
       return getMockLogin(email, password);
+    }
+  },
+
+  activateExisting: async ({ email, password }) => {
+    if (!isOrganizationEmail(email)) {
+      throw new Error(ORG_EMAIL_REQUIRED_MESSAGE);
+    }
+    try {
+      const res = await api.post('/auth/activate-existing', { email, password });
+      assertJsonApiResponse(res, 'Invalid response from authentication server');
+      return {
+        success: res.data?.success ?? true,
+        message: res.data?.message || 'Check your inbox to finish account activation.',
+        email,
+      };
+    } catch (err) {
+      throw new Error(formatUserFriendlyError(err, 'Unable to start account activation. Please try again.'));
     }
   },
 

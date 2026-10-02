@@ -42,7 +42,7 @@ test('local provider remains the default and loads the existing service', () => 
 });
 
 test('supabase provider loads only with explicit complete server configuration', () => {
-  const result = spawnSync(process.execPath, ['-e', "const p=require('./src/services/authProvider.service'); if(typeof p.login!=='function'||typeof p.verifyEmailOtpLogin!=='function')process.exit(2)"], {
+  const result = spawnSync(process.execPath, ['-e', "const p=require('./src/services/authProvider.service'); if(typeof p.login!=='function'||typeof p.activateExisting!=='function'||typeof p.verifyEmailOtpLogin!=='function')process.exit(2)"], {
     cwd: backendRoot,
     env: {
       ...process.env,

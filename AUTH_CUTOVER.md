@@ -48,7 +48,7 @@ Local development uses `AUTH_PROVIDER=local` and `VITE_AUTH_PROVIDER=local`. Sup
 
 ## Existing-user activation
 
-An existing user chooses the existing Register/activation flow with the same official work email and a new password. Supabase sends confirmation to that address. Trakive does not create a duplicate business profile. After the user confirms the email and authenticates, the backend cryptographically verifies the Supabase access token and atomically links the matching unlinked profile by normalized email. Only then is `users.supabase_auth_id` set. The existing `users.id` and every relationship remain unchanged.
+An existing user selects **Activate existing account** on the login page, enters the same official work email, and creates a new production password. Supabase sends confirmation to that address. Trakive does not create a duplicate business profile or ask the user to re-enter profile details. After the user confirms the email and authenticates, the backend cryptographically verifies the Supabase access token and atomically links the matching unlinked profile by normalized email. Only then is `users.supabase_auth_id` set. The existing `users.id` and every relationship remain unchanged. If the account was already activated, the user should use password recovery instead.
 
 If a Supabase identity already exists but the password is unknown, use Forgot password. No legacy hash is copied to Supabase and production never falls back to the legacy password.
 

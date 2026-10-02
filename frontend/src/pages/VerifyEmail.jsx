@@ -16,6 +16,7 @@ import { AuthCard, AuthHeader, Button, ErrorMessage } from '../components/ui';
 const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
   const targetEmail = searchParams.get('email') || 'your-email@company.com';
+  const isActivation = searchParams.get('activation') === '1';
   const verificationError = searchParams.get('error_description') || searchParams.get('error');
 
   const resendFn = useAppStore((state) => state.resendVerificationEmail);
@@ -41,7 +42,7 @@ const VerifyEmail = () => {
       await resendFn(targetEmail);
       toast.success('Verification link resent successfully!');
       setCountdown(60); // Reset countdown
-    } catch (err) {
+    } catch {
       // Handled in store error state
     }
   };
@@ -76,7 +77,9 @@ const VerifyEmail = () => {
 
       <AuthHeader
         title="Check your inbox"
-        subtitle={`We've sent a secure verification email containing confirmation instructions to: ${targetEmail}`}
+        subtitle={isActivation
+          ? `Use the verification link sent to ${targetEmail} to finish activating your existing Trakive profile.`
+          : `We've sent a secure verification email containing confirmation instructions to: ${targetEmail}`}
       />
 
       {authError && <ErrorMessage message={authError} />}
@@ -104,6 +107,16 @@ const VerifyEmail = () => {
         >
           Can't find the email? Check your spam folder or trigger a new secure link using the resend action.
         </p>
+
+        {isActivation && (
+          <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: 'var(--color-neutral-400)', margin: 0 }}>
+            Already activated this account?{' '}
+            <Link to={ROUTES.FORGOT_PASSWORD} onClick={clearError} style={{ color: '#0096c7', fontWeight: 700, textDecoration: 'none' }}>
+              Reset your password
+            </Link>
+            {' '}instead.
+          </p>
+        )}
 
         {/* Back to Login link */}
         <p className="text-center text-sm text-neutral-500 mt-4 mb-0">

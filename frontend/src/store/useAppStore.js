@@ -115,7 +115,22 @@ const createAuthSlice = (set, get) => ({
     } catch (err) {
       const friendlyError = formatUserFriendlyError(err, 'Login failed. Please check your credentials and try again.');
       set({ error: friendlyError, isLoading: false });
-      throw new Error(friendlyError);
+      const loginError = new Error(friendlyError);
+      loginError.code = err.code;
+      loginError.email = err.email;
+      throw loginError;
+    }
+  },
+
+  activateExisting: async (credentials) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await authService.activateExisting(credentials);
+      set({ isLoading: false });
+      return response;
+    } catch (err) {
+      set({ error: err.message, isLoading: false });
+      throw err;
     }
   },
 

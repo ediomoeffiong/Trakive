@@ -27,6 +27,7 @@ import {
 } from '../components/ui';
 
 import { getRoleDefaultRoute, orgEmailRegisterOptions } from '../utils';
+import { isSupabaseAuth } from '../config/authProvider';
 
 const DEMO_ACCOUNTS = [
   {
@@ -76,6 +77,7 @@ const Login = () => {
   const [challengeToken, setChallengeToken] = useState('');
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [challengeRequirements, setChallengeRequirements] = useState({ emailOtpRequired: false, totpRequired: false });
+  const [activationEmail, setActivationEmail] = useState('');
 
   const {
     register,
@@ -112,6 +114,7 @@ const Login = () => {
   };
 
   const onSubmit = async (data) => {
+    setActivationEmail('');
     try {
       const response = await loginFn({ email: data.email, password: data.password });
       if (response.twoFactorRequired || response.challengeRequired) {
@@ -127,7 +130,9 @@ const Login = () => {
       const defaultRoute = getRoleDefaultRoute(response.user.role);
       navigate(defaultRoute);
     } catch (err) {
-      // Store error state handles display.
+      if (err.code === 'ACCOUNT_ACTIVATION_REQUIRED') {
+        setActivationEmail(err.email || data.email);
+      }
     }
   };
 
@@ -244,7 +249,24 @@ const Login = () => {
         </div>
       )}
 
-      {authError && <ErrorMessage message={authError} />}
+      {authError && !challengeToken && <ErrorMessage message={authError} />}
+      {activationEmail && (
+        <div style={{ marginTop: '-0.5rem', marginBottom: '1rem', fontSize: '0.875rem', color: '#475569' }}>
+          <span>Keep your existing Trakive profile and set up a production password. </span>
+          <Link
+            to={`${ROUTES.ACTIVATE_ACCOUNT}?email=${encodeURIComponent(activationEmail)}`}
+            onClick={clearError}
+            style={{ color: '#0077b6', fontWeight: 700, textDecoration: 'none' }}
+          >
+            Activate existing account
+          </Link>
+          <span>. Already completed setup? </span>
+          <Link to={ROUTES.FORGOT_PASSWORD} onClick={clearError} style={{ color: '#0077b6', fontWeight: 700, textDecoration: 'none' }}>
+            Reset your password
+          </Link>
+          <span>.</span>
+        </div>
+      )}
 
       {challengeToken && (
         <form onSubmit={handleTwoFactorSubmit} className="flex flex-col gap-4">
@@ -500,6 +522,18 @@ const Login = () => {
           Create an Account
         </Link>
       </p>
+      {isSupabaseAuth && (
+        <p style={{ margin: '0.65rem 0 0', textAlign: 'center', fontSize: '0.8125rem', color: '#64748b' }}>
+          Had a Trakive account before the authentication upgrade?{' '}
+          <Link
+            to={`${ROUTES.ACTIVATE_ACCOUNT}${emailValue ? `?email=${encodeURIComponent(emailValue)}` : ''}`}
+            onClick={clearError}
+            style={{ color: '#0096c7', fontWeight: 700, textDecoration: 'none' }}
+          >
+            Activate it once
+          </Link>
+        </p>
+      )}
     </AuthCard>
   );
 };

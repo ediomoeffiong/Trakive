@@ -148,6 +148,35 @@ const finalizeChallenge = async (challenge, challengeToken, meta) => {
 };
 
 const SupabaseAuthService = {
+  async activateExisting(rawEmail, password, ipAddress = null, userAgent = null) {
+    const email = assertAllowedEmail(rawEmail);
+    const existing = await UserModel.findByEmail(email);
+
+    if (!existing) {
+      throw ApiError.badRequest('We could not activate this account. Check the work email or contact your Trakive administrator.');
+    }
+    if (existing.status !== 'active') {
+      throw ApiError.forbidden('This Trakive account is inactive or suspended. Contact your administrator.');
+    }
+    if (existing.supabase_auth_id) {
+      throw ApiError.conflict('This account is already activated. Sign in or reset your password.');
+    }
+
+    const { data: signUp, error } = await getSupabasePublicClient().auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${config.frontendUrl.replace(/\/$/, '')}/verify-email?email=${encodeURIComponent(email)}` },
+    });
+    if (error) throw ApiError.badRequest(error.message);
+    if (!signUp?.user) throw ApiError.badRequest('Unable to start account activation right now');
+
+    await audit(existing, 'SUPABASE_ACTIVATION_REQUESTED', { email }, { ipAddress, userAgent });
+    return {
+      verificationRequired: true,
+      email,
+    };
+  },
+
   async register(data, ipAddress = null, userAgent = null) {
     const email = assertAllowedEmail(data.email);
     const existing = await UserModel.findByEmail(email);
@@ -188,10 +217,17 @@ const SupabaseAuthService = {
     const existing = await UserModel.findByEmail(email);
     const { data, error } = await getSupabasePublicClient().auth.signInWithPassword({ email, password });
     if (error || !data?.user || !data?.session) {
-      if (!error?.code || ['invalid_credentials', 'invalid_grant'].includes(error.code)) {
+      if (existing?.supabase_auth_id && (!error?.code || ['invalid_credentials', 'invalid_grant'].includes(error.code))) {
         await recordFailedPassword(existing, email, meta);
       }
-      throw ApiError.unauthorized('Invalid email or password. If this is your first production login, activate the account using your work email.');
+      if (existing && !existing.supabase_auth_id) {
+        throw new ApiError(
+          409,
+          'Your existing Trakive profile needs a one-time account setup before you can sign in.',
+          { code: 'ACCOUNT_ACTIVATION_REQUIRED', email },
+        );
+      }
+      throw ApiError.unauthorized('The email or password is incorrect. Please try again or reset your password.');
     }
 
     const user = await resolveSupabaseIdentity(data.user, meta);

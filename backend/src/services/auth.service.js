@@ -36,6 +36,10 @@ const resolveRoleName = (roleInput) => {
 };
 
 const AuthService = {
+  async activateExisting() {
+    throw ApiError.badRequest('Existing-account activation is only available with Supabase authentication');
+  },
+
   /**
    * User Registration
    */

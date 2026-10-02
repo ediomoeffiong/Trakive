@@ -29,6 +29,15 @@ const loginSchema = {
   }),
 };
 
+const activateExistingSchema = {
+  body: Joi.object({
+    email: Joi.string().email().required().trim().lowercase(),
+    password: Joi.string().pattern(passwordPattern).required().messages({
+      'string.pattern.base': passwordMessage,
+    }),
+  }),
+};
+
 const twoFactorLoginSchema = {
   body: Joi.object({
     challengeToken: Joi.string().required(),
@@ -86,6 +95,7 @@ const verifyEmailSchema = {
 module.exports = {
   registerSchema,
   loginSchema,
+  activateExistingSchema,
   twoFactorLoginSchema,
   emailOtpLoginSchema,
   resendEmailOtpLoginSchema,
