@@ -456,8 +456,10 @@ export const authService = {
   verifyRecoveryCode: async ({ email, code }) => {
     if (!isSupabaseAuth) throw new Error('Recovery codes are only available with Supabase authentication.');
     const token = String(code || '').replace(/\s+/g, '');
+    sessionStorage.setItem(STORAGE_KEYS.PASSWORD_RECOVERY_USER, 'pending');
     const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'recovery' });
     if (error || !data?.session?.user?.id) {
+      sessionStorage.removeItem(STORAGE_KEYS.PASSWORD_RECOVERY_USER);
       throw new Error(error?.message || 'The recovery code is invalid or expired.');
     }
     persistAuthTokens({
@@ -479,6 +481,7 @@ export const authService = {
       if (error) throw new Error(error.message);
       await supabase.auth.signOut({ scope: 'others' });
       await supabase.auth.signOut({ scope: 'local' });
+      resetApiSessionState();
       return { success: true, message: 'Password has been reset successfully.' };
     }
     if (token) {

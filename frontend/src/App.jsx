@@ -37,10 +37,15 @@ function App() {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         persistAuthTokens({ accessToken: session.access_token, refreshToken: session.refresh_token });
+        const recoveryUser = sessionStorage.getItem(STORAGE_KEYS.PASSWORD_RECOVERY_USER);
+        const isRecoverySession =
+          event === 'PASSWORD_RECOVERY' ||
+          recoveryUser === 'pending' ||
+          recoveryUser === session.user?.id;
         if (event === 'PASSWORD_RECOVERY' && session.user?.id) {
           sessionStorage.setItem(STORAGE_KEYS.PASSWORD_RECOVERY_USER, session.user.id);
         }
-        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        if (!isRecoverySession && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
           setTimeout(() => useAppStore.getState().restoreSession(), 0);
         }
       } else if (event === 'SIGNED_OUT') {
